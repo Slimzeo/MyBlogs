@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.myblogs.mappers.UserInfoMapper">
+
+	<!--实体映射-->
+	<resultMap id="base_result_map" type="com.myblogs.entity.po.UserInfo">
+		<!---->
+		<id column="id" property="id"  />
+		<!---->
+		<result column="user_id" property="userId"  />
+		<!---->
+		<result column="email" property="email"  />
+		<!---->
+		<result column="password" property="password"  />
+		<!---->
+		<result column="nickname" property="nickname"  />
+		<!---->
+		<result column="description" property="description"  />
+		<!---->
+		<result column="status" property="status"  />
+		<!---->
+		<result column="create_time" property="createTime"  />
+		<!---->
+		<result column="update_time" property="updateTime"  />
+		<!---->
+		<result column="last_login_time" property="lastLoginTime"  />
+	</resultMap>
+
+
+	<!-- 通用查询结果列-->
+	<sql id="base_column_list">
+		 u.id,u.user_id,u.email,u.password,u.nickname,
+		 u.description,u.status,u.create_time,u.update_time,u.last_login_time
+		 
+	</sql>
+
+	<sql id="base_condition_filed">
+			<if test="query.id != null">
+				 and  u.id = #{query.id}
+			</if>
+			<if test="query.userId != null">
+				 and  u.user_id = #{query.userId}
+			</if>
+			<if test="query.email != null and query.email!=''">
+				 and  u.email = #{query.email}
+			</if>
+			<if test="query.password != null and query.password!=''">
+				 and  u.password = #{query.password}
+			</if>
+			<if test="query.nickname != null and query.nickname!=''">
+				 and  u.nickname = #{query.nickname}
+			</if>
+			<if test="query.description != null and query.description!=''">
+				 and  u.description = #{query.description}
+			</if>
+			<if test="query.status != null">
+				 and  u.status = #{query.status}
+			</if>
+			<if test="query.createTime != null and query.createTime!=''">
+				 <![CDATA[ and  u.create_time=str_to_date(#{query.createTime}, '%Y-%m-%d') ]]>
+			</if>
+			<if test="query.updateTime != null and query.updateTime!=''">
+				 <![CDATA[ and  u.update_time=str_to_date(#{query.updateTime}, '%Y-%m-%d') ]]>
+			</if>
+			<if test="query.lastLoginTime != null and query.lastLoginTime!=''">
+				 <![CDATA[ and  u.last_login_time=str_to_date(#{query.lastLoginTime}, '%Y-%m-%d') ]]>
+			</if>
+	</sql>
+
+	<!-- 通用查询条件列-->
+	<sql id="query_condition">
+	 <where>
+			<include refid="base_condition_filed" />
+			<if test="query.emailFuzzy!= null  and query.emailFuzzy!=''">
+				 and  u.email like concat('%', #{query.emailFuzzy}, '%')
+			</if>
+			<if test="query.passwordFuzzy!= null  and query.passwordFuzzy!=''">
+				 and  u.password like concat('%', #{query.passwordFuzzy}, '%')
+			</if>
+			<if test="query.nicknameFuzzy!= null  and query.nicknameFuzzy!=''">
+				 and  u.nickname like concat('%', #{query.nicknameFuzzy}, '%')
+			</if>
+			<if test="query.descriptionFuzzy!= null  and query.descriptionFuzzy!=''">
+				 and  u.description like concat('%', #{query.descriptionFuzzy}, '%')
+			</if>
+			<if test="query.createTimeStart!= null and query.createTimeStart!=''">
+				 <![CDATA[ and  u.create_time>=str_to_date(#{query.createTimeStart}, '%Y-%m-%d') ]]>
+			</if>
+			<if test="query.createTimeEnd!= null and query.createTimeEnd!=''">
+				 <![CDATA[ and  u.create_time< date_sub(str_to_date(#{query.createTimeEnd},'%Y-%m-%d'),interval -1 day) ]]>
+			</if>
+			<if test="query.updateTimeStart!= null and query.updateTimeStart!=''">
+				 <![CDATA[ and  u.update_time>=str_to_date(#{query.updateTimeStart}, '%Y-%m-%d') ]]>
+			</if>
+			<if test="query.updateTimeEnd!= null and query.updateTimeEnd!=''">
+				 <![CDATA[ and  u.update_time< date_sub(str_to_date(#{query.updateTimeEnd},'%Y-%m-%d'),interval -1 day) ]]>
+			</if>
+			<if test="query.lastLoginTimeStart!= null and query.lastLoginTimeStart!=''">
+				 <![CDATA[ and  u.last_login_time>=str_to_date(#{query.lastLoginTimeStart}, '%Y-%m-%d') ]]>
+			</if>
+			<if test="query.lastLoginTimeEnd!= null and query.lastLoginTimeEnd!=''">
+				 <![CDATA[ and  u.last_login_time< date_sub(str_to_date(#{query.lastLoginTimeEnd},'%Y-%m-%d'),interval -1 day) ]]>
+			</if>
+	 </where>
+	</sql>
+
+	<!-- 查询集合-->
+	<select id="selectList" resultMap="base_result_map" >
+		 SELECT <include refid="base_column_list" /> FROM user_info u <include refid="query_condition" />
+		 <if test="query.orderBy!=null">
+			 order by ${query.orderBy}
+		 </if>
+		 <if test="query.simplePage!=null">
+			 limit #{query.simplePage.start},#{query.simplePage.end}
+		 </if>
+	</select>
+
+	<!-- 查询数量-->
+	<select id="selectCount" resultType="java.lang.Integer" >
+		 SELECT count(1) FROM user_info u <include refid="query_condition" />
+	</select>
+
+	<!-- 插入 （匹配有值的字段）-->
+	<insert id="insert" parameterType="com.myblogs.entity.po.UserInfo">
+		<selectKey keyProperty="bean.id" resultType="Long" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+		 INSERT INTO user_info
+		 <trim prefix="(" suffix=")" suffixOverrides="," >
+			<if test="bean.userId != null">
+				 user_id,
+			</if>
+			<if test="bean.email != null">
+				 email,
+			</if>
+			<if test="bean.password != null">
+				 password,
+			</if>
+			<if test="bean.nickname != null">
+				 nickname,
+			</if>
+			<if test="bean.description != null">
+				 description,
+			</if>
+			<if test="bean.status != null">
+				 status,
+			</if>
+			<if test="bean.createTime != null">
+				 create_time,
+			</if>
+			<if test="bean.updateTime != null">
+				 update_time,
+			</if>
+			<if test="bean.lastLoginTime != null">
+				 last_login_time,
+			</if>
+		 </trim>
+		 <trim prefix="values (" suffix=")" suffixOverrides="," >
+			<if test="bean.userId!=null">
+				 #{bean.userId},
+			</if>
+			<if test="bean.email!=null">
+				 #{bean.email},
+			</if>
+			<if test="bean.password!=null">
+				 #{bean.password},
+			</if>
+			<if test="bean.nickname!=null">
+				 #{bean.nickname},
+			</if>
+			<if test="bean.description!=null">
+				 #{bean.description},
+			</if>
+			<if test="bean.status!=null">
+				 #{bean.status},
+			</if>
+			<if test="bean.createTime!=null">
+				 #{bean.createTime},
+			</if>
+			<if test="bean.updateTime!=null">
+				 #{bean.updateTime},
+			</if>
+			<if test="bean.lastLoginTime!=null">
+				 #{bean.lastLoginTime},
+			</if>
+		 </trim>
+	</insert>
+
+	<!-- 插入或者更新 （匹配有值的字段）-->
+	<insert id="insertOrUpdate" parameterType="com.myblogs.entity.po.UserInfo">
+		 INSERT INTO user_info
+		 <trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="bean.id != null">
+				 id,
+			</if>
+			<if test="bean.userId != null">
+				 user_id,
+			</if>
+			<if test="bean.email != null">
+				 email,
+			</if>
+			<if test="bean.password != null">
+				 password,
+			</if>
+			<if test="bean.nickname != null">
+				 nickname,
+			</if>
+			<if test="bean.description != null">
+				 description,
+			</if>
+			<if test="bean.status != null">
+				 status,
+			</if>
+			<if test="bean.createTime != null">
+				 create_time,
+			</if>
+			<if test="bean.updateTime != null">
+				 update_time,
+			</if>
+			<if test="bean.lastLoginTime != null">
+				 last_login_time,
+			</if>
+		 </trim>
+		 <trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="bean.id!=null">
+				 #{bean.id},
+			</if>
+			<if test="bean.userId!=null">
+				 #{bean.userId},
+			</if>
+			<if test="bean.email!=null">
+				 #{bean.email},
+			</if>
+			<if test="bean.password!=null">
+				 #{bean.password},
+			</if>
+			<if test="bean.nickname!=null">
+				 #{bean.nickname},
+			</if>
+			<if test="bean.description!=null">
+				 #{bean.description},
+			</if>
+			<if test="bean.status!=null">
+				 #{bean.status},
+			</if>
+			<if test="bean.createTime!=null">
+				 #{bean.createTime},
+			</if>
+			<if test="bean.updateTime!=null">
+				 #{bean.updateTime},
+			</if>
+			<if test="bean.lastLoginTime!=null">
+				 #{bean.lastLoginTime},
+			</if>
+		 </trim>
+		 on DUPLICATE key update 
+		 <trim prefix="" suffix="" suffixOverrides=",">
+			<if test="bean.userId!=null">
+				 user_id = VALUES(user_id),
+			</if>
+			<if test="bean.email!=null">
+				 email = VALUES(email),
+			</if>
+			<if test="bean.password!=null">
+				 password = VALUES(password),
+			</if>
+			<if test="bean.nickname!=null">
+				 nickname = VALUES(nickname),
+			</if>
+			<if test="bean.description!=null">
+				 description = VALUES(description),
+			</if>
+			<if test="bean.status!=null">
+				 status = VALUES(status),
+			</if>
+			<if test="bean.createTime!=null">
+				 create_time = VALUES(create_time),
+			</if>
+			<if test="bean.updateTime!=null">
+				 update_time = VALUES(update_time),
+			</if>
+			<if test="bean.lastLoginTime!=null">
+				 last_login_time = VALUES(last_login_time),
+			</if>
+		 </trim>
+	</insert>
+
+	<!-- 添加 （批量插入）-->
+	<insert id="insertBatch" parameterType="com.myblogs.entity.po.UserInfo" useGeneratedKeys="true" keyProperty="id">
+		 INSERT INTO user_info(
+			 user_id,
+			 email,
+			 password,
+			 nickname,
+			 description,
+			 status,
+			 create_time,
+			 update_time,
+			 last_login_time
+		 )values
+		 <foreach collection="list" item="item" separator=",">
+			 (
+				 #{item.userId},
+				 #{item.email},
+				 #{item.password},
+				 #{item.nickname},
+				 #{item.description},
+				 #{item.status},
+				 #{item.createTime},
+				 #{item.updateTime},
+				 #{item.lastLoginTime}
+			 )
+		 </foreach>
+	</insert>
+
+	<!-- 批量新增修改 （批量插入）-->
+	<insert id="insertOrUpdateBatch" parameterType="com.myblogs.entity.po.UserInfo">
+		 INSERT INTO user_info(
+			 user_id,
+			 email,
+			 password,
+			 nickname,
+			 description,
+			 status,
+			 create_time,
+			 update_time,
+			 last_login_time
+		 )values
+		 <foreach collection="list" item="item" separator=",">
+			 (
+				 #{item.userId},
+				 #{item.email},
+				 #{item.password},
+				 #{item.nickname},
+				 #{item.description},
+				 #{item.status},
+				 #{item.createTime},
+				 #{item.updateTime},
+				 #{item.lastLoginTime}
+			 )
+		 </foreach>
+			on DUPLICATE key update 
+			user_id = VALUES(user_id),
+			email = VALUES(email),
+			password = VALUES(password),
+			nickname = VALUES(nickname),
+			description = VALUES(description),
+			status = VALUES(status),
+			create_time = VALUES(create_time),
+			update_time = VALUES(update_time),
+			last_login_time = VALUES(last_login_time)
+	</insert>
+
+	<!--多条件修改-->
+	<update id="updateByParam" parameterType="com.myblogs.entity.query.UserInfoQuery">
+		 UPDATE user_info u
+ 		 <set> 
+			<if test="bean.userId != null">
+				 user_id = #{bean.userId},
+			</if>
+			<if test="bean.email != null">
+				 email = #{bean.email},
+			</if>
+			<if test="bean.password != null">
+				 password = #{bean.password},
+			</if>
+			<if test="bean.nickname != null">
+				 nickname = #{bean.nickname},
+			</if>
+			<if test="bean.description != null">
+				 description = #{bean.description},
+			</if>
+			<if test="bean.status != null">
+				 status = #{bean.status},
+			</if>
+			<if test="bean.createTime != null">
+				 create_time = #{bean.createTime},
+			</if>
+			<if test="bean.updateTime != null">
+				 update_time = #{bean.updateTime},
+			</if>
+			<if test="bean.lastLoginTime != null">
+				 last_login_time = #{bean.lastLoginTime},
+			</if>
+ 		 </set>
+ 		 <include refid="query_condition" />
+	</update>
+
+	<!--多条件删除-->
+	<delete id="deleteByParam">
+		 delete u from user_info u
+ 		 <include refid="query_condition" />
+	</delete>
+
+	<!-- 根据Id修改-->
+	<update id="updateById" parameterType="com.myblogs.entity.po.UserInfo">
+		 UPDATE user_info
+ 		 <set> 
+			<if test="bean.userId != null">
+				 user_id = #{bean.userId},
+			</if>
+			<if test="bean.email != null">
+				 email = #{bean.email},
+			</if>
+			<if test="bean.password != null">
+				 password = #{bean.password},
+			</if>
+			<if test="bean.nickname != null">
+				 nickname = #{bean.nickname},
+			</if>
+			<if test="bean.description != null">
+				 description = #{bean.description},
+			</if>
+			<if test="bean.status != null">
+				 status = #{bean.status},
+			</if>
+			<if test="bean.createTime != null">
+				 create_time = #{bean.createTime},
+			</if>
+			<if test="bean.updateTime != null">
+				 update_time = #{bean.updateTime},
+			</if>
+			<if test="bean.lastLoginTime != null">
+				 last_login_time = #{bean.lastLoginTime},
+			</if>
+ 		 </set>
+ 		 where id=#{id}
+	</update>
+
+	<!-- 根据Id删除-->
+	<delete id="deleteById">
+		delete from user_info where id=#{id}
+	</delete>
+
+	<!-- 根据PrimaryKey获取对象-->
+	<select id="selectById" resultMap="base_result_map" >
+		select <include refid="base_column_list" /> from user_info u where id=#{id}
+	</select>
+
+	<select id="selectByEmail" resultMap="base_result_map">
+		select <include refid="base_column_list"/> from user_info u where email=#{email}
+	</select>
+</mapper>

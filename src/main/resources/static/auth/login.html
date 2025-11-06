@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html class="h-full bg-[#0B1306]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login & Register</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/api/auth/css/theme.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+
+    <style>
+        /* 自定义动画 */
+        .slide-enter {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        .slide-enter-active {
+            transform: translateX(0);
+            opacity: 1;
+            transition: all 0.5s ease-out;
+        }
+        .slide-exit {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        .slide-exit-active {
+            transform: translateX(-100%);
+            opacity: 0;
+            transition: all 0.5s ease-out;
+        }
+
+        /* 装饰性波浪分割线 */
+        .wave-divider {
+            position: absolute;
+            left: 38.2%;
+            top: 0;
+            bottom: 0;
+            width: 120px;
+            margin-left: -60px;
+            overflow: hidden;
+            z-index: 10;
+        }
+        .wave-divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(90deg, transparent, #0B1306 30%, #0B1306 70%, transparent);
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #00a88a;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Toast 通知样式 */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(0, 168, 138, 0.95);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 32px rgba(0, 168, 138, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            max-width: 400px;
+            pointer-events: auto;
+            transform: translateX(400px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .toast.error {
+            background: rgba(239, 68, 68, 0.95);
+            box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3);
+        }
+
+        .toast.warning {
+            background: rgba(245, 158, 11, 0.95);
+            box-shadow: 0 8px 32px rgba(245, 158, 11, 0.3);
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .toast-message {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .toast-close {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            padding: 4px;
+        }
+
+        .toast-close:hover {
+            opacity: 1;
+        }
+
+        /* 进度条 */
+        .toast-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.3);
+            width: 100%;
+            border-radius: 0 0 12px 12px;
+            overflow: hidden;
+        }
+
+        .toast-progress-bar {
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            transition: width linear;
+        }
+    </style>
+
+    <link rel="preload" as="image" href="/api/assets/img/xiaohei_1.jpg">
+    <link rel="preload" as="image" href="/api/assets/img/xiaohei_2.jpg">
+</head>
+<body class="h-full">
+<div class="flex min-h-full">
+    <!-- 左侧表单区域 - 黄金比例 38.2% -->
+    <div class="relative flex w-full flex-col justify-center px-6 py-12 lg:w-[38.2%] lg:px-12 xl:px-16">
+        <!-- Logo 放在左上角 -->
+        <div class="absolute left-6 top-8 lg:left-12 xl:left-16 z-20">
+            <img src="/api/assets/favicon.ico" alt="Your Company" class="h-10 w-auto" />
+        </div>
+
+        <!-- 登录表单容器 -->
+        <div id="loginForm" class="mx-auto w-full max-w-sm lg:mx-0 lg:max-w-md transition-all duration-500">
+            <div class="lg:pr-8">
+                <!-- 标题区域 -->
+                <div class="mb-10">
+                    <h2 class="text-3xl font-bold tracking-tight text-white lg:text-4xl">Welcome back😻</h2>
+                    <p class="mt-2 text-sm text-gray-400 lg:text-base">
+                        Please enter your details to sign in.
+                    </p>
+                </div>
+
+                <!-- 登录表单 -->
+                <form id="loginFormElement" class="space-y-6">
+                    <div>
+                        <label for="login-email" class="block text-sm font-medium text-gray-100">
+                            Email address
+                        </label>
+                        <div class="mt-2">
+                            <input
+                                    id="login-email"
+                                    type="email"
+                                    name="email"
+                                    required
+                                    autocomplete="email"
+                                    placeholder="name@example.com"
+                                    class="block w-full rounded-lg bg-white/5 px-3.5 py-2.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-[#00a88a] transition-all duration-200"
+                            />
+                        </div>
+                        <div id="login-email-error" class="mt-1 text-sm text-red-400 hidden"></div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <label for="login-password" class="block text-sm font-medium text-gray-100">
+                                Password
+                            </label>
+                            <div class="text-sm">
+                                <a href="/forgot-password" class="font-medium text-[#00a88a] hover:text-[#00c9a7] transition-colors">
+                                    Forgot password?
+                                </a>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <input
+                                    id="login-password"
+                                    type="password"
+                                    name="password"
+                                    required
+                                    autocomplete="current-password"
+                                    placeholder="••••••••"
+                                    class="block w-full rounded-lg bg-white/5 px-3.5 py-2.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-[#00a88a] transition-all duration-200"
+                            />
+                        </div>
+                        <div id="login-password-error" class="mt-1 text-sm text-red-400 hidden"></div>
+                    </div>
+
+                    <!-- Remember me checkbox -->
+                    <div class="flex items-center">
+                        <input
+                                id="remember-me"
+                                name="remember-me"
+                                type="checkbox"
+                                class="h-4 w-4 rounded border-gray-600 bg-white/5 text-[#00a88a] focus:ring-[#00a88a] focus:ring-offset-0"
+                        />
+                        <label for="remember-me" class="ml-2 block text-sm text-gray-300">
+                            Remember me for 30 days
+                        </label>
+                    </div>
+
+                    <!-- Error message display -->
+                    <div id="login-error" class="rounded-md bg-red-50/10 p-3 hidden">
+                        <p class="text-sm text-red-400"></p>
+                    </div>
+
+                    <div>
+                        <button
+                                id="login-submit-btn"
+                                type="submit"
+                                class="flex w-full justify-center items-center rounded-lg bg-[#00a88a] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#00c9a7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00a88a] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span id="login-btn-text">Sign in</span>
+                            <div id="login-btn-spinner" class="spinner ml-2 hidden"></div>
+                        </button>
+                    </div>
+                </form>
+
+
+                <!-- 分隔线 -->
+                <div class="mt-8">
+                    <div class="relative">
+                        <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div class="w-full border-t border-gray-700"></div>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="divider-text px-4 text-gray-400">Or continue with</span>
+                        </div>
+                    </div>
+
+                    <!-- 社交登录按钮 (可选，如果你的后端支持) -->
+                    <div class="mt-6 grid grid-cols-2 gap-3">
+                        <button type="button" class="flex w-full items-center justify-center gap-2 rounded-lg bg-white/5 px-3 py-2.5 text-sm font-medium text-white outline-1 -outline-offset-1 outline-white/10 hover:bg-white/10 transition-all duration-200">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
+                            </svg>
+                            Google
+                        </button>
+                        <button type="button" class="flex w-full items-center justify-center gap-2 rounded-lg bg-white/5 px-3 py-2.5 text-sm font-medium text-white outline-1 -outline-offset-1 outline-white/10 hover:bg-white/10 transition-all duration-200">
+                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clip-rule="evenodd"/>
+                            </svg>
+                            GitHub
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 注册链接 -->
+                <p class="mt-8 text-center text-sm text-gray-400 lg:text-left">
+                    Not a member?
+                    <a href="#" onclick="showRegister(event)" class="font-medium text-[#00a88a] hover:text-[#00c9a7] transition-colors">
+                        Sign up
+                    </a>
+                </p>
+            </div>
+        </div>
+
+        <!-- 注册表单容器 (初始隐藏) -->
+        <div id="registerForm" class="mx-auto w-full max-w-sm lg:mx-0 lg:max-w-md hidden transition-all duration-500">
+            <div class="lg:pr-8">
+                <!-- 标题区域 -->
+                <div class="mb-10">
+                    <h2 class="text-3xl font-bold tracking-tight text-white lg:text-4xl">Create Account🎉</h2>
+                    <p class="mt-2 text-sm text-gray-400 lg:text-base">
+                        Join us and start your journey today.
+                    </p>
+                </div>
+
+                <!-- 注册表单 -->
+                <form id="registerFormElement" class="space-y-6">
+                    <!-- 隐藏的verifiedKey字段 -->
+                    <input type="hidden" id="verifiedKey" name="verifiedKey" value="">
+
+                    <div>
+                        <label for="reg-nickname" class="block text-sm font-medium text-gray-100">
+                            Nickname
+                        </label>
+                        <div class="mt-2">
+                            <input
+                                    id="reg-nickname"
+                                    type="text"
+                                    name="nickname"
+                                    required
+                                    placeholder="Your display name"
+                                    class="block w-full rounded-lg bg-white/5 px-3.5 py-2.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-[#00a88a] transition-all duration-200"
+                            />
+                        </div>
+                        <div id="reg-nickname-error" class="mt-1 text-sm text-red-400 hidden"></div>
+                    </div>
+
+                    <div>
+                        <label for="reg-email" class="block text-sm font-medium text-gray-100">
+                            Email address
+                        </label>
+                        <div class="mt-2">
+                            <input
+                                    id="reg-email"
+                                    type="email"
+                                    name="email"
+                                    required
+                                    placeholder="name@example.com"
+                                    class="block w-full rounded-lg bg-white/5 px-3.5 py-2.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-[#00a88a] transition-all duration-200"
+                            />
+                        </div>
+                        <div id="reg-email-error" class="mt-1 text-sm text-red-400 hidden"></div>
+                    </div>
+
+                    <!-- 验证码部分 -->
+                    <div>
+                        <label for="reg-code" class="block text-sm font-medium text-gray-100">
+                            Email Verification Code
+                        </label>
+                        <div class="mt-2 flex gap-2">
+                            <input
+                                    id="reg-code"
+                                    type="text"
+                                    name="code"
+                                    required
+                                    placeholder="6-digit code"
+                                    maxlength="6"
+                                    class="block flex-1 rounded-lg bg-white/5 px-3.5 py-2.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-[#00a88a] transition-all duration-200"
+                            />
+                            <button
+                                    id="send-code-btn"
+                                    type="button"
+                                    class="px-4 py-2.5 rounded-lg bg-[#00a88a]/20 text-[#00a88a] hover:bg-[#00a88a]/30 font-medium text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                            >
+                                <span id="send-code-text">Send Code</span>
+                                <span id="send-code-countdown" class="hidden"></span>
+                            </button>
+                        </div>
+                        <div id="reg-code-error" class="mt-1 text-sm text-red-400 hidden"></div>
+                    </div>
+
+                    <div>
+                        <label for="reg-password" class="block text-sm font-medium text-gray-100">
+                            Password
+                        </label>
+                        <div class="mt-2">
+                            <input
+                                    id="reg-password"
+                                    type="password"
+                                    name="password"
+                                    required
+                                    placeholder="••••••••"
+                                    minlength="8"
+                                    class="block w-full rounded-lg bg-white/5 px-3.5 py-2.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-[#00a88a] transition-all duration-200"
+                            />
+                        </div>
+                        <div id="reg-password-error" class="mt-1 text-sm text-red-400 hidden"></div>
+                        <div class="mt-1 text-xs text-gray-400">At least 8 characters</div>
+                    </div>
+
+                    <!-- Terms checkbox -->
+                    <div class="flex items-start">
+                        <input
+                                id="terms"
+                                name="terms"
+                                type="checkbox"
+                                required
+                                class="h-4 w-4 mt-0.5 rounded border-gray-600 bg-white/5 text-[#00a88a] focus:ring-[#00a88a] focus:ring-offset-0"
+                        />
+                        <label for="terms" class="ml-2 block text-sm text-gray-300">
+                            I agree to the <a href="#" class="text-[#00a88a] hover:text-[#00c9a7]">Terms</a> and <a href="#" class="text-[#00a88a] hover:text-[#00c9a7]">Privacy Policy</a>
+                        </label>
+                    </div>
+
+                    <!-- Error message display -->
+                    <div id="register-error" class="rounded-md bg-red-50/10 p-3 hidden">
+                        <p class="text-sm text-red-400"></p>
+                    </div>
+
+                    <!-- Success message display -->
+                    <div id="register-success" class="rounded-md bg-green-50/10 p-3 hidden">
+                        <p class="text-sm text-green-400"></p>
+                    </div>
+
+                    <div>
+                        <button
+                                id="register-submit-btn"
+                                type="submit"
+                                class="flex w-full justify-center items-center rounded-lg bg-[#00a88a] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#00c9a7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00a88a] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span id="register-btn-text">Create Account</span>
+                            <div id="register-btn-spinner" class="spinner ml-2 hidden"></div>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- 登录链接 -->
+                <p class="mt-8 text-center text-sm text-gray-400 lg:text-left">
+                    Already have an account?
+                    <a href="#" onclick="showLogin(event)" class="font-medium text-[#00a88a] hover:text-[#00c9a7] transition-colors">
+                        Sign in
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 装饰性分割元素 -->
+    <div class="wave-divider hidden lg:block"></div>
+
+    <!-- 右侧媒体区域 - 黄金比例 61.8% -->
+    <div class="relative hidden w-0 flex-1 lg:block lg:w-[61.8%] bg-[#0B1306]">
+        <!-- 内部容器添加圆角和边距 -->
+        <div class="absolute inset-4 overflow-hidden rounded-2xl">
+            <!-- 媒体容器 -->
+            <!-- 媒体容器 -->
+            <div id="media-container" class="absolute inset-0">
+                <!-- 两张图片叠加展示 -->
+                <img
+                        id="img-dark"
+                        src="/api/assets/img/xiaohei_1.jpg"
+                        alt="Welcome"
+                        class="h-full w-full object-cover absolute inset-0 transition-opacity duration-[800ms] ease-in-out"
+                        style="opacity: 1;"
+                />
+                <img
+                        id="img-light"
+                        src="/api/assets/img/xiaohei_2.jpg"
+                        alt="Welcome"
+                        class="h-full w-full object-cover absolute inset-0 transition-opacity duration-[800ms] ease-in-out"
+                        style="opacity: 0;"
+                />
+            </div>
+
+            <!-- 渐变遮罩层 -->
+            <div class="absolute inset-0 bg-gradient-to-r from-[#0B1306]/50 via-[#0B1306]/20 to-transparent"></div>
+
+            <!-- 内容层 -->
+            <div class="relative z-10 flex h-full flex-col justify-end pl-[68px] pr-12 pb-12">
+                <div class="max-w-xl">
+                    <h2 id="rightTitle" class="text-4xl font-bold text-white drop-shadow-lg mb-4 transition-all duration-500">
+                        Innovation Meets Security
+                    </h2>
+                    <p id="rightSubtitle" class="text-lg text-gray-200 drop-shadow-md transition-all duration-500">
+                        Join thousands of teams who trust our platform for their daily operations.
+                    </p>
+
+                    <!-- 统计数据 -->
+                    <div class="mt-8 flex space-x-8">
+                        <div>
+                            <div class="text-2xl font-bold text-white">99.9%</div>
+                            <div class="text-sm text-gray-300">Uptime</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-white">256-bit</div>
+                            <div class="text-sm text-gray-300">Encryption</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-white">24/7</div>
+                            <div class="text-sm text-gray-300">Support</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 装饰性边框光效 -->
+        <div class="absolute inset-4 rounded-2xl ring-1 ring-white/10"></div>
+    </div>
+</div>
+
+<!-- 基础的表单切换逻辑 -->
+<script>
+    // 显示注册表单
+    function showRegister(event) {
+        event.preventDefault();
+
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const rightTitle = document.getElementById('rightTitle');
+        const rightSubtitle = document.getElementById('rightSubtitle');
+
+        // 淡出登录表单
+        loginForm.style.opacity = '0';
+        loginForm.style.transform = 'translateX(-20px)';
+
+        setTimeout(() => {
+            loginForm.classList.add('hidden');
+            registerForm.classList.remove('hidden');
+
+            // 淡入注册表单
+            setTimeout(() => {
+                registerForm.style.opacity = '1';
+                registerForm.style.transform = 'translateX(0)';
+            }, 50);
+
+            // 更新右侧文字
+            rightTitle.textContent = 'Start Your Journey';
+            rightSubtitle.textContent = 'Create an account and unlock all features of our platform.';
+        }, 300);
+    }
+
+    // 显示登录表单
+    function showLogin(event) {
+        event.preventDefault();
+
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const rightTitle = document.getElementById('rightTitle');
+        const rightSubtitle = document.getElementById('rightSubtitle');
+
+        // 淡出注册表单
+        registerForm.style.opacity = '0';
+        registerForm.style.transform = 'translateX(20px)';
+
+        setTimeout(() => {
+            registerForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+
+            // 淡入登录表单
+            setTimeout(() => {
+                loginForm.style.opacity = '1';
+                loginForm.style.transform = 'translateX(0)';
+            }, 50);
+
+            // 更新右侧文字
+            rightTitle.textContent = 'Innovation Meets Security';
+            rightSubtitle.textContent = 'Join thousands of teams who trust our platform for their daily operations.';
+        }, 300);
+    }
+
+    // 初始化表单样式
+    document.getElementById('loginForm').style.opacity = '1';
+    document.getElementById('loginForm').style.transform = 'translateX(0)';
+    document.getElementById('loginForm').style.transition = 'all 0.3s ease-out';
+    document.getElementById('registerForm').style.opacity = '0';
+    document.getElementById('registerForm').style.transition = 'all 0.3s ease-out';
+</script>
+
+<div id="toast-container" class="toast-container"></div>
+<div style="position: absolute; width: 1px; height: 1px; overflow: hidden; left: -9999px;">
+    <img src="/api/assets/img/xiaohei_1.jpg" width="1" height="1" alt="">
+    <img src="/api/assets/img/xiaohei_2.jpg" width="1" height="1" alt="">
+</div>
+<script src="/api/auth/js/theme.js"></script>
+<!-- 引入API处理脚本 -->
+<script src="/api/auth/js/api.js"></script> <!-- 1. API 请求封装 -->
+<script src="/api/auth/js/crypto-utils.js"></script>
+<script src="/api/auth/js/toast.js"></script>      <!-- 2. Toast 组件 -->
+<script src="/api/auth/js/validators.js"></script> <!-- 3. 验证工具 -->
+<script src="/api/auth/js/auth.js"></script>       <!-- 4. 认证逻辑 -->
+</body>
+</html>

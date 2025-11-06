@@ -1,0 +1,365 @@
+/**
+ * 主题样式 - 白天/黑夜模式
+ * 默认：黑夜模式（保持现有样式）
+ * 新增：白天模式
+ */
+
+/* ========== 黑夜模式（默认）- 加深文字阴影 ========== */
+html.dark-mode #rightTitle,
+html:not(.light-mode) #rightTitle {
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8), 0 2px 6px rgba(0, 0, 0, 0.6) !important;
+}
+
+html.dark-mode #rightSubtitle,
+html:not(.light-mode) #rightSubtitle {
+    text-shadow: 0 3px 8px rgba(0, 0, 0, 0.7), 0 1px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+html.dark-mode .relative.z-10 .text-2xl.font-bold.text-white,
+html:not(.light-mode) .relative.z-10 .text-2xl.font-bold.text-white {
+    text-shadow: 0 3px 8px rgba(0, 0, 0, 0.7), 0 1px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+html.dark-mode .relative.z-10 .text-sm.text-gray-300,
+html:not(.light-mode) .relative.z-10 .text-sm.text-gray-300 {
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ========== 黑夜模式（默认，保持不变） ========== */
+html.dark-mode,
+html:not(.light-mode) {
+    /* 背景保持原样 */
+}
+
+/* ========== 白天模式 ========== */
+html.light-mode {
+    background-color: #f8f9fa;
+}
+
+/* 白天模式 - 页面主体 */
+.light-mode body {
+    background-color: #f8f9fa;
+}
+
+/* 白天模式 - 左侧表单区域背景 */
+.light-mode .flex.min-h-full > div:first-child {
+    background-color: #ffffff;
+}
+
+/* 白天模式 - 右侧媒体区域的主容器背景 */
+.light-mode .relative.hidden.w-0.flex-1.lg\:block.lg\:w-\[61\.8\%\] {
+    background-color: #e5e7eb !important;
+}
+
+/* 白天模式 - 确保图片容器可见 */
+.light-mode .absolute.inset-4.overflow-hidden.rounded-2xl {
+    background: transparent !important;
+}
+
+/* 白天模式 - 媒体容器（图片的直接父元素）*/
+.light-mode #media-container {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1 !important;
+}
+
+/* 白天模式 - 图片本身 - 最高优先级 */
+.light-mode #media-container img,
+.light-mode img[src="/api/assets/img/xiaohei_1.jpg"] {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+    filter: none !important;
+    object-fit: cover !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* 白天模式 - 渐变遮罩层调整 */
+.light-mode .absolute.inset-0.bg-gradient-to-r {
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.05), transparent 30%) !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+}
+
+/* 白天模式 - 内容层（文字）确保在最上层 */
+.light-mode .relative.z-10.flex.h-full.flex-col.justify-end {
+    z-index: 10 !important;
+}
+
+/* 白天模式 - 标题颜色 */
+.light-mode h2 {
+    color: #1a1a1a;
+}
+
+/* 白天模式 - 描述文字 */
+.light-mode .text-gray-400 {
+    color: #6b7280 !important;
+}
+
+.light-mode .text-gray-300 {
+    color: #4b5563 !important;
+}
+
+.light-mode .text-gray-100 {
+    color: #1f2937 !important;
+}
+
+/* 白天模式 - 右侧标题和副标题（改为黑色，因为图片是浅色的）*/
+.light-mode #rightTitle {
+    color: #1a1a1a !important;
+    text-shadow: 0 2px 8px rgba(255, 255, 255, 0.8) !important;
+}
+
+.light-mode #rightSubtitle {
+    color: #374151 !important;
+    text-shadow: 0 1px 4px rgba(255, 255, 255, 0.8) !important;
+}
+
+/* 白天模式 - 统计数据（改为黑色）*/
+.light-mode .relative.z-10 .text-2xl.font-bold.text-white {
+    color: #1a1a1a !important;
+}
+
+.light-mode .relative.z-10 .text-sm.text-gray-300 {
+    color: #6b7280 !important;
+}
+
+/* 白天模式 - 输入框 */
+.light-mode input[type="email"],
+.light-mode input[type="password"],
+.light-mode input[type="text"] {
+    background-color: #f3f4f6 !important;
+    border: 1px solid #e5e7eb;
+    color: #1a1a1a !important;
+}
+
+.light-mode input[type="email"]::placeholder,
+.light-mode input[type="password"]::placeholder,
+.light-mode input[type="text"]::placeholder {
+    color: #9ca3af !important;
+}
+
+.light-mode input[type="email"]:focus,
+.light-mode input[type="password"]:focus,
+.light-mode input[type="text"]:focus {
+    background-color: #ffffff !important;
+    border-color: #00a88a;
+    outline: 2px solid #00a88a;
+    outline-offset: -2px;
+}
+
+/* 白天模式 - 主按钮保持绿色 */
+.light-mode button[type="submit"] {
+    background-color: #00a88a;
+    color: white;
+}
+
+.light-mode button[type="submit"]:hover {
+    background-color: #00c9a7;
+}
+
+/* 白天模式 - 次要按钮和社交登录按钮 */
+.light-mode button[type="button"] {
+    background-color: #f3f4f6;
+    color: #1f2937;
+    border: 1px solid #e5e7eb;
+}
+
+.light-mode button[type="button"]:hover {
+    background-color: #e5e7eb;
+}
+
+/* 白天模式 - 发送验证码按钮 */
+.light-mode #send-code-btn {
+    background-color: rgba(0, 168, 138, 0.1) !important;
+    color: #00a88a !important;
+}
+
+.light-mode #send-code-btn:hover {
+    background-color: rgba(0, 168, 138, 0.2) !important;
+}
+
+/* 白天模式 - 分隔线 */
+.light-mode .border-gray-700 {
+    border-color: #e5e7eb !important;
+}
+
+/* 白天模式 - 背景色修正 */
+.light-mode .bg-\[\#0B1306\] {
+    background-color: #ffffff !important;
+}
+
+/* 白天模式 - Checkbox */
+.light-mode input[type="checkbox"] {
+    background-color: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.light-mode input[type="checkbox"]:checked {
+    background-color: #00a88a;
+    border-color: #00a88a;
+}
+
+/* 白天模式 - 链接颜色 */
+.light-mode a {
+    color: #00a88a;
+}
+
+.light-mode a:hover {
+    color: #00c9a7;
+}
+
+/* 白天模式 - 错误信息 */
+.light-mode .text-red-400 {
+    color: #dc2626 !important;
+}
+
+.light-mode .bg-red-50\/10 {
+    background-color: rgba(254, 226, 226, 0.8) !important;
+}
+
+/* 白天模式 - 成功信息 */
+.light-mode .text-green-400 {
+    color: #16a34a !important;
+}
+
+.light-mode .bg-green-50\/10 {
+    background-color: rgba(220, 252, 231, 0.8) !important;
+}
+
+/* 白天模式 - 装饰边框 */
+.light-mode .ring-white\/10 {
+    --tw-ring-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* 白天模式 - 波浪分割线 */
+.light-mode .wave-divider::before {
+    background: linear-gradient(90deg, transparent, #ffffff 30%, #ffffff 70%, transparent);
+}
+
+/* 白天模式 - Toast 通知 */
+.light-mode .toast {
+    background: rgba(0, 168, 138, 1);
+    box-shadow: 0 8px 32px rgba(0, 168, 138, 0.2);
+}
+
+.light-mode .toast.error {
+    background: rgba(239, 68, 68, 1);
+    box-shadow: 0 8px 32px rgba(239, 68, 68, 0.2);
+}
+
+.light-mode .toast.warning {
+    background: rgba(245, 158, 11, 1);
+    box-shadow: 0 8px 32px rgba(245, 158, 11, 0.2);
+}
+
+/* 图片切换动画 - 确保平滑过渡 */
+#media-container img {
+    transition: opacity 0.6s ease-in-out, transform 0.6s ease-in-out;
+    transform-origin: center center;
+}
+
+/* 平滑过渡 - 排除图片的 transform，但保留 opacity */
+html,
+body,
+input,
+button,
+.text-gray-400,
+.text-gray-300,
+.text-gray-100,
+h2,
+p,
+a {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* 主题切换按钮动画 */
+#theme-toggle {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+#theme-toggle:hover {
+    transform: scale(1.05);
+}
+
+#theme-toggle:active {
+    transform: scale(0.95);
+}
+
+/* 图标切换动画 */
+#sun-icon,
+#moon-icon {
+    transition: all 0.3s ease;
+}
+
+#sun-icon:not(.hidden) {
+    animation: rotate360 0.5s ease;
+}
+
+#moon-icon:not(.hidden) {
+    animation: fadeInRotate 0.5s ease;
+}
+
+@keyframes rotate360 {
+    from {
+        transform: rotate(0deg);
+        opacity: 0;
+    }
+    to {
+        transform: rotate(360deg);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInRotate {
+    from {
+        transform: rotate(-30deg);
+        opacity: 0;
+    }
+    to {
+        transform: rotate(0deg);
+        opacity: 1;
+    }
+}
+
+/* ========== 分隔线优化 ========== */
+
+/* 分隔线文字背景色过渡 */
+.relative.flex.justify-center.text-sm span {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 白天模式 - 分隔线文字背景 */
+.light-mode .relative.flex.justify-center.text-sm span {
+    background-color: #ffffff !important;
+}
+
+/* 黑夜模式 - 分隔线文字背景 */
+html.dark-mode .relative.flex.justify-center.text-sm span,
+html:not(.light-mode) .relative.flex.justify-center.text-sm span {
+    background-color: #0B1306 !important;
+}
+
+/* 白天模式 - 分隔线文字颜色 */
+.light-mode .text-gray-400 {
+    color: #6b7280 !important;
+}
+
+/* Debug: 如果图片还是不显示，这个规则会给图片容器加红色边框 */
+/* 取消注释下面这行来调试 */
+/* .light-mode #media-container { border: 3px solid red !important; } */
