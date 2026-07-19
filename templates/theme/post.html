@@ -1,0 +1,38 @@
+{{define "post"}}
+{{template "header" .}}
+<main class="fluid-main fluid-post-main">
+    <div class="fluid-post-layout">
+        <div class="fluid-post-column">
+            <section id="board" class="fluid-board fluid-post-board">
+                <article class="fluid-post-content" itemscope="" itemtype="https://schema.org/Article">
+                    <h1 class="fluid-seo-title" itemprop="name headline">{{.Article.Title}}</h1>
+                    <div id="post-content" class="fluid-markdown" itemprop="articleBody">
+                    {{article .Article.Content}}
+                    </div>
+                    <hr class="fluid-post-divider"/>
+                    <div class="fluid-post-bottom-meta">
+                        <div class="fluid-post-categories">{{showCategories .Article.Categories}}</div>
+                        <div class="fluid-post-tags">{{showTags .Article.Tags}}</div>
+                    </div>
+                    <div class="fluid-license-box">
+                        <strong>{{.Article.Title}}</strong>
+                        <span>最后更新于 {{fmtdatef .Article.Modified "yyyy-MM-dd HH:mm"}}</span>
+                        <p>本文除注明转载外均为本站原创，转载请保留出处。</p>
+                    </div>
+                </article>
+                {{template "comments" .}}
+            </section>
+        </div>
+        <aside class="fluid-post-sidebar">
+            <div id="toc-card" class="fluid-toc">
+                <div class="fluid-toc-title">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>
+                    目录
+                </div>
+                <ul id="article-toc"></ul>
+            </div>
+        </aside>
+    </div>
+</main>
+{{template "footer" .}}
+{{end}}

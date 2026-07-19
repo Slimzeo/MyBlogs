@@ -1,0 +1,38 @@
+{{define "admin/article_edit"}}
+{{template "admin/header" .}}
+{{$c := .Contents}}
+<div class="card">
+    <h3>{{if $c}}编辑文章{{else}}发表文章{{end}}</h3>
+    <form id="article-form">
+        {{if $c}}<input type="hidden" name="cid" value="{{$c.Cid}}"/>{{end}}
+        <label>标题</label>
+        <input type="text" name="title" value="{{if $c}}{{$c.Title}}{{end}}" placeholder="文章标题"/>
+        <label>内容 (Markdown)</label>
+        <textarea name="content" rows="18" placeholder="支持 Markdown">{{if $c}}{{$c.Content}}{{end}}</textarea>
+        <label>标签 (逗号分隔)</label>
+        <input type="text" name="tags" value="{{if $c}}{{$c.Tags}}{{end}}" placeholder="Go,Blog"/>
+        <label>分类 (逗号分隔)</label>
+        <input type="text" name="categories" value="{{if $c}}{{$c.Categories}}{{else}}默认分类{{end}}"/>
+        <label>自定义路径 slug (可选, 至少5位)</label>
+        <input type="text" name="slug" value="{{if $c}}{{$c.Slug}}{{end}}"/>
+        <label>状态</label>
+        <select name="status">
+            <option value="publish" {{if and $c (eq $c.Status "publish")}}selected{{end}}>发布</option>
+            <option value="draft" {{if and $c (eq $c.Status "draft")}}selected{{end}}>草稿</option>
+        </select>
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="/admin/article" class="btn btn-default">返回</a>
+    </form>
+</div>
+<script>
+    var isEdit = {{if $c}}true{{else}}false{{end}};
+    $('#article-form').submit(function(e){
+        e.preventDefault();
+        var url = isEdit ? '/admin/article/modify' : '/admin/article/publish';
+        $.post(url, $(this).serialize(), function(r){
+            if(r.success){ location.href='/admin/article'; } else { alert(r.msg||'保存失败'); }
+        });
+    });
+</script>
+{{template "admin/footer" .}}
+{{end}}

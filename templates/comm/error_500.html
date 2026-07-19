@@ -1,0 +1,21 @@
+{{define "error_500"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>500（服务器错误）- {{siteTitle}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <link href="/user/css/style.min.css" rel="stylesheet" type="text/css"/>
+    <style>.wrapper-page{max-width:600px;margin:8% auto;text-align:center}.wrapper-page h1{font-size:80px;margin:0}</style>
+</head>
+<body>
+<div class="wrapper-page">
+    <div class="ex-page-content text-center">
+        <h1>500!</h1>
+        <h2>很抱歉，服务器出错了！{{if .Message}}<br/><small>{{.Message}}</small>{{end}}</h2>
+        <br/>
+        <a class="btn btn-purple" href="/">← 返回首页</a>
+    </div>
+</div>
+</body>
+</html>
+{{end}}

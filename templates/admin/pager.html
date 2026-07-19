@@ -1,0 +1,14 @@
+{{define "admin/pager"}}
+{{/* . is dict {Page: *PageInfo, Base: string} */}}
+{{$p := .Page}}
+{{if gt $p.Pages 1}}
+<div style="text-align:right;margin-top:12px;">
+    {{if $p.HasPreviousPage}}<a class="btn btn-default btn-sm" href="{{.Base}}?page={{$p.PrePage}}">上一页</a>{{end}}
+    {{range $n := $p.NavigatepageNums}}
+        <a class="btn btn-sm {{if eq $p.PageNum $n}}btn-primary{{else}}btn-default{{end}}" href="{{$.Base}}?page={{$n}}">{{$n}}</a>
+    {{end}}
+    {{if $p.HasNextPage}}<a class="btn btn-default btn-sm" href="{{.Base}}?page={{$p.NextPage}}">下一页</a>{{end}}
+    <span style="color:#999;margin-left:8px;">共{{$p.Pages}}页</span>
+</div>
+{{end}}
+{{end}}

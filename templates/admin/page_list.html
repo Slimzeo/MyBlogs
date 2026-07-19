@@ -1,0 +1,29 @@
+{{define "admin/page_list"}}
+{{template "admin/header" .}}
+<div class="card">
+    <h3 style="display:flex;justify-content:space-between;">页面管理 <a class="btn btn-primary btn-sm" href="/admin/page/new">新页面</a></h3>
+    <table>
+        <thead><tr><th>标题</th><th style="width:160px;">路径</th><th style="width:160px;">时间</th><th style="width:140px;">操作</th></tr></thead>
+        <tbody>
+        {{range $a := .Articles.List}}
+        <tr>
+            <td><a href="/{{if $a.Slug}}{{$a.Slug}}{{else}}article/{{$a.Cid}}{{end}}" target="_blank">{{$a.Title}}</a></td>
+            <td>{{$a.Slug}}</td>
+            <td style="color:#999;">{{fmtdate $a.Created}}</td>
+            <td>
+                <a class="btn btn-default btn-sm" href="/admin/page/{{$a.Cid}}">编辑</a>
+                <a class="btn btn-danger btn-sm" href="javascript:;" onclick="delPage({{$a.Cid}})">删除</a>
+            </td>
+        </tr>
+        {{else}}<tr><td colspan="4">暂无页面</td></tr>{{end}}
+        </tbody>
+    </table>
+</div>
+<script>
+    function delPage(cid){
+        if(!confirm('确定删除?'))return;
+        $.post('/admin/page/delete',{cid:cid},function(r){ if(r.success){location.reload();}else{alert(r.msg||'删除失败');}});
+    }
+</script>
+{{template "admin/footer" .}}
+{{end}}

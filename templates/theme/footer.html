@@ -1,0 +1,121 @@
+{{define "footer"}}
+<footer class="fluid-footer">
+    <p>&copy; {{siteTitle}} · Powered by Go · Theme inspired by
+        <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="noopener noreferrer">Fluid</a>
+    </p>
+    <p>{{siteOption "site_description" ""}}</p>
+</footer>
+<button id="back-to-top" class="fluid-back-top" type="button" aria-label="返回顶部">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"></path></svg>
+</button>
+
+<script src="//cdn.bootcdn.net/ajax/libs/highlight.js/9.9.0/highlight.min.js"></script>
+<script>
+    (function () {
+        var root = document.documentElement;
+        var navbar = document.getElementById('navbar');
+        var progress = document.getElementById('reading-progress');
+        var backToTop = document.getElementById('back-to-top');
+        var colorToggle = document.getElementById('color-toggle');
+        var navbarToggle = document.getElementById('navbar-toggle');
+        var navbarMenu = document.getElementById('navbar-menu');
+        var searchToggle = document.getElementById('search-toggle');
+        var searchModal = document.getElementById('search-modal');
+        var searchClose = document.getElementById('search-close');
+        var searchInput = document.getElementById('search-inp');
+        var searchForm = document.getElementById('site-search-form');
+        var scrollDown = document.getElementById('scroll-down');
+
+        function setColorScheme(scheme) {
+            root.dataset.colorScheme = scheme;
+            localStorage.setItem('fluid-color-scheme', scheme);
+            document.querySelector('meta[name=theme-color]').setAttribute(
+                'content',
+                scheme === 'dark' ? '#1f3144' : '#2f4154'
+            );
+        }
+        function toggleSearchModal(open) {
+            searchModal.classList.toggle('is-open', open);
+            document.body.style.overflow = open ? 'hidden' : '';
+            if (open) window.setTimeout(function () { searchInput.focus(); }, 50);
+        }
+
+        colorToggle.addEventListener('click', function () {
+            setColorScheme(root.dataset.colorScheme === 'dark' ? 'light' : 'dark');
+        });
+        navbarToggle.addEventListener('click', function () {
+            var open = !navbarMenu.classList.contains('is-open');
+            navbarMenu.classList.toggle('is-open', open);
+            navbarToggle.classList.toggle('is-open', open);
+            navbar.classList.toggle('is-open', open);
+            navbarToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        searchToggle.addEventListener('click', function () { toggleSearchModal(true); });
+        searchClose.addEventListener('click', function () { toggleSearchModal(false); });
+        searchModal.addEventListener('click', function (event) {
+            if (event.target === searchModal) toggleSearchModal(false);
+        });
+        searchForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            var keyword = searchInput.value.trim();
+            if (keyword) window.location.href = '/search/' + encodeURIComponent(keyword);
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') toggleSearchModal(false);
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+                event.preventDefault();
+                toggleSearchModal(true);
+            }
+        });
+        document.querySelectorAll('#navbar-menu a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                navbarMenu.classList.remove('is-open');
+                navbarToggle.classList.remove('is-open');
+                navbar.classList.remove('is-open');
+                navbarToggle.setAttribute('aria-expanded', 'false');
+            });
+        });
+
+        function updateScrollUI() {
+            var top = window.scrollY || document.documentElement.scrollTop;
+            var height = document.documentElement.scrollHeight - window.innerHeight;
+            navbar.classList.toggle('is-collapsed', top > 30);
+            backToTop.classList.toggle('is-visible', top > 500);
+            progress.style.width = (height > 0 ? Math.min(100, top / height * 100) : 0) + '%';
+        }
+        window.addEventListener('scroll', updateScrollUI, {passive: true});
+        updateScrollUI();
+        backToTop.addEventListener('click', function () {
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        });
+        scrollDown.addEventListener('click', function () {
+            var board = document.getElementById('board');
+            if (board) board.scrollIntoView({behavior: 'smooth'});
+        });
+
+        document.querySelectorAll('pre code').forEach(function (block) {
+            if (window.hljs) hljs.highlightBlock(block);
+        });
+
+        var article = document.getElementById('post-content');
+        var toc = document.getElementById('article-toc');
+        var tocCard = document.getElementById('toc-card');
+        if (article && toc) {
+            var headings = article.querySelectorAll('h2, h3');
+            headings.forEach(function (heading, index) {
+                heading.id = heading.id || 'section-' + (index + 1);
+                var item = document.createElement('li');
+                var link = document.createElement('a');
+                link.href = '#' + heading.id;
+                link.textContent = heading.textContent;
+                link.className = heading.tagName === 'H3' ? 'toc-level-3' : 'toc-level-2';
+                item.appendChild(link);
+                toc.appendChild(item);
+            });
+            if (!headings.length && tocCard) tocCard.hidden = true;
+        }
+    })();
+</script>
+</body>
+</html>
+{{end}}

@@ -1,0 +1,32 @@
+{{define "admin/article_list"}}
+{{template "admin/header" .}}
+<div class="card">
+    <h3 style="display:flex;justify-content:space-between;">文章管理 <a class="btn btn-primary btn-sm" href="/admin/article/publish">写文章</a></h3>
+    <table>
+        <thead><tr><th>标题</th><th>分类</th><th style="width:80px;">点击</th><th style="width:80px;">评论</th><th style="width:160px;">时间</th><th style="width:140px;">操作</th></tr></thead>
+        <tbody>
+        {{range $a := .Articles.List}}
+        <tr>
+            <td><a href="/article/{{$a.Cid}}" target="_blank">{{$a.Title}}</a></td>
+            <td>{{$a.Categories}}</td>
+            <td>{{$a.Hits}}</td>
+            <td>{{$a.CommentsNum}}</td>
+            <td style="color:#999;">{{fmtdate $a.Created}}</td>
+            <td>
+                <a class="btn btn-default btn-sm" href="/admin/article/{{$a.Cid}}">编辑</a>
+                <a class="btn btn-danger btn-sm" href="javascript:;" onclick="delArticle({{$a.Cid}})">删除</a>
+            </td>
+        </tr>
+        {{else}}<tr><td colspan="6">暂无文章</td></tr>{{end}}
+        </tbody>
+    </table>
+    {{template "admin/pager" dict "Page" .Articles "Base" "/admin/article"}}
+</div>
+<script>
+    function delArticle(cid){
+        if(!confirm('确定删除该文章?'))return;
+        $.post('/admin/article/delete',{cid:cid},function(r){ if(r.success){location.reload();}else{alert(r.msg||'删除失败');}});
+    }
+</script>
+{{template "admin/footer" .}}
+{{end}}

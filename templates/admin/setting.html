@@ -1,0 +1,62 @@
+{{define "admin/setting"}}
+{{template "admin/header" .}}
+<div class="card">
+    <h3>系统设置</h3>
+    <form id="setting-form">
+        <label>网站标题</label><input type="text" name="site_title" value="{{index .Options "site_title"}}"/>
+        <label>网站关键词</label><input type="text" name="site_keywords" value="{{index .Options "site_keywords"}}"/>
+        <label>网站描述</label><input type="text" name="site_description" value="{{index .Options "site_description"}}"/>
+        <label>网站地址 (site_url, 可留空)</label><input type="text" name="site_url" value="{{index .Options "site_url"}}"/>
+        <hr/>
+        <h4>前台主题</h4>
+        <label>首页标语</label>
+        <input type="text" name="theme_slogan" value="{{default "山水有相逢" (index .Options "theme_slogan")}}" placeholder="山水有相逢"/>
+        <label>首页头图</label>
+        <input type="text" name="theme_home_banner" value="{{default "/user/img/blog-banner.jpg" (index .Options "theme_home_banner")}}" placeholder="/user/img/blog-banner.jpg"/>
+        <label>文章头图</label>
+        <input type="text" name="theme_post_banner" value="{{default "/user/img/blog-banner.jpg" (index .Options "theme_post_banner")}}" placeholder="/user/img/blog-banner.jpg"/>
+        <label>其他页面头图</label>
+        <input type="text" name="theme_page_banner" value="{{default "/user/img/blog-banner.jpg" (index .Options "theme_page_banner")}}" placeholder="/user/img/blog-banner.jpg"/>
+        <p class="help-block">可填 `/user/img/...`、`/upload/...` 或完整的 `https://...` 图片地址。推荐至少 1920×1080 的横图。</p>
+        <label>正文字体</label>
+        <select name="theme_font">
+            <option value="wenkai" {{if or (not (index .Options "theme_font")) (eq (index .Options "theme_font") "wenkai")}}selected{{end}}>霞鹜文楷（推荐）</option>
+            <option value="sans" {{if eq (index .Options "theme_font") "sans"}}selected{{end}}>系统无衬线</option>
+            <option value="serif" {{if eq (index .Options "theme_font") "serif"}}selected{{end}}>系统宋体</option>
+        </select>
+        <hr/>
+        <label>微博</label><input type="text" name="social_weibo" value="{{index .Options "social_weibo"}}"/>
+        <label>知乎</label><input type="text" name="social_zhihu" value="{{index .Options "social_zhihu"}}"/>
+        <label>Github</label><input type="text" name="social_github" value="{{index .Options "social_github"}}"/>
+        <label>Twitter</label><input type="text" name="social_twitter" value="{{index .Options "social_twitter"}}"/>
+        <button type="submit" class="btn btn-primary">保存设置</button>
+    </form>
+</div>
+<div class="card">
+    <h3>系统备份</h3>
+    <form id="backup-form">
+        <label>备份类型</label>
+        <select name="bk_type">
+            <option value="db">数据库 SQL</option>
+            <option value="attach">附件与主题</option>
+        </select>
+        <label>附件备份目录（仅附件备份需要，必须是服务端已存在目录）</label>
+        <input type="text" name="bk_path" placeholder="/tmp/blog-backups"/>
+        <button type="submit" class="btn btn-default">开始备份</button>
+    </form>
+</div>
+<script>
+    $('#setting-form').submit(function(e){
+        e.preventDefault();
+        $.post('/admin/setting', $(this).serialize(), function(r){ if(r.success){alert('保存成功');location.reload();}else{alert(r.msg||'保存失败');}});
+    });
+    $('#backup-form').submit(function(e){
+        e.preventDefault();
+        $.post('/admin/setting/backup', $(this).serialize(), function(result){
+            if(result.success){ alert('备份成功：' + JSON.stringify(result.payload)); }
+            else { alert(result.msg || '备份失败'); }
+        });
+    });
+</script>
+{{template "admin/footer" .}}
+{{end}}

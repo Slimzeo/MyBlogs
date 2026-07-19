@@ -1,0 +1,40 @@
+{{define "admin/profile"}}
+{{template "admin/header" .}}
+<div class="card">
+    <h3>个人资料</h3>
+    <form id="profile-form">
+        <label>显示名称</label>
+        <input type="text" name="screenName" value="{{.LoginUser.ScreenName}}"/>
+        <label>邮箱</label>
+        <input type="email" name="email" value="{{.LoginUser.Email}}"/>
+        <button type="submit" class="btn btn-primary">保存资料</button>
+    </form>
+</div>
+<div class="card">
+    <h3>修改密码</h3>
+    <form id="password-form">
+        <label>旧密码</label>
+        <input type="password" name="oldPassword"/>
+        <label>新密码（6-14 位）</label>
+        <input type="password" name="password"/>
+        <button type="submit" class="btn btn-primary">修改密码</button>
+    </form>
+</div>
+<script>
+    $('#profile-form').submit(function(e){
+        e.preventDefault();
+        $.post('/admin/profile', $(this).serialize(), function(result){
+            if(result.success){ alert('保存成功'); location.reload(); }
+            else { alert(result.msg || '保存失败'); }
+        });
+    });
+    $('#password-form').submit(function(e){
+        e.preventDefault();
+        $.post('/admin/password', $(this).serialize(), function(result){
+            if(result.success){ alert('密码修改成功，请重新登录'); location.href='/admin/logout'; }
+            else { alert(result.msg || '密码修改失败'); }
+        });
+    });
+</script>
+{{template "admin/footer" .}}
+{{end}}

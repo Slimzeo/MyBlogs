@@ -1,0 +1,47 @@
+{{define "page-category"}}
+{{template "header" .}}
+<main class="fluid-main">
+    <div class="fluid-container">
+    <section id="board" class="fluid-board fluid-list-board">
+        <div class="fluid-list-heading">
+            <h2>{{.Type}}：{{.Keyword}}</h2>
+            <p>{{if .Articles}}共 {{.Articles.Total}} 篇文章{{end}}</p>
+        </div>
+        {{if or (not .Articles) (not .Articles.List)}}
+        <div class="fluid-empty">
+            <p>暂时没有匹配的文章。</p>
+        </div>
+        {{else}}
+        <div class="fluid-archive-list">
+            {{range $article := .Articles.List}}
+            <a class="fluid-archive-item" href="{{permalink $article}}">
+                <time>{{fmtdate $article.Created}}</time>
+                <span>{{$article.Title}}</span>
+            </a>
+            {{end}}
+        </div>
+        <div class="fluid-pagination">
+            {{$prefix := "search"}}
+            {{if eq .Type "分类"}}{{$prefix = "category"}}{{end}}
+            {{if eq .Type "标签"}}{{$prefix = "tag"}}{{end}}
+            <ol class="page-navigator">
+                {{$articles := .Articles}}
+                {{if $articles.HasPreviousPage}}
+                <li class="prev"><a href="/{{$prefix}}/{{urlEncode $.Keyword}}/{{$articles.PrePage}}">←</a></li>
+                {{end}}
+                {{range $page := $articles.NavigatepageNums}}
+                <li class="{{if eq $articles.PageNum $page}}current{{end}}">
+                    <a href="/{{$prefix}}/{{urlEncode $.Keyword}}/{{$page}}">{{$page}}</a>
+                </li>
+                {{end}}
+                {{if $articles.HasNextPage}}
+                <li class="next"><a href="/{{$prefix}}/{{urlEncode $.Keyword}}/{{$articles.NextPage}}">→</a></li>
+                {{end}}
+            </ol>
+        </div>
+        {{end}}
+    </section>
+    </div>
+</main>
+{{template "footer" .}}
+{{end}}

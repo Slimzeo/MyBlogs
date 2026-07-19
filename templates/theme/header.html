@@ -1,0 +1,90 @@
+{{define "header"}}<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1"/>
+    <meta name="renderer" content="webkit"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="theme-color" content="#2f4154"/>
+    <meta name="keywords" content="{{if .Keywords}}{{.Keywords}}{{else}}{{siteOption "site_keywords" ""}}{{end}}"/>
+    <meta name="description" content="{{if .Description}}{{.Description}}{{else}}{{siteOption "site_description" ""}}{{end}}"/>
+    <link rel="shortcut icon" href="/user/img/favicon.png"/>
+    <link rel="apple-touch-icon" href="/user/img/apple-touch-icon.png"/>
+    <title>{{if .Title}}{{.Title}}{{else}}首页{{end}} - {{siteOption "site_title" "My Blog"}}</title>
+    <script>
+        (function () {
+            var saved = localStorage.getItem('fluid-color-scheme');
+            var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.dataset.colorScheme = saved || (dark ? 'dark' : 'light');
+        })();
+    </script>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
+    <link href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css" rel="stylesheet"/>
+    <link href="//cdn.bootcdn.net/ajax/libs/highlight.js/9.9.0/styles/xcode.min.css" rel="stylesheet"/>
+    <link href="/user/css/fluid.css" rel="stylesheet"/>
+</head>
+<body class="fluid-theme fluid-font-{{siteOption "theme_font" "wenkai"}}">
+<div id="reading-progress" class="fluid-progress" aria-hidden="true"></div>
+<header class="fluid-header">
+    <nav id="navbar" class="fluid-navbar" aria-label="主导航">
+        <div class="fluid-navbar-inner">
+            <a class="fluid-brand" href="{{siteUrl ""}}/">{{siteTitle}}</a>
+            <button id="navbar-toggle" class="fluid-navbar-toggle" type="button" aria-label="展开导航" aria-expanded="false">
+                <span></span><span></span><span></span>
+            </button>
+            <div id="navbar-menu" class="fluid-navbar-menu">
+                <a href="{{siteUrl ""}}/">首页</a>
+                <a href="{{siteUrl "/archives"}}">归档</a>
+                <a href="{{siteUrl "/links"}}">友链</a>
+                <a href="{{siteUrl "/about"}}">关于</a>
+                <button id="search-toggle" class="fluid-nav-button" type="button" aria-label="搜索">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                </button>
+                <button id="color-toggle" class="fluid-nav-button" type="button" aria-label="切换颜色模式">
+                    <svg class="fluid-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.2A8 8 0 0 1 8.8 4 8 8 0 1 0 20 15.2Z"></path></svg>
+                    <svg class="fluid-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div id="banner"
+         class="fluid-banner {{if .IsPost}}fluid-banner-post{{else if .Title}}fluid-banner-page{{else}}fluid-banner-home{{end}}"
+         style="background-image:url('{{if .IsPost}}{{siteOption "theme_post_banner" "/user/img/blog-banner.jpg"}}{{else if .Title}}{{siteOption "theme_page_banner" "/user/img/blog-banner.jpg"}}{{else}}{{siteOption "theme_home_banner" "/user/img/blog-banner.jpg"}}{{end}}')">
+        <div class="fluid-banner-mask">
+            <div class="fluid-banner-text">
+                {{if .Article}}
+                <div class="fluid-banner-title">{{.Article.Title}}</div>
+                {{if .IsPost}}
+                <div class="fluid-banner-meta">
+                    <span>{{fmtdate .Article.Created}}</span>
+                    <span>·</span>
+                    <span>{{.Hits}} 次阅读</span>
+                    <span>·</span>
+                    <span>{{.Article.CommentsNum}} 条评论</span>
+                </div>
+                {{end}}
+                {{else if .Title}}
+                <div class="fluid-banner-title">{{if .Keyword}}{{.Type}} · {{.Keyword}}{{else}}{{.Title}}{{end}}</div>
+                {{else}}
+                <div class="fluid-banner-title">{{siteOption "theme_slogan" "山水有相逢"}}</div>
+                {{end}}
+            </div>
+            <button id="scroll-down" class="fluid-scroll-down" type="button" aria-label="向下滚动">
+                <span></span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<div id="search-modal" class="fluid-search-modal" role="dialog" aria-modal="true" aria-label="搜索文章">
+    <div class="fluid-search-box">
+        <button id="search-close" class="fluid-search-close" type="button" aria-label="关闭">×</button>
+        <h2>搜索</h2>
+        <form id="site-search-form" role="search">
+            <input id="search-inp" type="search" placeholder="输入关键词" maxlength="50" autocomplete="off"/>
+        </form>
+    </div>
+</div>
+{{end}}
