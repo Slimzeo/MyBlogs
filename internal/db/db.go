@@ -102,7 +102,7 @@ func seed(gdb *gorm.DB, cfg *config.Config) error {
 		email := strings.TrimSpace(cfg.AdminEmail)
 		password := cfg.AdminInitialPassword
 		if username == "" || email == "" || password == "" {
-			return fmt.Errorf("fresh database requires ADMIN_USERNAME, ADMIN_EMAIL and ADMIN_INITIAL_PASSWORD")
+			return fmt.Errorf("fresh database requires BLOG_ADMIN_USERNAME, BLOG_ADMIN_EMAIL and BLOG_ADMIN_INITIAL_PASSWORD")
 		}
 		passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
@@ -215,7 +215,7 @@ const welcomeMarkdown = `## 欢迎 👋
 
 + 高并发：Goroutine 天然并发模型 + 连接池调优 + 分片内存缓存
 + 零依赖启动：默认使用纯 Go 的 SQLite，无需外部数据库
-+ 可切换 MySQL：设置 ` + "`DB_DRIVER=mysql`" + ` 即可复用原 tale 数据库
++ 可切换 MySQL：设置 ` + "`BLOG_DB_DRIVER=mysql`" + ` 即可复用原 tale 数据库
 
 `
 

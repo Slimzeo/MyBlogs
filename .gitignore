@@ -1,7 +1,11 @@
 /blog
 /data/
 /.env
+/.env.*
+!/.env.example
 /*.db
 /*.db-shm
 /*.db-wal
+*.sql
+*.sql.zip
 /.DS_Store

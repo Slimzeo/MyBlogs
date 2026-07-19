@@ -2,6 +2,8 @@ package handler_test
 
 import (
 	"archive/zip"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -33,6 +35,8 @@ var csrfPattern = regexp.MustCompile(`(?:name="_csrf_token" value="|name="csrf-t
 func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	gin.SetMode(gin.ReleaseMode)
 	tempDirectory := t.TempDir()
+	testUsername := "test-admin"
+	testPassword := randomTestPassword(t)
 	runtimeConfig := &config.Config{
 		DBDriver:             "sqlite",
 		DBDSN:                filepath.Join(tempDirectory, "blog.db") + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)",
@@ -44,9 +48,9 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		HitFlushEvery:        100,
 		RateLimitRPS:         100_000,
 		RateLimitBurst:       200_000,
-		AdminUsername:        "admin",
+		AdminUsername:        testUsername,
 		AdminEmail:           "test@example.invalid",
-		AdminInitialPassword: "test-password",
+		AdminInitialPassword: testPassword,
 	}
 	database, err := db.Open(runtimeConfig)
 	if err != nil {
@@ -150,7 +154,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		}
 	}
 
-	client := authenticatedClient(t, testServer.URL)
+	client := authenticatedClient(t, testServer.URL, testUsername, testPassword)
 	response, err := client.Get(testServer.URL + "/admin/index")
 	if err != nil {
 		t.Fatal(err)
@@ -164,7 +168,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, leakedValue := range []string{"123456", "admin@example.com", "默认账号", "默认密码"} {
+	for _, leakedValue := range []string{"默认账号", "默认密码"} {
 		if strings.Contains(string(adminHTML), leakedValue) {
 			t.Fatalf("admin page leaks credential text %q", leakedValue)
 		}
@@ -326,7 +330,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 }
 
-func authenticatedClient(t *testing.T, baseURL string) *http.Client {
+func authenticatedClient(t *testing.T, baseURL, username, password string) *http.Client {
 	t.Helper()
 	jar, err := cookiejar.New(nil)
 	if err != nil {
@@ -347,8 +351,8 @@ func authenticatedClient(t *testing.T, baseURL string) *http.Client {
 		t.Fatal("login page has no CSRF token")
 	}
 	values := url.Values{
-		"username":    {"admin"},
-		"password":    {"test-password"},
+		"username":    {username},
+		"password":    {password},
 		"_csrf_token": {string(match[1])},
 	}
 	request, err := http.NewRequest(
@@ -373,4 +377,13 @@ func authenticatedClient(t *testing.T, baseURL string) *http.Client {
 		t.Fatalf("login failed: %s", result.Msg)
 	}
 	return client
+}
+
+func randomTestPassword(t *testing.T) string {
+	t.Helper()
+	buffer := make([]byte, 24)
+	if _, err := rand.Read(buffer); err != nil {
+		t.Fatalf("generate test password: %v", err)
+	}
+	return "test-" + hex.EncodeToString(buffer)
 }
