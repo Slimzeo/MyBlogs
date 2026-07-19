@@ -19,7 +19,9 @@
         <select name="status">
             <option value="publish" {{if and $c (eq $c.Status "publish")}}selected{{end}}>发布</option>
             <option value="draft" {{if and $c (eq $c.Status "draft")}}selected{{end}}>草稿</option>
+            <option value="private" {{if and $c (eq $c.Status "private")}}selected{{end}}>私密（仅登录管理员可见）</option>
         </select>
+        <p class="help-block">私密文章不会出现在首页、搜索、归档、分类或标签列表；只有登录后台的管理员能通过文章地址查看。</p>
         <button type="submit" class="btn btn-primary">保存</button>
         <a href="/admin/article" class="btn btn-default">返回</a>
     </form>

@@ -43,6 +43,18 @@ func buildFuncMap(sc *SiteConfig) template.FuncMap {
 		"gravatar":       gravatar,
 		"fmtdate":        func(t int) string { return util.FormatUnix(t, "yyyy-MM-dd") },
 		"fmtdatef":       func(t int, p string) string { return util.FormatUnix(t, p) },
+		"statusText": func(status string) string {
+			switch status {
+			case model.TypePublish:
+				return "公开"
+			case model.TypeDraft:
+				return "草稿"
+			case model.TypePrivate:
+				return "私密"
+			default:
+				return status
+			}
+		},
 
 		// ---- admin helpers (AdminCommons.*) ----
 		"randColor": randColor,

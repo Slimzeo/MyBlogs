@@ -13,6 +13,9 @@ func (s *Service) Publish(c *model.Content) error {
 	if c == nil {
 		return Tip("文章对象为空")
 	}
+	if !validContentStatus(c.Type, c.Status) {
+		return Tip("文章状态不合法")
+	}
 	if strings.TrimSpace(c.Title) == "" {
 		return Tip("文章标题不能为空")
 	}
@@ -208,6 +211,9 @@ func (s *Service) UpdateArticle(c *model.Content) error {
 	if c == nil || c.Cid == 0 {
 		return Tip("文章对象不能为空")
 	}
+	if !validContentStatus(c.Type, c.Status) {
+		return Tip("文章状态不合法")
+	}
 	if strings.TrimSpace(c.Title) == "" {
 		return Tip("文章标题不能为空")
 	}
@@ -268,4 +274,13 @@ func (s *Service) UpdateArticle(c *model.Content) error {
 		s.invalidateContent(c)
 	}
 	return err
+}
+
+func validContentStatus(contentType, status string) bool {
+	switch status {
+	case model.TypePublish, model.TypeDraft, model.TypePrivate:
+		return status != model.TypePrivate || contentType == model.TypeArticle
+	default:
+		return false
+	}
 }

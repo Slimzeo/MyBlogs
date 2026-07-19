@@ -8,6 +8,7 @@ const (
 	TypePublish      = "publish"
 	TypePage         = "page"
 	TypeDraft        = "draft"
+	TypePrivate      = "private"
 	TypeLink         = "link"
 	TypeImage        = "image"
 	TypeFile         = "file"

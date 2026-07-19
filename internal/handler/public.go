@@ -48,7 +48,7 @@ func (server *Server) articlePreview(context *gin.Context) {
 func (server *Server) renderArticle(context *gin.Context, preview bool) {
 	contentID := strings.TrimSuffix(context.Param("id"), ".html")
 	content, err := server.service.GetContentByID(contentID)
-	if err != nil || content == nil || (!preview && content.Status == model.TypeDraft) {
+	if err != nil || content == nil || !server.canViewArticle(context, content, preview) {
 		server.render(context, http.StatusNotFound, "error_404", PageData{})
 		return
 	}
@@ -64,6 +64,16 @@ func (server *Server) renderArticle(context *gin.Context, preview bool) {
 		data.Comments = server.service.GetComments(content.Cid, page, 6)
 	}
 	server.render(context, http.StatusOK, "post", data)
+}
+
+func (server *Server) canViewArticle(context *gin.Context, content *model.Content, preview bool) bool {
+	if preview {
+		return server.sessions.User(context) != nil
+	}
+	if content.Status == model.TypePublish {
+		return true
+	}
+	return content.Status == model.TypePrivate && server.sessions.User(context) != nil
 }
 
 func (server *Server) comment(context *gin.Context) {
