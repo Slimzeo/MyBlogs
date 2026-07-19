@@ -189,6 +189,66 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if err := services.Publish(content); err != nil {
 		t.Fatal(err)
 	}
+	privateContent := &model.Content{
+		Title:        "Private Article",
+		Slug:         "private-article",
+		Content:      "Private content.",
+		AuthorID:     1,
+		Type:         model.TypeArticle,
+		Status:       model.TypePrivate,
+		Categories:   "默认分类",
+		AllowComment: true,
+		AllowPing:    true,
+		AllowFeed:    true,
+	}
+	if err := services.Publish(privateContent); err != nil {
+		t.Fatal(err)
+	}
+	homeAfterPrivate, err := http.Get(testServer.URL + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	homeAfterPrivateBody, err := io.ReadAll(homeAfterPrivate.Body)
+	_ = homeAfterPrivate.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(homeAfterPrivateBody), "Private Article") {
+		t.Fatal("private article appeared on the public home page")
+	}
+	searchAfterPrivate, err := http.Get(testServer.URL + "/search/Private")
+	if err != nil {
+		t.Fatal(err)
+	}
+	searchAfterPrivateBody, err := io.ReadAll(searchAfterPrivate.Body)
+	_ = searchAfterPrivate.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(searchAfterPrivateBody), "Private Article") {
+		t.Fatal("private article appeared in public search results")
+	}
+	privateResponse, err := unauthenticatedClient.Get(testServer.URL + "/article/private-article")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if privateResponse.StatusCode != http.StatusNotFound {
+		_ = privateResponse.Body.Close()
+		t.Fatalf("private article status = %d, want 404", privateResponse.StatusCode)
+	}
+	_ = privateResponse.Body.Close()
+	privatePreviewResponse, err := client.Get(testServer.URL + "/article/private-article")
+	if err != nil {
+		t.Fatal(err)
+	}
+	privatePreviewBody, err := io.ReadAll(privatePreviewResponse.Body)
+	_ = privatePreviewResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if privatePreviewResponse.StatusCode != http.StatusOK || !strings.Contains(string(privatePreviewBody), "Private Article") {
+		t.Fatalf("authenticated private article status/body invalid: %d", privatePreviewResponse.StatusCode)
+	}
 	backup, err := services.Backup("db", "", filepath.Join("..", "..", "templates", "theme"))
 	if err != nil {
 		t.Fatal(err)
