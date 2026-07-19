@@ -16,6 +16,8 @@ import (
 	"myblog/internal/handler"
 	"myblog/internal/router"
 	"myblog/internal/service"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -23,6 +25,7 @@ func main() {
 	if err := runtimeConfig.Validate(); err != nil {
 		log.Fatalf("invalid configuration: %v", err)
 	}
+	gin.SetMode(runtimeConfig.GinMode)
 	database, err := db.Open(runtimeConfig)
 	if err != nil {
 		log.Fatalf("initialize database: %v", err)

@@ -16,12 +16,12 @@ COPY static /app/static
 RUN mkdir -p /app/data/upload && chown -R blog:blog /app
 
 USER blog
-ENV PORT=8081 \
-    DB_DRIVER=sqlite \
-    DB_DSN="data/blog.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)" \
-    UPLOAD_DIR=data/upload \
-    COOKIE_SECURE=true \
-    GIN_MODE=release
+ENV BLOG_PORT=8081 \
+    BLOG_GIN_MODE=release \
+    BLOG_DB_DRIVER=sqlite \
+    BLOG_DB_DSN="data/blog.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)" \
+    BLOG_UPLOAD_DIR=data/upload \
+    BLOG_COOKIE_SECURE=true
 EXPOSE 8081
 VOLUME ["/app/data"]
 ENTRYPOINT ["/app/blog"]

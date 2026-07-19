@@ -47,8 +47,8 @@ cp .env.example .env
 openssl rand -hex 32
 ```
 
-将生成的随机值填入 `SESSION_SECRET`，并填写 `ADMIN_USERNAME`、`ADMIN_EMAIL` 和
-`ADMIN_INITIAL_PASSWORD`。已有数据库不会重复创建管理员；这三个管理员初始化变量只在
+将生成的随机值填入 `BLOG_SESSION_SECRET`，并填写 `BLOG_ADMIN_USERNAME`、
+`BLOG_ADMIN_EMAIL` 和 `BLOG_ADMIN_INITIAL_PASSWORD`。已有数据库不会重复创建管理员；这三个管理员初始化变量只在
 数据库没有用户时生效。
 
 ## 日常使用
@@ -190,33 +190,34 @@ Go 模板中。对应位置是：
 
 | 环境变量 | 默认值 | 说明 |
 | --- | --- | --- |
-| `PORT` | `8081` | HTTP 端口 |
-| `DB_DRIVER` | `sqlite` | `sqlite` 或 `mysql` |
-| `DB_DSN` | `data/blog.db?...` | 数据库 DSN |
-| `DB_MAX_OPEN_CONNS` | `100` | 最大连接数；SQLite 内部上限为 20 |
-| `DB_MAX_IDLE_CONNS` | `20` | 最大空闲连接数；SQLite 内部上限为 10 |
-| `DB_CONN_MAX_LIFETIME_MIN` | `30` | 连接最大生命周期（分钟） |
-| `SESSION_SECRET` | 无默认值 | 至少 32 字节；启动前必须设置 |
-| `COOKIE_SECURE` | 无默认值 | HTTPS 部署设为 `true`；本地 HTTP 开发设为 `false` |
-| `ADMIN_USERNAME` | 无默认值 | 首次初始化管理员用户名 |
-| `ADMIN_EMAIL` | 无默认值 | 首次初始化管理员邮箱 |
-| `ADMIN_INITIAL_PASSWORD` | 无默认值 | 首次初始化管理员密码，不写入仓库 |
-| `UPLOAD_DIR` | `data/upload` | 上传文件目录 |
-| `HIT_FLUSH_EVERY` | `100` | 单文章点击异步落库阈值 |
-| `RATE_LIMIT_RPS` | `200` | 单 IP 每秒请求数；`0` 表示关闭 |
-| `RATE_LIMIT_BURST` | `400` | 单 IP 令牌桶突发容量 |
-| `READ_TIMEOUT_SEC` | `15` | 请求读取超时 |
-| `WRITE_TIMEOUT_SEC` | `30` | 响应写入超时 |
-| `SHUTDOWN_TIMEOUT_SEC` | `10` | 优雅退出超时 |
+| `BLOG_PORT` | `8081` | HTTP 端口 |
+| `BLOG_GIN_MODE` | `release` | Gin 运行模式，生产保持 `release` |
+| `BLOG_DB_DRIVER` | `sqlite` | `sqlite` 或 `mysql` |
+| `BLOG_DB_DSN` | `data/blog.db?...` | 数据库 DSN |
+| `BLOG_DB_MAX_OPEN_CONNS` | `100` | 最大连接数；SQLite 内部上限为 20 |
+| `BLOG_DB_MAX_IDLE_CONNS` | `20` | 最大空闲连接数；SQLite 内部上限为 10 |
+| `BLOG_DB_CONN_MAX_LIFETIME_MIN` | `30` | 连接最大生命周期（分钟） |
+| `BLOG_SESSION_SECRET` | 无默认值 | 至少 32 字节；启动前必须设置 |
+| `BLOG_COOKIE_SECURE` | 无默认值 | HTTPS 部署设为 `true`；本地 HTTP 开发设为 `false` |
+| `BLOG_ADMIN_USERNAME` | 无默认值 | 首次初始化管理员用户名 |
+| `BLOG_ADMIN_EMAIL` | 无默认值 | 首次初始化管理员邮箱 |
+| `BLOG_ADMIN_INITIAL_PASSWORD` | 无默认值 | 首次初始化管理员密码，不写入仓库 |
+| `BLOG_UPLOAD_DIR` | `data/upload` | 上传文件目录 |
+| `BLOG_HIT_FLUSH_EVERY` | `100` | 单文章点击异步落库阈值 |
+| `BLOG_RATE_LIMIT_RPS` | `200` | 单 IP 每秒请求数；`0` 表示关闭 |
+| `BLOG_RATE_LIMIT_BURST` | `400` | 单 IP 令牌桶突发容量 |
+| `BLOG_READ_TIMEOUT_SEC` | `15` | 请求读取超时 |
+| `BLOG_WRITE_TIMEOUT_SEC` | `30` | 响应写入超时 |
+| `BLOG_SHUTDOWN_TIMEOUT_SEC` | `10` | 优雅退出超时 |
 
 示例：
 
 ```bash
-SESSION_SECRET='replace-with-a-random-value-at-least-32-bytes' \
-ADMIN_USERNAME='your-admin-name' \
-ADMIN_EMAIL='you@example.com' \
-ADMIN_INITIAL_PASSWORD='your-strong-password' \
-PORT=8081 \
+BLOG_SESSION_SECRET='replace-with-a-random-value-at-least-32-bytes' \
+BLOG_ADMIN_USERNAME='your-admin-name' \
+BLOG_ADMIN_EMAIL='you@example.com' \
+BLOG_ADMIN_INITIAL_PASSWORD='your-strong-password' \
+BLOG_PORT=8081 \
 make run
 ```
 
@@ -238,18 +239,18 @@ make run
 ## 使用 MySQL
 
 数据表名、字段名与原 Java 版本的 `tale` 数据库保持兼容。已有 MySQL 数据库可以直接
-通过 `DB_DRIVER=mysql` 和 `DB_DSN` 接入；如果需要全新导入，请使用你自己的数据库
+通过 `BLOG_DB_DRIVER=mysql` 和 `BLOG_DB_DSN` 接入；如果需要全新导入，请使用你自己的数据库
 备份或 SQL 导出文件，不要把数据库密码写进仓库。
 
 再启动：
 
 ```bash
-DB_DRIVER=mysql \
-DB_DSN='your-db-user:your-db-password@tcp(host:3306)/tale?charset=utf8mb4&parseTime=true&loc=Local' \
-SESSION_SECRET='replace-with-a-random-value-at-least-32-bytes' \
-ADMIN_USERNAME='your-admin-name' \
-ADMIN_EMAIL='you@example.com' \
-ADMIN_INITIAL_PASSWORD='your-strong-password' \
+BLOG_DB_DRIVER=mysql \
+BLOG_DB_DSN='your-db-user:your-db-password@tcp(host:3306)/tale?charset=utf8mb4&parseTime=true&loc=Local' \
+BLOG_SESSION_SECRET='replace-with-a-random-value-at-least-32-bytes' \
+BLOG_ADMIN_USERNAME='your-admin-name' \
+BLOG_ADMIN_EMAIL='you@example.com' \
+BLOG_ADMIN_INITIAL_PASSWORD='your-strong-password' \
 make run
 ```
 
@@ -262,8 +263,9 @@ docker compose up --build
 ```
 
 默认持久化到 Docker volume `blog_data`。生产部署时请在部署主机的 `.env` 中设置
-`SESSION_SECRET`、`COOKIE_SECURE`、`ADMIN_USERNAME`、`ADMIN_EMAIL` 和
-`ADMIN_INITIAL_PASSWORD`，不要把这些值写进 `docker-compose.yml` 或 Git。
+`BLOG_SESSION_SECRET`、`BLOG_COOKIE_SECURE`、`BLOG_ADMIN_USERNAME`、
+`BLOG_ADMIN_EMAIL` 和 `BLOG_ADMIN_INITIAL_PASSWORD`，不要把这些值写进
+`docker-compose.yml` 或 Git。
 
 ## 验证
 

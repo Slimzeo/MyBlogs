@@ -10,10 +10,11 @@ import (
 
 // Config holds all runtime configuration. Values come from environment
 // variables so the app runs out-of-the-box with sane defaults (SQLite),
-// and can be pointed at MySQL for production by setting DB_DRIVER=mysql.
+// and can be pointed at MySQL for production by setting BLOG_DB_DRIVER=mysql.
 type Config struct {
 	// Server
 	Port            string
+	GinMode         string
 	ReadTimeout     time.Duration
 	WriteTimeout    time.Duration
 	ShutdownTimeout time.Duration
@@ -44,28 +45,29 @@ type Config struct {
 // Load reads configuration from the environment applying defaults.
 func Load() *Config {
 	c := &Config{
-		Port:            env("PORT", "8081"),
-		ReadTimeout:     time.Duration(envInt("READ_TIMEOUT_SEC", 15)) * time.Second,
-		WriteTimeout:    time.Duration(envInt("WRITE_TIMEOUT_SEC", 30)) * time.Second,
-		ShutdownTimeout: time.Duration(envInt("SHUTDOWN_TIMEOUT_SEC", 10)) * time.Second,
+		Port:            env("BLOG_PORT", "8081"),
+		GinMode:         env("BLOG_GIN_MODE", "release"),
+		ReadTimeout:     time.Duration(envInt("BLOG_READ_TIMEOUT_SEC", 15)) * time.Second,
+		WriteTimeout:    time.Duration(envInt("BLOG_WRITE_TIMEOUT_SEC", 30)) * time.Second,
+		ShutdownTimeout: time.Duration(envInt("BLOG_SHUTDOWN_TIMEOUT_SEC", 10)) * time.Second,
 
-		DBDriver: env("DB_DRIVER", "sqlite"),
-		DBDSN:    env("DB_DSN", ""),
+		DBDriver: env("BLOG_DB_DRIVER", "sqlite"),
+		DBDSN:    env("BLOG_DB_DSN", ""),
 
-		DBMaxOpenConns:    envInt("DB_MAX_OPEN_CONNS", 100),
-		DBMaxIdleConns:    envInt("DB_MAX_IDLE_CONNS", 20),
-		DBConnMaxLifetime: time.Duration(envInt("DB_CONN_MAX_LIFETIME_MIN", 30)) * time.Minute,
+		DBMaxOpenConns:    envInt("BLOG_DB_MAX_OPEN_CONNS", 100),
+		DBMaxIdleConns:    envInt("BLOG_DB_MAX_IDLE_CONNS", 20),
+		DBConnMaxLifetime: time.Duration(envInt("BLOG_DB_CONN_MAX_LIFETIME_MIN", 30)) * time.Minute,
 
-		SessionSecret: env("SESSION_SECRET", ""),
-		CookieSecure:  envBool("COOKIE_SECURE", false),
+		SessionSecret: env("BLOG_SESSION_SECRET", ""),
+		CookieSecure:  envBool("BLOG_COOKIE_SECURE", false),
 
-		UploadDir:            env("UPLOAD_DIR", "data/upload"),
-		HitFlushEvery:        envInt("HIT_FLUSH_EVERY", 100),
-		RateLimitRPS:         envInt("RATE_LIMIT_RPS", 200),
-		RateLimitBurst:       envInt("RATE_LIMIT_BURST", 400),
-		AdminUsername:        env("ADMIN_USERNAME", ""),
-		AdminEmail:           env("ADMIN_EMAIL", ""),
-		AdminInitialPassword: env("ADMIN_INITIAL_PASSWORD", ""),
+		UploadDir:            env("BLOG_UPLOAD_DIR", "data/upload"),
+		HitFlushEvery:        envInt("BLOG_HIT_FLUSH_EVERY", 100),
+		RateLimitRPS:         envInt("BLOG_RATE_LIMIT_RPS", 200),
+		RateLimitBurst:       envInt("BLOG_RATE_LIMIT_BURST", 400),
+		AdminUsername:        env("BLOG_ADMIN_USERNAME", ""),
+		AdminEmail:           env("BLOG_ADMIN_EMAIL", ""),
+		AdminInitialPassword: env("BLOG_ADMIN_INITIAL_PASSWORD", ""),
 	}
 
 	if c.DBDSN == "" {
@@ -87,23 +89,23 @@ func Load() *Config {
 // database connection or HTTP listener is created.
 func (c *Config) Validate() error {
 	if strings.TrimSpace(c.SessionSecret) == "" {
-		return errors.New("SESSION_SECRET must be set")
+		return errors.New("BLOG_SESSION_SECRET must be set")
 	}
 	if len([]byte(c.SessionSecret)) < 32 {
-		return errors.New("SESSION_SECRET must contain at least 32 bytes")
+		return errors.New("BLOG_SESSION_SECRET must contain at least 32 bytes")
 	}
 	if c.DBDriver == "mysql" && strings.TrimSpace(c.DBDSN) == "" {
-		return errors.New("DB_DSN must be set when DB_DRIVER=mysql")
+		return errors.New("BLOG_DB_DSN must be set when BLOG_DB_DRIVER=mysql")
 	}
 	bootstrapConfigured := c.AdminUsername != "" || c.AdminEmail != "" || c.AdminInitialPassword != ""
 	if bootstrapConfigured {
 		if strings.TrimSpace(c.AdminUsername) == "" ||
 			strings.TrimSpace(c.AdminEmail) == "" ||
 			c.AdminInitialPassword == "" {
-			return errors.New("ADMIN_USERNAME, ADMIN_EMAIL and ADMIN_INITIAL_PASSWORD must be provided together")
+			return errors.New("BLOG_ADMIN_USERNAME, BLOG_ADMIN_EMAIL and BLOG_ADMIN_INITIAL_PASSWORD must be provided together")
 		}
 		if len([]rune(c.AdminInitialPassword)) < 6 {
-			return errors.New("ADMIN_INITIAL_PASSWORD must contain at least 6 characters")
+			return errors.New("BLOG_ADMIN_INITIAL_PASSWORD must contain at least 6 characters")
 		}
 	}
 	return nil

@@ -4,12 +4,11 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
-      COOKIE_SECURE: ${COOKIE_SECURE:?set COOKIE_SECURE in .env}
-      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
-      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-}
-      GIN_MODE: release
+      BLOG_SESSION_SECRET: ${BLOG_SESSION_SECRET:?set BLOG_SESSION_SECRET in .env}
+      BLOG_COOKIE_SECURE: ${BLOG_COOKIE_SECURE:?set BLOG_COOKIE_SECURE in .env}
+      BLOG_ADMIN_USERNAME: ${BLOG_ADMIN_USERNAME:-}
+      BLOG_ADMIN_EMAIL: ${BLOG_ADMIN_EMAIL:-}
+      BLOG_ADMIN_INITIAL_PASSWORD: ${BLOG_ADMIN_INITIAL_PASSWORD:-}
     volumes:
       - blog_data:/app/data
     restart: unless-stopped
