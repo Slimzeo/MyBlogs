@@ -1,0 +1,15 @@
+{{define "pageNav"}}
+{{/* . is a dict: {Page: *PageInfo, Prev: string, Next: string, Prefix: string} */}}
+<ol class="page-navigator">
+    {{$p := .Page}}
+    {{if $p.HasPreviousPage}}
+        <li class="prev"><a href="/{{.Prefix}}/{{$p.PrePage}}">{{.Prev}}</a></li>
+    {{end}}
+    {{range $navIndex := $p.NavigatepageNums}}
+        <li class="{{if eq $p.PageNum $navIndex}}current{{end}}"><a href="/{{$.Prefix}}/{{$navIndex}}">{{$navIndex}}</a></li>
+    {{end}}
+    {{if $p.HasNextPage}}
+        <li class="next"><a href="/{{.Prefix}}/{{$p.NextPage}}">{{.Next}}</a></li>
+    {{end}}
+</ol>
+{{end}}

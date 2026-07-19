@@ -1,0 +1,39 @@
+{{define "admin/index"}}
+{{template "admin/header" .}}
+<div class="stat-grid">
+    <div class="stat-box"><div class="num">{{.Statistics.Articles}}</div><div>文章</div></div>
+    <div class="stat-box"><div class="num">{{.Statistics.Comments}}</div><div>评论</div></div>
+    <div class="stat-box"><div class="num">{{.Statistics.Attachs}}</div><div>附件</div></div>
+    <div class="stat-box"><div class="num">{{.Statistics.Links}}</div><div>友链</div></div>
+</div>
+
+<div class="card">
+    <h3>最新文章</h3>
+    <table>
+        <tbody>
+        {{range $a := .RecentArticles}}
+        <tr><td><a href="/article/{{$a.Cid}}" target="_blank">{{$a.Title}}</a></td><td style="width:160px;color:#999;">{{fmtdate $a.Created}}</td></tr>
+        {{else}}<tr><td>暂无文章</td></tr>{{end}}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h3>最新评论</h3>
+    <table>
+        {{range $c := .RecentComments}}
+        <tr><td style="width:120px;">{{$c.Author}}</td><td>{{$c.Content}}</td><td style="width:160px;color:#999;">{{fmtdate $c.Created}}</td></tr>
+        {{else}}<tr><td>暂无评论</td></tr>{{end}}
+    </table>
+</div>
+
+<div class="card">
+    <h3>操作日志</h3>
+    <table>
+        {{range $l := .Logs}}
+        <tr><td>{{$l.Action}}</td><td style="color:#999;">{{$l.IP}}</td><td style="width:160px;color:#999;">{{fmtdate $l.Created}}</td></tr>
+        {{else}}<tr><td>暂无日志</td></tr>{{end}}
+    </table>
+</div>
+{{template "admin/footer" .}}
+{{end}}

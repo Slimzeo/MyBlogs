@@ -1,0 +1,32 @@
+{{define "archives"}}
+{{template "header" .}}
+<main class="fluid-main">
+    <div class="fluid-container">
+    <section id="board" class="fluid-board fluid-list-board">
+        <div class="fluid-list-heading">
+            <h2>文章归档</h2>
+        </div>
+        {{if .Archives}}
+        {{range $archive := .Archives}}
+        <div class="fluid-archive-group">
+            <h3>{{$archive.Date}}</h3>
+            <div class="fluid-archive-list">
+                {{range $article := $archive.Articles}}
+                <a class="fluid-archive-item" href="{{permalink $article}}">
+                    <time>{{fmtdate $article.Created}}</time>
+                    <span>{{$article.Title}}</span>
+                </a>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+        {{else}}
+        <div class="fluid-empty">
+            <p>还没有归档内容。</p>
+        </div>
+        {{end}}
+    </section>
+    </div>
+</main>
+{{template "footer" .}}
+{{end}}

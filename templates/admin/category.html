@@ -1,0 +1,48 @@
+{{define "admin/category"}}
+{{template "admin/header" .}}
+<div class="card">
+    <h3>分类</h3>
+    <form id="cat-form" style="display:flex;gap:10px;align-items:flex-end;">
+        <div style="flex:1;"><label>新增/重命名分类</label><input type="text" name="cname" id="cname" placeholder="分类名"/></div>
+        <input type="hidden" name="mid" id="cat-mid" value="0"/>
+        <button type="submit" class="btn btn-primary" style="margin-bottom:12px;">保存</button>
+    </form>
+    <table>
+        <thead><tr><th>分类名</th><th style="width:100px;">文章数</th><th style="width:160px;">操作</th></tr></thead>
+        <tbody>
+        {{range $m := .Categories}}
+        <tr>
+            <td>{{$m.Name}}</td><td>{{$m.Count}}</td>
+            <td>
+                <a class="btn btn-default btn-sm" href="javascript:;" onclick="renameCat({{$m.Mid}},'{{$m.Name}}')">重命名</a>
+                <a class="btn btn-danger btn-sm" href="javascript:;" onclick="delMeta({{$m.Mid}})">删除</a>
+            </td>
+        </tr>
+        {{end}}
+        </tbody>
+    </table>
+</div>
+<div class="card">
+    <h3>标签</h3>
+    <table>
+        <thead><tr><th>标签名</th><th style="width:100px;">文章数</th><th style="width:100px;">操作</th></tr></thead>
+        <tbody>
+        {{range $m := .Tags}}
+        <tr><td>{{$m.Name}}</td><td>{{$m.Count}}</td><td><a class="btn btn-danger btn-sm" href="javascript:;" onclick="delMeta({{$m.Mid}})">删除</a></td></tr>
+        {{end}}
+        </tbody>
+    </table>
+</div>
+<script>
+    function renameCat(mid,name){ $('#cat-mid').val(mid); $('#cname').val(name); }
+    $('#cat-form').submit(function(e){
+        e.preventDefault();
+        $.post('/admin/category/save', $(this).serialize(), function(r){ if(r.success){location.reload();}else{alert(r.msg||'保存失败');}});
+    });
+    function delMeta(mid){
+        if(!confirm('确定删除?'))return;
+        $.post('/admin/category/delete',{mid:mid},function(r){ if(r.success){location.reload();}else{alert(r.msg||'删除失败');}});
+    }
+</script>
+{{template "admin/footer" .}}
+{{end}}

@@ -1,0 +1,15 @@
+{{define "page"}}
+{{template "header" .}}
+<main class="fluid-main">
+    <div class="fluid-container">
+        <section id="board" class="fluid-board fluid-page-board">
+            <article class="fluid-post-content">
+                <h1 class="fluid-seo-title">{{.Article.Title}}</h1>
+                <div id="post-content" class="fluid-markdown">{{article .Article.Content}}</div>
+            </article>
+            {{template "comments" .}}
+        </section>
+    </div>
+</main>
+{{template "footer" .}}
+{{end}}

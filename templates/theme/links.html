@@ -1,0 +1,32 @@
+{{define "links"}}
+{{template "header" .}}
+<main class="fluid-main">
+    <div class="fluid-container">
+    <section id="board" class="fluid-board fluid-links-board">
+        <div class="fluid-list-heading"><h2>友情链接</h2></div>
+        {{if .Links}}
+        <div class="fluid-links">
+            {{range $link := .Links}}
+            <div class="fluid-link-card">
+            <a href="{{$link.Slug}}" target="_blank" rel="noopener noreferrer">
+                <span class="fluid-link-avatar">
+                    {{if $link.Description}}<img src="{{$link.Description}}" alt="" loading="lazy"/>{{else}}{{substr $link.Name 1}}{{end}}
+                </span>
+                <span class="fluid-link-text">
+                    <strong>{{$link.Name}}</strong>
+                    <span>{{$link.Slug}}</span>
+                </span>
+            </a>
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <div class="fluid-empty">
+            <p>友链正在整理。</p>
+        </div>
+        {{end}}
+    </section>
+    </div>
+</main>
+{{template "footer" .}}
+{{end}}

@@ -1,0 +1,43 @@
+{{define "admin/login"}}<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8"/>
+    <title>登录 - {{siteTitle}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="shortcut icon" href="/assets/admin/images/favicon.png"/>
+    <style>
+        body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#4a54e1,#8f57fb);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+        .login-box{background:#fff;padding:36px;border-radius:10px;width:320px;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+        .login-box h2{margin:0 0 20px;text-align:center;color:#333}
+        .login-box input{width:100%;box-sizing:border-box;padding:11px;margin-bottom:14px;border:1px solid #ddd;border-radius:6px}
+        .login-box button{width:100%;padding:12px;background:#4a54e1;color:#fff;border:0;border-radius:6px;font-size:15px;cursor:pointer}
+        .login-box .tip{font-size:12px;color:#999;text-align:center;margin-top:14px}
+        .err{color:#e74c3c;font-size:13px;min-height:18px;text-align:center}
+    </style>
+    <script src="//cdn.bootcdn.net/ajax/libs/jquery/2.2.3/jquery.min.js"></script>
+</head>
+<body>
+<div class="login-box">
+    <h2>{{siteTitle}}</h2>
+    <div class="err" id="err"></div>
+    <form id="login-form">
+        <input type="hidden" name="_csrf_token" value="{{.CsrfToken}}"/>
+        <input type="text" name="username" id="username" placeholder="用户名" autocomplete="off"/>
+        <input type="password" name="password" id="password" placeholder="密码"/>
+        <label style="font-size:12px;color:#666;"><input type="checkbox" name="remeber_me" value="1" style="width:auto;margin-right:6px;"/>记住我</label>
+        <button type="submit">登 录</button>
+    </form>
+    <div class="tip">默认账号 admin / 123456</div>
+</div>
+<script>
+    $('#login-form').submit(function (e) {
+        e.preventDefault();
+        $.post('/admin/login', $(this).serialize(), function (r) {
+            if (r && r.success) { window.location.href = '/admin/index'; }
+            else { $('#err').text(r.msg || '登录失败'); }
+        });
+    });
+</script>
+</body>
+</html>
+{{end}}

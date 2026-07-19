@@ -1,0 +1,43 @@
+{{define "admin/comment_list"}}
+{{template "admin/header" .}}
+<div class="card">
+    <h3>评论管理</h3>
+    <table>
+        <thead><tr><th style="width:120px;">作者</th><th>内容</th><th style="width:110px;">状态</th><th style="width:150px;">时间</th><th style="width:180px;">操作</th></tr></thead>
+        <tbody>
+        {{range $c := .AdminComments.List}}
+        <tr id="comment-row-{{$c.Coid}}">
+            <td>{{$c.Author}}<br/><small style="color:#999;">{{$c.Mail}}</small></td>
+            <td>{{$c.Content}}</td>
+            <td>{{$c.Status}}</td>
+            <td style="color:#999;">{{fmtdate $c.Created}}</td>
+            <td>
+                <a class="btn btn-default btn-sm" href="javascript:;" onclick="replyComment({{$c.Coid}})">回复</a>
+                <a class="btn btn-danger btn-sm" href="javascript:;" onclick="delComment({{$c.Coid}})">删除</a>
+            </td>
+        </tr>
+        {{else}}<tr><td colspan="5">暂无评论</td></tr>{{end}}
+        </tbody>
+    </table>
+    {{template "admin/pager" dict "Page" .AdminComments "Base" "/admin/comments"}}
+</div>
+<div class="card" id="reply-box" style="display:none;">
+    <h4>回复评论</h4>
+    <input type="hidden" id="reply-coid"/>
+    <textarea id="reply-content" rows="4" placeholder="回复内容"></textarea>
+    <button class="btn btn-primary" onclick="doReply()">发送</button>
+</div>
+<script>
+    function replyComment(coid){ $('#reply-coid').val(coid); $('#reply-box').show(); $('html,body').animate({scrollTop:$('#reply-box').offset().top},300); }
+    function doReply(){
+        $.post('/admin/comments',{coid:$('#reply-coid').val(),content:$('#reply-content').val()},function(r){
+            if(r.success){location.reload();}else{alert(r.msg||'回复失败');}
+        });
+    }
+    function delComment(coid){
+        if(!confirm('确定删除?'))return;
+        $.post('/admin/comments/delete',{coid:coid},function(r){ if(r.success){location.reload();}else{alert(r.msg||'删除失败');}});
+    }
+</script>
+{{template "admin/footer" .}}
+{{end}}

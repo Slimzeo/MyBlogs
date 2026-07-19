@@ -1,0 +1,56 @@
+{{define "admin/header"}}<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="csrf-token" content="{{.CsrfToken}}"/>
+    <title>{{if .Title}}{{.Title}}{{else}}后台管理{{end}} - {{siteTitle}}</title>
+    <link rel="shortcut icon" href="/assets/admin/images/favicon.png"/>
+    <link href="//cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="//cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"/>
+    <link href="/assets/admin/css/style.min.css" rel="stylesheet"/>
+    <script src="//cdn.bootcdn.net/ajax/libs/jquery/2.2.3/jquery.min.js"></script>
+    <script>
+        $(function(){
+            $.ajaxSetup({headers:{'X-CSRF-Token':$('meta[name=csrf-token]').attr('content')}});
+        });
+    </script>
+    <style>
+        body{background:#f5f6fa;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+        .admin-topbar{background:#2b2e3b;color:#fff;padding:0 20px;height:56px;line-height:56px;display:flex;justify-content:space-between}
+        .admin-topbar a{color:#c8cdd6;margin-right:18px;text-decoration:none}
+        .admin-topbar a:hover,.admin-topbar a.active{color:#fff}
+        .admin-wrap{max-width:1080px;margin:24px auto;padding:0 16px}
+        .card{background:#fff;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:20px;margin-bottom:20px}
+        .stat-grid{display:flex;gap:16px;flex-wrap:wrap}
+        .stat-box{flex:1;min-width:150px;background:#fff;border-radius:6px;padding:20px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+        .stat-box .num{font-size:32px;font-weight:600;color:#4a54e1}
+        table{width:100%;border-collapse:collapse}
+        th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
+        .btn-sm{padding:4px 10px;font-size:12px}
+        input,textarea,select{padding:8px;border:1px solid #ddd;border-radius:4px;width:100%;box-sizing:border-box;margin-bottom:12px}
+        label{font-size:13px;color:#555;display:block;margin-bottom:4px}
+    </style>
+</head>
+<body>
+<div class="admin-topbar">
+    <div>
+        <strong style="color:#fff;margin-right:24px;">{{siteTitle}} 管理</strong>
+        <a href="/admin/index" class="{{if eq .Active "index"}}active{{end}}">首页</a>
+        <a href="/admin/article" class="{{if eq .Active "article"}}active{{end}}">文章</a>
+        <a href="/admin/page" class="{{if eq .Active "page"}}active{{end}}">页面</a>
+        <a href="/admin/comments" class="{{if eq .Active "comment"}}active{{end}}">评论</a>
+        <a href="/admin/category" class="{{if eq .Active "category"}}active{{end}}">分类</a>
+        <a href="/admin/attach" class="{{if eq .Active "attach"}}active{{end}}">附件</a>
+        <a href="/admin/links" class="{{if eq .Active "links"}}active{{end}}">友链</a>
+        <a href="/admin/setting" class="{{if eq .Active "setting"}}active{{end}}">设置</a>
+        <a href="/admin/profile" class="{{if eq .Active "profile"}}active{{end}}">个人</a>
+    </div>
+    <div>
+        {{if .LoginUser}}<span style="color:#8b90a0;">{{.LoginUser.Username}}</span> {{end}}
+        <a href="/admin/logout">退出</a>
+    </div>
+</div>
+<div class="admin-wrap">
+{{end}}

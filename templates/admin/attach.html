@@ -1,0 +1,36 @@
+{{define "admin/attach"}}
+{{template "admin/header" .}}
+<div class="card">
+    <h3>附件管理</h3>
+    <form id="upload-form" enctype="multipart/form-data">
+        <input type="file" name="file" id="file" multiple/>
+        <button type="submit" class="btn btn-primary">上传 (最大 {{.MaxFileSize}} KB)</button>
+    </form>
+</div>
+<div class="card">
+    <table>
+        <thead><tr><th style="width:120px;">预览</th><th>文件名</th><th style="width:100px;">类型</th><th style="width:120px;">操作</th></tr></thead>
+        <tbody>
+        {{range $a := .Attachs.List}}
+        <tr>
+            <td>{{if eq $a.Ftype "image"}}<img src="{{$a.Fkey}}" style="max-width:100px;max-height:60px;"/>{{else}}📄{{end}}</td>
+            <td><a href="{{$a.Fkey}}" target="_blank">{{$a.Fname}}</a></td>
+            <td>{{$a.Ftype}}</td>
+            <td><a class="btn btn-danger btn-sm" href="javascript:;" onclick="delAttach({{$a.ID}})">删除</a></td>
+        </tr>
+        {{else}}<tr><td colspan="4">暂无附件</td></tr>{{end}}
+        </tbody>
+    </table>
+    {{template "admin/pager" dict "Page" .Attachs "Base" "/admin/attach"}}
+</div>
+<script>
+    $('#upload-form').submit(function(e){
+        e.preventDefault();
+        var fd = new FormData(this);
+        $.ajax({url:'/admin/attach/upload',type:'post',data:fd,processData:false,contentType:false,
+            success:function(r){ if(r.success){location.reload();}else{alert(r.msg||'上传失败');} }});
+    });
+    function delAttach(id){ if(!confirm('确定删除?'))return; $.post('/admin/attach/delete',{id:id},function(r){ if(r.success){location.reload();}else{alert(r.msg||'删除失败');}}); }
+</script>
+{{template "admin/footer" .}}
+{{end}}

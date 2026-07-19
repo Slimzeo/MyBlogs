@@ -1,0 +1,19 @@
+services:
+  blog:
+    build: .
+    ports:
+      - "8081:8081"
+    environment:
+      SESSION_SECRET: ${SESSION_SECRET:-change-this-before-production}
+      GIN_MODE: release
+    volumes:
+      - blog_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8081/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  blog_data:

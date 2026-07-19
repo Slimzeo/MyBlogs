@@ -1,0 +1,37 @@
+{{define "admin/page_edit"}}
+{{template "admin/header" .}}
+{{$c := .Contents}}
+<div class="card">
+    <h3>{{if $c}}编辑页面{{else}}新页面{{end}}</h3>
+    <form id="page-form">
+        {{if $c}}<input type="hidden" name="cid" value="{{$c.Cid}}"/>{{end}}
+        <label>标题</label>
+        <input type="text" name="title" value="{{if $c}}{{$c.Title}}{{end}}"/>
+        <label>内容 (Markdown)</label>
+        <textarea name="content" rows="16">{{if $c}}{{$c.Content}}{{end}}</textarea>
+        <label>路径 slug (至少5位)</label>
+        <input type="text" name="slug" value="{{if $c}}{{$c.Slug}}{{end}}"/>
+        <label>状态</label>
+        <select name="status">
+            <option value="publish" {{if and $c (eq $c.Status "publish")}}selected{{end}}>发布</option>
+            <option value="draft" {{if and $c (eq $c.Status "draft")}}selected{{end}}>草稿</option>
+        </select>
+        <label><input type="checkbox" name="allowComment" value="1" style="width:auto;" {{if or (not $c) $c.AllowComment}}checked{{end}}/> 允许评论</label>
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="/admin/page" class="btn btn-default">返回</a>
+    </form>
+</div>
+<script>
+    var isEdit = {{if $c}}true{{else}}false{{end}};
+    $('#page-form').submit(function(e){
+        e.preventDefault();
+        var data = $(this).serializeArray();
+        if(!$('input[name=allowComment]').is(':checked')){ data.push({name:'allowComment',value:'0'}); }
+        var url = isEdit ? '/admin/page/modify' : '/admin/page/publish';
+        $.post(url, $.param(data), function(r){
+            if(r.success){ location.href='/admin/page'; } else { alert(r.msg||'保存失败'); }
+        });
+    });
+</script>
+{{template "admin/footer" .}}
+{{end}}
