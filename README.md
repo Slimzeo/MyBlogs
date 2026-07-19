@@ -1,6 +1,5 @@
 # Go My-Blog
 
-`ref_blog` 中 Java Spring Boot + MyBatis + Thymeleaf 博客的 Go 迁移版本。
 
 项目保留了原博客的前台与后台功能、路由和数据表命名，默认使用零配置
 SQLite，也可直接连接 MySQL `tale` 数据库。
