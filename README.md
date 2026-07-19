@@ -33,13 +33,23 @@ make run
 
 - 博客首页：`http://127.0.0.1:8081`
 - 管理后台：`http://127.0.0.1:8081/admin/login`
-- 默认账号：`admin`
-- 默认密码：`123456`
 - 存活检查：`http://127.0.0.1:8081/healthz`
 - 就绪检查：`http://127.0.0.1:8081/readyz`
 
-首次启动会自动创建 `data/blog.db`、默认管理员、站点设置、欢迎文章和关于页面。
-上线前务必修改默认密码和 `SESSION_SECRET`。
+首次启动会自动创建 `data/blog.db`、管理员、站点设置、欢迎文章和关于页面。
+管理员初始化信息只从环境变量读取，不会写入代码仓库。
+
+生产部署前请复制 `.env.example` 为部署主机上的 `.env`，填入真实值；`.env` 已被
+Git 忽略，不要把它提交到公开仓库：
+
+```bash
+cp .env.example .env
+openssl rand -hex 32
+```
+
+将生成的随机值填入 `SESSION_SECRET`，并填写 `ADMIN_USERNAME`、`ADMIN_EMAIL` 和
+`ADMIN_INITIAL_PASSWORD`。已有数据库不会重复创建管理员；这三个管理员初始化变量只在
+数据库没有用户时生效。
 
 ## 日常使用
 
@@ -51,15 +61,8 @@ make run
 http://127.0.0.1:8081/admin/login
 ```
 
-首次启动的默认账号是：
-
-```text
-用户名：admin
-密码：123456
-```
-
-登录后会进入管理首页。第一次登录后，建议马上打开顶部的 `个人`，修改显示名称、
-邮箱和密码；生产环境不要继续使用默认密码。
+首次启动使用你在 `.env` 中设置的管理员账号和密码。登录后会进入管理首页，建议马上
+打开顶部的 `个人设置` 检查显示名称、邮箱和密码。
 
 登录功能主要用于管理，不是给普通读者使用的：
 
@@ -193,7 +196,11 @@ Go 模板中。对应位置是：
 | `DB_MAX_OPEN_CONNS` | `100` | 最大连接数；SQLite 内部上限为 20 |
 | `DB_MAX_IDLE_CONNS` | `20` | 最大空闲连接数；SQLite 内部上限为 10 |
 | `DB_CONN_MAX_LIFETIME_MIN` | `30` | 连接最大生命周期（分钟） |
-| `SESSION_SECRET` | 开发默认值 | 会话和 CSRF 的 HMAC 密钥，生产必须修改 |
+| `SESSION_SECRET` | 无默认值 | 至少 32 字节；启动前必须设置 |
+| `COOKIE_SECURE` | 无默认值 | HTTPS 部署设为 `true`；本地 HTTP 开发设为 `false` |
+| `ADMIN_USERNAME` | 无默认值 | 首次初始化管理员用户名 |
+| `ADMIN_EMAIL` | 无默认值 | 首次初始化管理员邮箱 |
+| `ADMIN_INITIAL_PASSWORD` | 无默认值 | 首次初始化管理员密码，不写入仓库 |
 | `UPLOAD_DIR` | `data/upload` | 上传文件目录 |
 | `HIT_FLUSH_EVERY` | `100` | 单文章点击异步落库阈值 |
 | `RATE_LIMIT_RPS` | `200` | 单 IP 每秒请求数；`0` 表示关闭 |
@@ -205,7 +212,10 @@ Go 模板中。对应位置是：
 示例：
 
 ```bash
-SESSION_SECRET='replace-with-a-long-random-secret' \
+SESSION_SECRET='replace-with-a-random-value-at-least-32-bytes' \
+ADMIN_USERNAME='your-admin-name' \
+ADMIN_EMAIL='you@example.com' \
+ADMIN_INITIAL_PASSWORD='your-strong-password' \
 PORT=8081 \
 make run
 ```
@@ -227,18 +237,19 @@ make run
 
 ## 使用 MySQL
 
-数据表名、字段名与 Java 项目的 `tale.sql` 保持兼容。可先导入原数据：
-
-```bash
-mysql -uroot -p tale < ref_blog/src/main/resources/sql/tale.sql
-```
+数据表名、字段名与原 Java 版本的 `tale` 数据库保持兼容。已有 MySQL 数据库可以直接
+通过 `DB_DRIVER=mysql` 和 `DB_DSN` 接入；如果需要全新导入，请使用你自己的数据库
+备份或 SQL 导出文件，不要把数据库密码写进仓库。
 
 再启动：
 
 ```bash
 DB_DRIVER=mysql \
-DB_DSN='root:password@tcp(127.0.0.1:3306)/tale?charset=utf8mb4&parseTime=true&loc=Local' \
-SESSION_SECRET='replace-with-a-long-random-secret' \
+DB_DSN='your-db-user:your-db-password@tcp(host:3306)/tale?charset=utf8mb4&parseTime=true&loc=Local' \
+SESSION_SECRET='replace-with-a-random-value-at-least-32-bytes' \
+ADMIN_USERNAME='your-admin-name' \
+ADMIN_EMAIL='you@example.com' \
+ADMIN_INITIAL_PASSWORD='your-strong-password' \
 make run
 ```
 
@@ -250,8 +261,9 @@ make run
 docker compose up --build
 ```
 
-默认持久化到 Docker volume `blog_data`。生产部署时请通过环境变量覆盖
-`SESSION_SECRET`。
+默认持久化到 Docker volume `blog_data`。生产部署时请在部署主机的 `.env` 中设置
+`SESSION_SECRET`、`COOKIE_SECURE`、`ADMIN_USERNAME`、`ADMIN_EMAIL` 和
+`ADMIN_INITIAL_PASSWORD`，不要把这些值写进 `docker-compose.yml` 或 Git。
 
 ## 验证
 
@@ -259,7 +271,7 @@ docker compose up --build
 make fmt
 make test
 go vet ./...
-go test -race ./internal/cache ./internal/web
+go test -race ./internal/cache ./internal/handler ./internal/middleware
 ```
 
 本机压测环境（Apple Silicon，SQLite WAL，100 并发，10,000 请求）：
@@ -281,9 +293,9 @@ internal/cache/    分片 TTL 缓存
 internal/db/       SQLite/MySQL、迁移与种子数据
 internal/model/    与 Java Vo/Bo 对应的数据模型
 internal/service/  业务逻辑
-internal/web/      Gin 路由、中间件、会话和渲染
+internal/handler/  HTTP Handler、路由、页面渲染和响应
+internal/middleware/ HTTP 中间件、Session、CSRF 和限流
 templates/         Go html/template 页面
-static/            从 Java 项目迁移的静态资源
-ref_blog/          Java 参考实现
+static/            前后台静态资源
 ```
 

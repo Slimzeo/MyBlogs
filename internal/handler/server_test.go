@@ -1,4 +1,4 @@
-package web
+package handler_test
 
 import (
 	"archive/zip"
@@ -20,7 +20,9 @@ import (
 	"myblog/config"
 	"myblog/internal/cache"
 	"myblog/internal/db"
+	"myblog/internal/handler"
 	"myblog/internal/model"
+	"myblog/internal/router"
 	"myblog/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -32,16 +34,19 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	gin.SetMode(gin.ReleaseMode)
 	tempDirectory := t.TempDir()
 	runtimeConfig := &config.Config{
-		DBDriver:          "sqlite",
-		DBDSN:             filepath.Join(tempDirectory, "blog.db") + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)",
-		DBMaxOpenConns:    20,
-		DBMaxIdleConns:    10,
-		DBConnMaxLifetime: 30 * time.Minute,
-		SessionSecret:     "integration-test-secret",
-		UploadDir:         filepath.Join(tempDirectory, "upload"),
-		HitFlushEvery:     100,
-		RateLimitRPS:      100_000,
-		RateLimitBurst:    200_000,
+		DBDriver:             "sqlite",
+		DBDSN:                filepath.Join(tempDirectory, "blog.db") + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)",
+		DBMaxOpenConns:       20,
+		DBMaxIdleConns:       10,
+		DBConnMaxLifetime:    30 * time.Minute,
+		SessionSecret:        "integration-test-secret-0123456789abcdef",
+		UploadDir:            filepath.Join(tempDirectory, "upload"),
+		HitFlushEvery:        100,
+		RateLimitRPS:         100_000,
+		RateLimitBurst:       200_000,
+		AdminUsername:        "admin",
+		AdminEmail:           "test@example.invalid",
+		AdminInitialPassword: "test-password",
 	}
 	database, err := db.Open(runtimeConfig)
 	if err != nil {
@@ -49,11 +54,11 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	applicationCache := cache.New()
 	services := service.New(database, applicationCache, runtimeConfig)
-	server, err := NewServer(runtimeConfig, services, filepath.Join("..", "..", "templates"))
+	server, err := handler.NewServer(runtimeConfig, services, filepath.Join("..", "..", "templates"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	testServer := httptest.NewServer(server.Router(filepath.Join("..", "..", "static")))
+	testServer := httptest.NewServer(router.New(server, filepath.Join("..", "..", "static")))
 	t.Cleanup(func() {
 		testServer.Close()
 		server.Close()
@@ -81,6 +86,9 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	_ = homeResponse.Body.Close()
 	if err != nil {
 		t.Fatal(err)
+	}
+	if value := homeResponse.Header.Get("Content-Security-Policy"); value == "" {
+		t.Fatal("home page is missing Content-Security-Policy")
 	}
 	for _, marker := range []string{
 		`href="/user/css/fluid.css"`,
@@ -147,9 +155,19 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_ = response.Body.Close()
 	if response.StatusCode != http.StatusOK {
+		_ = response.Body.Close()
 		t.Fatalf("admin status = %d, want 200", response.StatusCode)
+	}
+	adminHTML, err := io.ReadAll(response.Body)
+	_ = response.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, leakedValue := range []string{"123456", "admin@example.com", "默认账号", "默认密码"} {
+		if strings.Contains(string(adminHTML), leakedValue) {
+			t.Fatalf("admin page leaks credential text %q", leakedValue)
+		}
 	}
 
 	content := &model.Content{
@@ -250,7 +268,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var commentResult RestResponse
+	var commentResult handler.RestResponse
 	if err := json.NewDecoder(commentResponse.Body).Decode(&commentResult); err != nil {
 		_ = commentResponse.Body.Close()
 		t.Fatal(err)
@@ -330,7 +348,7 @@ func authenticatedClient(t *testing.T, baseURL string) *http.Client {
 	}
 	values := url.Values{
 		"username":    {"admin"},
-		"password":    {"123456"},
+		"password":    {"test-password"},
 		"_csrf_token": {string(match[1])},
 	}
 	request, err := http.NewRequest(
@@ -347,7 +365,7 @@ func authenticatedClient(t *testing.T, baseURL string) *http.Client {
 		t.Fatal(err)
 	}
 	defer loginResponse.Body.Close()
-	var result RestResponse
+	var result handler.RestResponse
 	if err := json.NewDecoder(loginResponse.Body).Decode(&result); err != nil {
 		t.Fatal(err)
 	}

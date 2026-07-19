@@ -1,4 +1,4 @@
-package web
+package middleware
 
 import (
 	"crypto/hmac"
@@ -28,11 +28,12 @@ const (
 type SessionManager struct {
 	service *service.Service
 	key     []byte
+	secure  bool
 }
 
-func NewSessionManager(service *service.Service, secret string) *SessionManager {
+func NewSessionManager(service *service.Service, secret string, secure bool) *SessionManager {
 	sum := sha256.Sum256([]byte(secret))
-	return &SessionManager{service: service, key: sum[:]}
+	return &SessionManager{service: service, key: sum[:], secure: secure}
 }
 
 func (manager *SessionManager) Load() gin.HandlerFunc {
@@ -73,13 +74,13 @@ func (manager *SessionManager) Login(context *gin.Context, user *model.User, rem
 	expiry := time.Now().Add(maxAge)
 	payload := strconv.Itoa(user.Uid) + "|" + strconv.FormatInt(expiry.Unix(), 10)
 	value := base64.RawURLEncoding.EncodeToString([]byte(payload + "|" + manager.sign(payload)))
-	setCookie(context, sessionCookie, value, int(maxAge.Seconds()), true)
+	manager.setCookie(context, sessionCookie, value, int(maxAge.Seconds()), true)
 	context.Set(userContextKey, user)
 }
 
 func (manager *SessionManager) Logout(context *gin.Context) {
-	setCookie(context, sessionCookie, "", -1, true)
-	setCookie(context, model.UserInCookie, "", -1, true)
+	manager.setCookie(context, sessionCookie, "", -1, true)
+	manager.setCookie(context, model.UserInCookie, "", -1, true)
 }
 
 func (manager *SessionManager) NewCSRFToken(path string) string {
@@ -139,7 +140,19 @@ func (manager *SessionManager) sign(payload string) string {
 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
-func setCookie(context *gin.Context, name, value string, maxAge int, httpOnly bool) {
+func (manager *SessionManager) setCookie(context *gin.Context, name, value string, maxAge int, httpOnly bool) {
+	http.SetCookie(context.Writer, &http.Cookie{
+		Name:     name,
+		Value:    value,
+		Path:     "/",
+		MaxAge:   maxAge,
+		HttpOnly: httpOnly,
+		Secure:   manager.secure || context.Request.TLS != nil,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func SetCookie(context *gin.Context, name, value string, maxAge int, httpOnly bool) {
 	http.SetCookie(context.Writer, &http.Cookie{
 		Name:     name,
 		Value:    value,

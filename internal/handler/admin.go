@@ -1,4 +1,4 @@
-package web
+package handler
 
 import (
 	"encoding/json"
@@ -18,74 +18,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
-
-func (server *Server) registerAdminRoutes(engine *gin.Engine) {
-	engine.GET("/admin/login", server.adminLogin)
-	engine.POST("/admin/login", server.validateAdminCSRF(), server.adminDoLogin)
-
-	admin := engine.Group("/admin")
-	admin.Use(server.sessions.RequireAdmin(), server.validateAdminCSRF())
-	admin.GET("", server.adminIndex)
-	admin.GET("/index", server.adminIndex)
-	admin.GET("/logout", server.adminLogout)
-	admin.GET("/profile", server.adminProfile)
-	admin.POST("/profile", server.adminSaveProfile)
-	admin.POST("/password", server.adminChangePassword)
-
-	admin.GET("/article", server.adminArticleList)
-	admin.GET("/article/publish", server.adminArticleNew)
-	admin.GET("/article/:id", server.adminArticleEdit)
-	admin.POST("/article/publish", server.adminArticlePublish)
-	admin.POST("/article/modify", server.adminArticleModify)
-	admin.POST("/article/delete", server.adminArticleDelete)
-
-	admin.GET("/page", server.adminPageList)
-	admin.GET("/page/new", server.adminPageNew)
-	admin.GET("/page/:id", server.adminPageEdit)
-	admin.POST("/page/publish", server.adminPagePublish)
-	admin.POST("/page/modify", server.adminPageModify)
-	admin.POST("/page/delete", server.adminPageDelete)
-
-	admin.GET("/comments", server.adminCommentList)
-	admin.POST("/comments", server.adminCommentReply)
-	admin.POST("/comments/delete", server.adminCommentDelete)
-	admin.POST("/comments/status", server.adminCommentStatus)
-
-	admin.GET("/category", server.adminCategory)
-	admin.POST("/category/save", server.adminCategorySave)
-	admin.POST("/category/delete", server.adminMetaDelete)
-
-	admin.GET("/links", server.adminLinks)
-	admin.POST("/links/save", server.adminLinkSave)
-	admin.POST("/links/delete", server.adminMetaDelete)
-
-	admin.GET("/attach", server.adminAttach)
-	admin.POST("/attach/upload", server.adminAttachUpload)
-	admin.POST("/attach/delete", server.adminAttachDelete)
-
-	admin.GET("/setting", server.adminSetting)
-	admin.POST("/setting", server.adminSettingSave)
-	admin.POST("/setting/backup", server.adminBackup)
-}
-
-func (server *Server) validateAdminCSRF() gin.HandlerFunc {
-	return func(context *gin.Context) {
-		if context.Request.Method == http.MethodGet || context.Request.Method == http.MethodHead {
-			context.Next()
-			return
-		}
-		token := context.GetHeader("X-CSRF-Token")
-		if token == "" {
-			token = context.PostForm("_csrf_token")
-		}
-		if !server.sessions.ValidateCSRFToken(token) {
-			respondFail(context, model.BadRequest)
-			context.Abort()
-			return
-		}
-		context.Next()
-	}
-}
 
 func (server *Server) adminLogin(context *gin.Context) {
 	if server.sessions.User(context) != nil {

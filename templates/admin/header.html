@@ -17,40 +17,94 @@
         });
     </script>
     <style>
-        body{background:#f5f6fa;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-        .admin-topbar{background:#2b2e3b;color:#fff;padding:0 20px;height:56px;line-height:56px;display:flex;justify-content:space-between}
-        .admin-topbar a{color:#c8cdd6;margin-right:18px;text-decoration:none}
-        .admin-topbar a:hover,.admin-topbar a.active{color:#fff}
-        .admin-wrap{max-width:1080px;margin:24px auto;padding:0 16px}
-        .card{background:#fff;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:20px;margin-bottom:20px}
-        .stat-grid{display:flex;gap:16px;flex-wrap:wrap}
-        .stat-box{flex:1;min-width:150px;background:#fff;border-radius:6px;padding:20px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-        .stat-box .num{font-size:32px;font-weight:600;color:#4a54e1}
+        :root{--admin-ink:#172033;--admin-muted:#718096;--admin-line:#e7ebf2;--admin-bg:#f5f7fb;--admin-panel:#fff;--admin-primary:#3b67d9;--admin-sidebar:#172238}
+        *{box-sizing:border-box}
+        body{background:var(--admin-bg);color:var(--admin-ink);margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+        a{color:var(--admin-primary);text-decoration:none}
+        a:hover{color:#2349a9;text-decoration:none}
+        .admin-shell{display:flex;min-height:100vh}
+        .admin-sidebar{position:fixed;z-index:30;top:0;bottom:0;left:0;display:flex;width:238px;padding:24px 14px;flex-direction:column;color:#d8e0ef;background:var(--admin-sidebar);transition:transform .2s ease}
+        .admin-brand{display:flex;padding:0 12px 28px;align-items:center;gap:11px;color:#fff}
+        .admin-brand img{width:34px;height:34px;border-radius:10px}
+        .admin-brand strong{display:block;font-size:16px;letter-spacing:.02em}
+        .admin-brand-caption{display:block;margin-top:3px;color:#8fa1bd;font-size:11px;letter-spacing:.12em}
+        .admin-nav{display:grid;gap:4px}
+        .admin-nav a{display:flex;padding:11px 13px;align-items:center;border-radius:9px;color:#aebbd0;font-size:13px;transition:background .2s,color .2s}
+        .admin-nav a:hover{color:#fff;background:rgba(255,255,255,.08)}
+        .admin-nav a.active{color:#fff;background:var(--admin-primary);box-shadow:0 7px 16px rgba(59,103,217,.28)}
+        .admin-nav .nav-icon{display:inline-grid;width:22px;height:22px;margin-right:9px;place-items:center;border:1px solid currentColor;border-radius:6px;font-size:10px;font-weight:700;opacity:.8}
+        .admin-sidebar-footer{margin-top:auto;padding:14px 12px 0;border-top:1px solid rgba(255,255,255,.1);font-size:12px}
+        .admin-sidebar-footer a{color:#9eacc2}
+        .admin-main{width:calc(100% - 238px);margin-left:238px}
+        .admin-topbar{display:flex;height:72px;padding:0 34px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--admin-line);background:rgba(255,255,255,.88)}
+        .admin-topbar-title{font-size:18px;font-weight:700}
+        .admin-topbar-subtitle{margin-left:10px;color:var(--admin-muted);font-size:12px;font-weight:400}
+        .admin-user{display:flex;align-items:center;gap:12px;color:var(--admin-muted);font-size:12px}
+        .admin-user-avatar{display:grid;width:32px;height:32px;place-items:center;border-radius:50%;color:#fff;background:var(--admin-primary);font-weight:700}
+        .admin-user a{color:var(--admin-muted)}
+        .admin-menu-toggle{display:none;border:0;color:var(--admin-ink);background:transparent;font-size:22px;cursor:pointer}
+        .admin-wrap{max-width:1240px;margin:0 auto;padding:30px 34px}
+        .card{padding:24px;border:1px solid var(--admin-line);border-radius:14px;background:var(--admin-panel);box-shadow:0 8px 24px rgba(29,48,83,.04)}
+        .card h3{margin:0 0 20px;font-size:17px}
+        .card h4{margin:0 0 16px}
+        .stat-grid{display:grid;margin-bottom:22px;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+        .stat-box{padding:20px;border:1px solid var(--admin-line);border-radius:14px;background:var(--admin-panel);box-shadow:0 8px 24px rgba(29,48,83,.04)}
+        .stat-box .num{font-size:29px;font-weight:700;color:var(--admin-primary)}
+        .stat-box div:last-child{margin-top:8px;color:var(--admin-muted);font-size:12px}
         table{width:100%;border-collapse:collapse}
-        th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
-        .btn-sm{padding:4px 10px;font-size:12px}
-        input,textarea,select{padding:8px;border:1px solid #ddd;border-radius:4px;width:100%;box-sizing:border-box;margin-bottom:12px}
-        label{font-size:13px;color:#555;display:block;margin-bottom:4px}
+        th{color:var(--admin-muted);font-size:12px;font-weight:600}
+        th,td{padding:13px 10px;border-bottom:1px solid var(--admin-line);text-align:left;font-size:13px}
+        tr:last-child td{border-bottom:0}
+        .btn-sm{padding:5px 10px;font-size:12px}
+        input,textarea,select{padding:10px 11px;border:1px solid #d9e0eb;border-radius:8px;width:100%;box-sizing:border-box;margin-bottom:14px;color:var(--admin-ink);background:#fff}
+        input:focus,textarea:focus,select:focus{border-color:var(--admin-primary);outline:0;box-shadow:0 0 0 3px rgba(59,103,217,.12)}
+        label{font-size:12px;color:var(--admin-muted);display:block;margin-bottom:6px}
+        .help-block{color:var(--admin-muted);font-size:12px}
+        hr{margin:24px 0;border:0;border-top:1px solid var(--admin-line)}
+        .btn{border-radius:8px}
+        .btn-primary{border-color:var(--admin-primary);background:var(--admin-primary)}
+        .admin-footer{padding:0 34px 28px;color:var(--admin-muted);font-size:11px}
+        @media (max-width:900px){.admin-sidebar{transform:translateX(-100%)}.admin-sidebar.is-open{transform:translateX(0)}.admin-main{width:100%;margin-left:0}.admin-topbar{padding:0 18px}.admin-menu-toggle{display:inline-block;margin-right:10px}.admin-wrap{padding:22px 18px}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media (max-width:520px){.admin-topbar-title{font-size:16px}.admin-topbar-subtitle{display:none}.admin-user span:not(.admin-user-avatar){display:none}.card{padding:18px}.stat-grid{gap:10px}.stat-box{padding:15px}table{display:block;overflow-x:auto;white-space:nowrap}}
     </style>
 </head>
 <body>
-<div class="admin-topbar">
-    <div>
-        <strong style="color:#fff;margin-right:24px;">{{siteTitle}} 管理</strong>
-        <a href="/admin/index" class="{{if eq .Active "index"}}active{{end}}">首页</a>
-        <a href="/admin/article" class="{{if eq .Active "article"}}active{{end}}">文章</a>
-        <a href="/admin/page" class="{{if eq .Active "page"}}active{{end}}">页面</a>
-        <a href="/admin/comments" class="{{if eq .Active "comment"}}active{{end}}">评论</a>
-        <a href="/admin/category" class="{{if eq .Active "category"}}active{{end}}">分类</a>
-        <a href="/admin/attach" class="{{if eq .Active "attach"}}active{{end}}">附件</a>
-        <a href="/admin/links" class="{{if eq .Active "links"}}active{{end}}">友链</a>
-        <a href="/admin/setting" class="{{if eq .Active "setting"}}active{{end}}">设置</a>
-        <a href="/admin/profile" class="{{if eq .Active "profile"}}active{{end}}">个人</a>
+<div class="admin-shell">
+<aside id="admin-sidebar" class="admin-sidebar">
+    <a class="admin-brand" href="/admin/index">
+        <img src="/assets/admin/images/favicon.png" alt=""/>
+        <span><strong>{{siteTitle}}</strong><span class="admin-brand-caption">CONTENT CONSOLE</span></span>
+    </a>
+    <nav class="admin-nav" aria-label="后台导航">
+        <a href="/admin/index" class="{{if eq .Active "index"}}active{{end}}"><span class="nav-icon">⌂</span>概览</a>
+        <a href="/admin/article" class="{{if eq .Active "article"}}active{{end}}"><span class="nav-icon">A</span>文章</a>
+        <a href="/admin/page" class="{{if eq .Active "page"}}active{{end}}"><span class="nav-icon">P</span>页面</a>
+        <a href="/admin/comments" class="{{if eq .Active "comment"}}active{{end}}"><span class="nav-icon">C</span>评论</a>
+        <a href="/admin/category" class="{{if eq .Active "category"}}active{{end}}"><span class="nav-icon">#</span>分类与标签</a>
+        <a href="/admin/attach" class="{{if eq .Active "attach"}}active{{end}}"><span class="nav-icon">↑</span>附件</a>
+        <a href="/admin/links" class="{{if eq .Active "links"}}active{{end}}"><span class="nav-icon">↗</span>友链</a>
+        <a href="/admin/setting" class="{{if eq .Active "setting"}}active{{end}}"><span class="nav-icon">⚙</span>设置</a>
+    </nav>
+    <div class="admin-sidebar-footer"><a href="/" target="_blank" rel="noopener">查看公开站点 →</a></div>
+</aside>
+<div class="admin-main">
+<header class="admin-topbar">
+    <div style="display:flex;align-items:center;">
+        <button id="admin-menu-toggle" class="admin-menu-toggle" type="button" aria-label="打开后台导航">☰</button>
+        <div class="admin-topbar-title">{{if .Title}}{{.Title}}{{else}}管理后台{{end}}<span class="admin-topbar-subtitle">保持内容井然有序</span></div>
     </div>
-    <div>
-        {{if .LoginUser}}<span style="color:#8b90a0;">{{.LoginUser.Username}}</span> {{end}}
+    <div class="admin-user">
+        {{if .LoginUser}}<span class="admin-user-avatar">{{substr .LoginUser.Username 1}}</span><span>{{.LoginUser.Username}}</span>{{end}}
+        <a href="/admin/profile">个人设置</a>
         <a href="/admin/logout">退出</a>
     </div>
-</div>
-<div class="admin-wrap">
+</header>
+<script>
+    (function () {
+        var toggle = document.getElementById('admin-menu-toggle');
+        var sidebar = document.getElementById('admin-sidebar');
+        if (toggle && sidebar) toggle.addEventListener('click', function () { sidebar.classList.toggle('is-open'); });
+    })();
+</script>
+<main class="admin-wrap">
 {{end}}

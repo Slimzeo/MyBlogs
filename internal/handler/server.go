@@ -1,18 +1,17 @@
-package web
+package handler
 
 import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"time"
 
 	"myblog/config"
+	"myblog/internal/middleware"
 	"myblog/internal/model"
 	"myblog/internal/service"
 
-	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,9 +20,9 @@ type Server struct {
 	service     *service.Service
 	renderer    *Renderer
 	siteConfig  *SiteConfig
-	sessions    *SessionManager
+	sessions    *middleware.SessionManager
 	hitCounter  *service.HitCounter
-	rateLimiter *IPLimiter
+	rateLimiter *middleware.IPLimiter
 }
 
 func NewServer(config *config.Config, service *service.Service, templateRoot string) (*Server, error) {
@@ -40,29 +39,10 @@ func NewServer(config *config.Config, service *service.Service, templateRoot str
 		service:     service,
 		renderer:    renderer,
 		siteConfig:  siteConfig,
-		sessions:    NewSessionManager(service, config.SessionSecret),
+		sessions:    middleware.NewSessionManager(service, config.SessionSecret, config.CookieSecure),
 		hitCounter:  service.NewHitCounter(config.HitFlushEvery),
-		rateLimiter: NewIPLimiter(config.RateLimitRPS, config.RateLimitBurst),
+		rateLimiter: middleware.NewIPLimiter(config.RateLimitRPS, config.RateLimitBurst),
 	}, nil
-}
-
-func (server *Server) Router(staticRoot string) *gin.Engine {
-	engine := gin.New()
-	engine.Use(gin.Recovery(), requestLogger(), securityHeaders(), requestBodyLimit(), server.rateLimiter.Middleware(), server.sessions.Load())
-	engine.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/upload/"})))
-
-	engine.Static("/user", filepath.Join(staticRoot, "user"))
-	engine.Static("/assets/admin", filepath.Join(staticRoot, "admin"))
-	engine.Static("/upload", server.config.UploadDir)
-
-	engine.GET("/healthz", server.health)
-	engine.GET("/readyz", server.ready)
-	engine.Use(server.issueCSRFToken())
-
-	server.registerPublicRoutes(engine)
-	server.registerAdminRoutes(engine)
-	engine.NoRoute(server.customPageOrNotFound)
-	return engine
 }
 
 func (server *Server) FlushHits() {
