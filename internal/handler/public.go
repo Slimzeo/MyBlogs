@@ -1,4 +1,4 @@
-package web
+package handler
 
 import (
 	"net/http"
@@ -6,30 +6,13 @@ import (
 	"strconv"
 	"strings"
 
+	"myblog/internal/middleware"
 	"myblog/internal/model"
 	"myblog/internal/service"
 	"myblog/internal/util"
 
 	"github.com/gin-gonic/gin"
 )
-
-func (server *Server) registerPublicRoutes(engine *gin.Engine) {
-	engine.GET("/", server.index)
-	engine.GET("/index", server.index)
-	engine.GET("/page/:page", server.indexPage)
-	engine.GET("/article/:id", server.article)
-	engine.GET("/article/:id/preview", server.articlePreview)
-	engine.POST("/comment", server.comment)
-	engine.GET("/category/:keyword", server.category)
-	engine.GET("/category/:keyword/:page", server.category)
-	engine.GET("/tag/:name", server.tag)
-	engine.GET("/tag/:name/:page", server.tag)
-	engine.GET("/search/:keyword", server.search)
-	engine.GET("/search/:keyword/:page", server.search)
-	engine.GET("/archives", server.archives)
-	engine.GET("/links", server.links)
-	engine.GET("/logout", server.publicLogout)
-}
 
 func (server *Server) index(context *gin.Context) {
 	server.renderIndex(context, 1)
@@ -152,10 +135,10 @@ func (server *Server) comment(context *gin.Context) {
 		respondFail(context, "评论发布失败")
 		return
 	}
-	setCookie(context, "tale_remember_author", url.QueryEscape(author), 7*24*60*60, false)
-	setCookie(context, "tale_remember_mail", url.QueryEscape(mail), 7*24*60*60, false)
+	middleware.SetCookie(context, "tale_remember_author", url.QueryEscape(author), 7*24*60*60, false)
+	middleware.SetCookie(context, "tale_remember_mail", url.QueryEscape(mail), 7*24*60*60, false)
 	if commentURL != "" {
-		setCookie(context, "tale_remember_url", url.QueryEscape(commentURL), 7*24*60*60, false)
+		middleware.SetCookie(context, "tale_remember_url", url.QueryEscape(commentURL), 7*24*60*60, false)
 	}
 	respondOK(context)
 }

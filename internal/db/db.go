@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"myblog/config"
@@ -61,7 +62,7 @@ func Open(cfg *config.Config) (*gorm.DB, error) {
 	if err := autoMigrate(gdb); err != nil {
 		return nil, fmt.Errorf("migrate: %w", err)
 	}
-	if err := seed(gdb); err != nil {
+	if err := seed(gdb, cfg); err != nil {
 		return nil, fmt.Errorf("seed: %w", err)
 	}
 	return gdb, nil
@@ -91,28 +92,34 @@ func autoMigrate(gdb *gorm.DB) error {
 
 // seed inserts a default admin user, site options and a welcome article on the
 // first run so the app is immediately usable. Mirrors the tale.sql fixture data.
-func seed(gdb *gorm.DB) error {
+func seed(gdb *gorm.DB, cfg *config.Config) error {
 	var userCount int64
 	if err := gdb.Model(&model.User{}).Count(&userCount).Error; err != nil {
 		return err
 	}
 	if userCount == 0 {
-		passwordHash, err := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
+		username := strings.TrimSpace(cfg.AdminUsername)
+		email := strings.TrimSpace(cfg.AdminEmail)
+		password := cfg.AdminInitialPassword
+		if username == "" || email == "" || password == "" {
+			return fmt.Errorf("fresh database requires ADMIN_USERNAME, ADMIN_EMAIL and ADMIN_INITIAL_PASSWORD")
+		}
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
 			return err
 		}
 		admin := model.User{
-			Username:   "admin",
+			Username:   username,
 			Password:   string(passwordHash),
-			Email:      "admin@example.com",
-			ScreenName: "admin",
+			Email:      email,
+			ScreenName: username,
 			Created:    int(time.Now().Unix()),
 			GroupName:  "visitor",
 		}
 		if err := gdb.Create(&admin).Error; err != nil {
 			return err
 		}
-		log.Printf("[seed] created default admin user; change its password after first login")
+		log.Printf("[seed] created administrator account from deployment configuration")
 	}
 
 	var optCount int64
@@ -210,9 +217,6 @@ const welcomeMarkdown = `## 欢迎 👋
 + 零依赖启动：默认使用纯 Go 的 SQLite，无需外部数据库
 + 可切换 MySQL：设置 ` + "`DB_DRIVER=mysql`" + ` 即可复用原 tale 数据库
 
-### 默认账号
-
-后台地址 ` + "`/admin/login`" + `，用户名 ` + "`admin`" + `，密码 ` + "`123456`" + `。
 `
 
 func splitComma(s string) []string {

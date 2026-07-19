@@ -1,4 +1,4 @@
-package web
+package middleware
 
 import (
 	"log"
@@ -71,18 +71,25 @@ func (limiter *IPLimiter) allow(clientIP string) bool {
 	return client.limiter.Allow()
 }
 
-func securityHeaders() gin.HandlerFunc {
+func SecurityHeaders() gin.HandlerFunc {
 	return func(context *gin.Context) {
 		header := context.Writer.Header()
 		header.Set("X-Content-Type-Options", "nosniff")
 		header.Set("X-Frame-Options", "SAMEORIGIN")
 		header.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		header.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		header.Set("Content-Security-Policy",
+			"default-src 'self'; base-uri 'self'; form-action 'self'; "+
+				"img-src 'self' data: https:; "+
+				"style-src 'self' 'unsafe-inline' https:; "+
+				"font-src 'self' https: data:; "+
+				"script-src 'self' 'unsafe-inline' https:; "+
+				"connect-src 'self' https:; frame-ancestors 'self'")
 		context.Next()
 	}
 }
 
-func requestLogger() gin.HandlerFunc {
+func RequestLogger() gin.HandlerFunc {
 	return func(context *gin.Context) {
 		started := time.Now()
 		context.Next()
@@ -100,7 +107,7 @@ func requestLogger() gin.HandlerFunc {
 	}
 }
 
-func requestBodyLimit() gin.HandlerFunc {
+func RequestBodyLimit() gin.HandlerFunc {
 	return func(context *gin.Context) {
 		if context.Request.Body == nil {
 			context.Next()

@@ -20,6 +20,7 @@ ENV PORT=8081 \
     DB_DRIVER=sqlite \
     DB_DSN="data/blog.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)" \
     UPLOAD_DIR=data/upload \
+    COOKIE_SECURE=true \
     GIN_MODE=release
 EXPOSE 8081
 VOLUME ["/app/data"]

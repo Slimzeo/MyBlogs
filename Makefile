@@ -1,7 +1,7 @@
 .PHONY: run build fmt test
 
 run:
-	go run ./cmd/blog
+	if [ -f .env ]; then set -a; . ./.env; set +a; fi; go run ./cmd/blog
 
 build:
 	go build -o blog ./cmd/blog

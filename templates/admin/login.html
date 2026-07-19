@@ -6,28 +6,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="shortcut icon" href="/assets/admin/images/favicon.png"/>
     <style>
-        body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#4a54e1,#8f57fb);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
-        .login-box{background:#fff;padding:36px;border-radius:10px;width:320px;box-shadow:0 10px 40px rgba(0,0,0,.2)}
-        .login-box h2{margin:0 0 20px;text-align:center;color:#333}
-        .login-box input{width:100%;box-sizing:border-box;padding:11px;margin-bottom:14px;border:1px solid #ddd;border-radius:6px}
-        .login-box button{width:100%;padding:12px;background:#4a54e1;color:#fff;border:0;border-radius:6px;font-size:15px;cursor:pointer}
-        .login-box .tip{font-size:12px;color:#999;text-align:center;margin-top:14px}
-        .err{color:#e74c3c;font-size:13px;min-height:18px;text-align:center}
+        :root{--ink:#172238;--muted:#718096;--line:#e5eaf2;--primary:#3b67d9}
+        *{box-sizing:border-box}
+        body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f5f7fb;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+        body:before{position:fixed;z-index:-1;top:-180px;right:-120px;width:520px;height:520px;border-radius:50%;background:rgba(59,103,217,.12);content:""}
+        body:after{position:fixed;z-index:-1;bottom:-260px;left:-160px;width:620px;height:620px;border-radius:50%;background:rgba(116,153,229,.1);content:""}
+        .login-box{width:min(420px,calc(100% - 36px));padding:38px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 24px 70px rgba(29,48,83,.1)}
+        .login-brand{display:flex;margin-bottom:32px;align-items:center;gap:12px}
+        .login-brand img{width:42px;height:42px;border-radius:12px}
+        .login-brand strong{display:block;font-size:18px}
+        .login-brand-caption{display:block;margin-top:4px;color:var(--muted);font-size:11px;letter-spacing:.12em}
+        .login-box h2{margin:0 0 8px;font-size:24px}
+        .login-box .subtitle{margin:0 0 24px;color:var(--muted);font-size:13px}
+        .login-box input[type=text],.login-box input[type=password]{width:100%;padding:12px 13px;margin-bottom:14px;border:1px solid #d9e0eb;border-radius:9px;outline:0}
+        .login-box input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,103,217,.12)}
+        .login-box button{width:100%;padding:12px;border:0;border-radius:9px;color:#fff;background:var(--primary);font-size:15px;cursor:pointer}
+        .login-box button:hover{background:#2f58c2}
+        .remember{display:flex;margin:2px 0 20px;align-items:center;gap:7px;color:var(--muted);font-size:12px}
+        .remember input{accent-color:var(--primary)}
+        .err{min-height:20px;margin-bottom:5px;color:#d14343;font-size:13px}
     </style>
     <script src="//cdn.bootcdn.net/ajax/libs/jquery/2.2.3/jquery.min.js"></script>
 </head>
 <body>
 <div class="login-box">
-    <h2>{{siteTitle}}</h2>
+    <div class="login-brand"><img src="/assets/admin/images/favicon.png" alt=""/><span><strong>{{siteTitle}}</strong><span class="login-brand-caption">CONTENT CONSOLE</span></span></div>
+    <h2>欢迎回来</h2>
+    <p class="subtitle">登录后管理你的文章与站点内容</p>
     <div class="err" id="err"></div>
     <form id="login-form">
         <input type="hidden" name="_csrf_token" value="{{.CsrfToken}}"/>
         <input type="text" name="username" id="username" placeholder="用户名" autocomplete="off"/>
         <input type="password" name="password" id="password" placeholder="密码"/>
-        <label style="font-size:12px;color:#666;"><input type="checkbox" name="remeber_me" value="1" style="width:auto;margin-right:6px;"/>记住我</label>
+        <label class="remember"><input type="checkbox" name="remeber_me" value="1"/>记住我</label>
         <button type="submit">登 录</button>
     </form>
-    <div class="tip">默认账号 admin / 123456</div>
 </div>
 <script>
     $('#login-form').submit(function (e) {

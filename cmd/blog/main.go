@@ -13,12 +13,16 @@ import (
 	"myblog/config"
 	"myblog/internal/cache"
 	"myblog/internal/db"
+	"myblog/internal/handler"
+	"myblog/internal/router"
 	"myblog/internal/service"
-	"myblog/internal/web"
 )
 
 func main() {
 	runtimeConfig := config.Load()
+	if err := runtimeConfig.Validate(); err != nil {
+		log.Fatalf("invalid configuration: %v", err)
+	}
 	database, err := db.Open(runtimeConfig)
 	if err != nil {
 		log.Fatalf("initialize database: %v", err)
@@ -27,14 +31,14 @@ func main() {
 	defer applicationCache.Close()
 
 	services := service.New(database, applicationCache, runtimeConfig)
-	webServer, err := web.NewServer(runtimeConfig, services, "templates")
+	webServer, err := handler.NewServer(runtimeConfig, services, "templates")
 	if err != nil {
 		log.Fatalf("initialize web server: %v", err)
 	}
 
 	httpServer := &http.Server{
 		Addr:              ":" + runtimeConfig.Port,
-		Handler:           webServer.Router("static"),
+		Handler:           router.New(webServer, "static"),
 		ReadTimeout:       runtimeConfig.ReadTimeout,
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      runtimeConfig.WriteTimeout,
