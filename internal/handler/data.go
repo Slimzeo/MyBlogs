@@ -2,6 +2,7 @@ package handler
 
 import (
 	"myblog/internal/model"
+	"myblog/internal/notes"
 	"myblog/internal/service"
 )
 
@@ -40,6 +41,11 @@ type PageData struct {
 	Links          []model.Meta
 	Categories     []model.MetaDto
 	Tags           []model.MetaDto
+	NotesTree      []notes.Node
+	NotesFolder    []notes.Node
+	NotesDocument  *notes.Document
+	NotesPath      string
+	NotesIsFolder  bool
 	Statistics     model.StatisticsBo
 	Options        map[string]string
 }

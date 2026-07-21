@@ -275,9 +275,9 @@
                     ? randomBetween(-viewportHeight, -leaf.size)
                     : randomBetween(-leaf.size, viewportHeight);
                 leaf.size = randomBetween(4, 10);
-                leaf.fallSpeed = randomBetween(0.35, 1.05);
-                leaf.wind = randomBetween(-0.45, 0.45);
-                leaf.sway = randomBetween(0.35, 1.2);
+                leaf.fallSpeed = randomBetween(0.16, 0.48);
+                leaf.wind = randomBetween(-0.22, 0.22);
+                leaf.sway = randomBetween(0.18, 0.62);
                 leaf.phase = randomBetween(0, Math.PI * 2);
                 leaf.rotation = randomBetween(0, Math.PI * 2);
                 leaf.spin = randomBetween(-0.0018, 0.0018);
@@ -312,8 +312,8 @@
                 context.clearRect(0, 0, viewportWidth, viewportHeight);
                 for (var index = 0; index < leaves.length; index++) {
                     var leaf = leaves[index];
-                    leaf.phase += elapsed * 0.0012;
-                    leaf.x += (leaf.wind + Math.sin(leaf.phase) * leaf.sway + Math.sin(timestamp * 0.00035 + index) * 0.2) * elapsed;
+                    leaf.phase += elapsed * 0.0008;
+                    leaf.x += (leaf.wind + Math.sin(leaf.phase) * leaf.sway + Math.sin(timestamp * 0.00028 + index) * 0.1) * elapsed;
                     leaf.y += leaf.fallSpeed * elapsed;
                     leaf.rotation += leaf.spin * elapsed;
                     if (leaf.y > viewportHeight + 24 || leaf.x < -70 || leaf.x > viewportWidth + 70) {

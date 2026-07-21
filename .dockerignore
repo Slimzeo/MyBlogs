@@ -3,6 +3,7 @@
 hexo-theme-fluid
 data
 blog
+refs_blog
 *.db
 *.db-shm
 *.db-wal

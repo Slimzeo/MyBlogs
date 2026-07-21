@@ -35,6 +35,7 @@ type Config struct {
 
 	// Behaviour
 	UploadDir            string // where uploaded attachments are written
+	NotesDir             string // repository-backed markdown notes root
 	HitFlushEvery        int    // flush accumulated article hits after this many views
 	RateLimitRPS         int    // per-client request/second limit (0 = disabled)
 	RateLimitBurst       int
@@ -64,6 +65,7 @@ func Load() *Config {
 		CookieSecure:  envBool("BLOG_COOKIE_SECURE", false),
 
 		UploadDir:            env("BLOG_UPLOAD_DIR", "data/upload"),
+		NotesDir:             env("BLOG_NOTES_DIR", "notes"),
 		HitFlushEvery:        envInt("BLOG_HIT_FLUSH_EVERY", 100),
 		RateLimitRPS:         envInt("BLOG_RATE_LIMIT_RPS", 200),
 		RateLimitBurst:       envInt("BLOG_RATE_LIMIT_BURST", 400),

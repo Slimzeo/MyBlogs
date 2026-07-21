@@ -10,6 +10,7 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -37,6 +38,23 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	tempDirectory := t.TempDir()
 	testUsername := "test-admin"
 	testPassword := randomTestPassword(t)
+	notesDirectory := filepath.Join(tempDirectory, "notes")
+	if err := os.MkdirAll(filepath.Join(notesDirectory, "Go", "Concurrency"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(notesDirectory, "README.md"), []byte("# Notes\n\nRoot notes."), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(notesDirectory, "Go", "README.md"), []byte("# Go\n\nGo notes."), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(notesDirectory, "Go", "Concurrency", "goroutines.md"),
+		[]byte("# Goroutines\n\nA note about goroutines."),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
 	runtimeConfig := &config.Config{
 		DBDriver:             "sqlite",
 		DBDSN:                filepath.Join(tempDirectory, "blog.db") + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)",
@@ -51,6 +69,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		AdminUsername:        testUsername,
 		AdminEmail:           "test@example.com",
 		AdminInitialPassword: testPassword,
+		NotesDir:             notesDirectory,
 	}
 	database, err := db.Open(runtimeConfig)
 	if err != nil {
@@ -71,7 +90,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		_ = sqlDB.Close()
 	})
 
-	for _, path := range []string{"/", "/healthz", "/readyz", "/article/welcome", "/article/welcome.html", "/topics", "/archives", "/links", "/about"} {
+	for _, path := range []string{"/", "/healthz", "/readyz", "/article/welcome", "/article/welcome.html", "/topics", "/notes", "/notes/Go", "/notes/Go/Concurrency/goroutines", "/archives", "/links", "/about"} {
 		response, requestErr := http.Get(testServer.URL + path)
 		if requestErr != nil {
 			t.Fatalf("GET %s: %v", path, requestErr)
@@ -112,6 +131,8 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`rel="preload" as="image"`,
 		`fluid-home-quote`,
 		`如果这个`,
+		`是注定的，<br/>`,
+		`<strong><em>最重要的</em></strong>`,
 		`fluid-leaf-canvas`,
 		`class="fluid-board fluid-index-board"`,
 		`id="color-toggle"`,
@@ -125,6 +146,45 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	if strings.Contains(string(homeHTML), "highlight.js/9.9.0/styles/xcode.min.css") {
 		t.Fatal("home page should not load article highlight styles")
+	}
+	notesResponse, err := http.Get(testServer.URL + "/notes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	notesHTML, err := io.ReadAll(notesResponse.Body)
+	_ = notesResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, marker := range []string{
+		`href="/notes/Go"`,
+		`href="/topics"`,
+		`fluid-notes-explorer`,
+		`fluid-notes-tabs`,
+	} {
+		if !strings.Contains(string(notesHTML), marker) {
+			t.Fatalf("notes page missing UI marker %q", marker)
+		}
+	}
+	noteDocumentResponse, err := http.Get(testServer.URL + "/notes/Go/Concurrency/goroutines")
+	if err != nil {
+		t.Fatal(err)
+	}
+	noteDocumentHTML, err := io.ReadAll(noteDocumentResponse.Body)
+	_ = noteDocumentResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(noteDocumentHTML), "A note about goroutines.") {
+		t.Fatal("notes markdown document was not rendered")
+	}
+	unsafeNotesResponse, err := http.Get(testServer.URL + "/notes/../.env")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = unsafeNotesResponse.Body.Close()
+	if unsafeNotesResponse.StatusCode != http.StatusNotFound {
+		t.Fatalf("unsafe notes path status = %d, want 404", unsafeNotesResponse.StatusCode)
 	}
 	aboutResponse, err := http.Get(testServer.URL + "/about")
 	if err != nil {

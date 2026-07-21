@@ -68,6 +68,9 @@ func buildFuncMap(sc *SiteConfig) template.FuncMap {
 		"seq":       seq,
 		"safeHTML":  func(s string) template.HTML { return template.HTML(s) },
 		"urlEncode": url.PathEscape,
+		"notesPath": func(path string) string {
+			return "/notes/" + strings.Trim(path, "/")
+		},
 		"dict":      dict,
 		"default": func(def, val string) string {
 			if strings.TrimSpace(val) == "" {

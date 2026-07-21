@@ -16,6 +16,7 @@ type PublicRouteHandlers struct {
 	Tag            gin.HandlerFunc
 	Search         gin.HandlerFunc
 	Topics         gin.HandlerFunc
+	Notes          gin.HandlerFunc
 	Archives       gin.HandlerFunc
 	Links          gin.HandlerFunc
 	Logout         gin.HandlerFunc
@@ -89,6 +90,7 @@ func (server *Server) RouteHandlers() RouteHandlers {
 			Tag:            server.tag,
 			Search:         server.search,
 			Topics:         server.topics,
+			Notes:          server.notesPage,
 			Archives:       server.archives,
 			Links:          server.links,
 			Logout:         server.publicLogout,

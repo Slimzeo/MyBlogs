@@ -51,7 +51,7 @@ func (sc *SiteConfig) Option(key, def string) string {
 }
 
 // Title returns the site title with a sensible fallback.
-func (sc *SiteConfig) Title() string { return sc.Option("site_title", "My Blog") }
+func (sc *SiteConfig) Title() string { return sc.Option("site_title", "HypN0s-Cloud") }
 
 // Social returns the configured social links map. Mirrors Commons.social.
 func (sc *SiteConfig) Social() map[string]string {

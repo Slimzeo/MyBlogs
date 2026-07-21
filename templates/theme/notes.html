@@ -1,0 +1,80 @@
+{{define "notes"}}
+{{template "header" .}}
+<main id="fluid-page-main" class="fluid-main">
+    <div class="fluid-notes-layout">
+        <aside class="fluid-notes-explorer fluid-board" aria-label="Notes 目录">
+            <div class="fluid-notes-explorer-heading">
+                <span class="fluid-eyebrow">EXPLORER</span>
+                <strong>Notes</strong>
+            </div>
+            {{if .NotesTree}}
+            {{template "notes-tree" dict "Nodes" .NotesTree}}
+            {{else}}
+            <p class="fluid-notes-empty">notes/ 目录还没有 Markdown 文件。</p>
+            {{end}}
+        </aside>
+
+        <section class="fluid-notes-content fluid-board">
+            <nav class="fluid-notes-tabs" aria-label="内容类型">
+                <a class="is-active" href="/notes">笔记</a>
+                <a href="/topics">文章</a>
+            </nav>
+            <div class="fluid-notes-breadcrumb">
+                <a href="/notes">Notes</a>
+                {{if .NotesPath}}<span>/</span><span>{{.NotesPath}}</span>{{end}}
+            </div>
+
+            {{if .NotesDocument}}
+            <article class="fluid-notes-document">
+                <div class="fluid-notes-document-meta">
+                    <span>Markdown Note</span>
+                    <time>{{.NotesDocument.Modified.Format "2006-01-02"}}</time>
+                </div>
+                <h1>{{.NotesDocument.Title}}</h1>
+                <div class="fluid-markdown">{{.NotesDocument.HTML}}</div>
+            </article>
+            {{end}}
+
+            {{if .NotesIsFolder}}
+            <div class="fluid-notes-folder-heading">
+                <span class="fluid-eyebrow">FOLDER</span>
+                <h2>{{if .NotesPath}}{{.NotesPath}}{{else}}Notes{{end}}</h2>
+                <p>{{len .NotesFolder}} 个项目</p>
+            </div>
+            {{if .NotesFolder}}
+            <div class="fluid-notes-folder-list">
+                {{range $node := .NotesFolder}}
+                <a class="fluid-notes-folder-item" href="{{notesPath $node.Path}}">
+                    <span class="fluid-notes-folder-icon">{{if $node.IsFolder}}›{{else}}#{{end}}</span>
+                    <span class="fluid-notes-folder-copy">
+                        <strong>{{$node.Title}}</strong>
+                        <small>{{if $node.IsFolder}}Folder{{else}}Markdown{{end}}</small>
+                    </span>
+                    <span class="fluid-notes-folder-arrow">↗</span>
+                </a>
+                {{end}}
+            </div>
+            {{end}}
+            {{end}}
+        </section>
+    </div>
+</main>
+{{template "footer" .}}
+{{end}}
+
+{{define "notes-tree"}}
+<ul class="fluid-notes-tree">
+    {{range $node := .Nodes}}
+    <li>
+        {{if $node.IsFolder}}
+        <details>
+            <summary><span>›</span><strong>{{$node.Title}}</strong></summary>
+            {{template "notes-tree" dict "Nodes" $node.Children}}
+        </details>
+        {{else}}
+        <a href="{{notesPath $node.Path}}"><span>#</span>{{$node.Title}}</a>
+        {{end}}
+    </li>
+    {{end}}
+</ul>
+{{end}}
