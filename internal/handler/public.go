@@ -27,7 +27,6 @@ func (server *Server) renderIndex(context *gin.Context, page int) {
 	limit := clampLimit(queryInt(context, "limit", 12), 12, 100)
 	data := server.baseData(context, "", "")
 	data.Articles = server.service.GetContents(page, limit)
-	data.Categories = server.service.GetPublishedMetaList(model.TypeCategory, 6)
 	if page > 1 {
 		data.Title = "第" + strconv.Itoa(page) + "页"
 	}
@@ -188,6 +187,19 @@ func (server *Server) search(context *gin.Context) {
 	data.Type = "搜索"
 	data.Keyword = keyword
 	server.render(context, http.StatusOK, "page-category", data)
+}
+
+func (server *Server) topics(context *gin.Context) {
+	view := context.DefaultQuery("view", "categories")
+	if view != "categories" && view != "tags" {
+		view = "categories"
+	}
+	data := server.baseData(context, "学习目录", "")
+	data.TopicView = view
+	data.Categories = server.service.GetPublishedMetaList(model.TypeCategory, 100)
+	data.Tags = server.service.GetPublishedMetaList(model.TypeTag, 100)
+	data.TopicGroups = server.service.GetPublishedTopicGroups(100, 20)
+	server.render(context, http.StatusOK, "topics", data)
 }
 
 func (server *Server) archives(context *gin.Context) {

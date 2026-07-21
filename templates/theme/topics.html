@@ -1,0 +1,71 @@
+{{define "topics"}}
+{{template "header" .}}
+<main id="fluid-page-main" class="fluid-main">
+    <div class="fluid-container">
+        <section id="board" class="fluid-board fluid-topics-board">
+            <div class="fluid-list-heading">
+                <span class="fluid-eyebrow">目录</span>
+                <h2>从一个主题，展开一组文章</h2>
+                <p>专栏适合连续学习，标签适合横向跳转；两种入口都指向真实文章，不是装饰卡片。</p>
+            </div>
+
+            <nav class="fluid-topic-tabs" aria-label="学习目录类型">
+                <a class="{{if eq .TopicView "categories"}}is-active{{end}}" href="/topics?view=categories">专栏 <span>{{len .Categories}}</span></a>
+                <a class="{{if eq .TopicView "tags"}}is-active{{end}}" href="/topics?view=tags">标签 <span>{{len .Tags}}</span></a>
+                <a href="/archives">时间归档 <span>→</span></a>
+            </nav>
+
+            {{if eq .TopicView "categories"}}
+            {{if .TopicGroups}}
+            <section class="fluid-topic-tree" aria-label="专栏目录">
+                {{range $group := .TopicGroups}}
+                <details class="fluid-topic-node">
+                    <summary>
+                        <span class="fluid-topic-node-marker">+</span>
+                        <span class="fluid-topic-node-copy">
+                            <strong>{{$group.Meta.Name}}</strong>
+                            <small>{{$group.Meta.Count}} 篇公开文章</small>
+                        </span>
+                        <span class="fluid-topic-node-arrow">⌄</span>
+                    </summary>
+                    <div class="fluid-topic-articles">
+                        {{range $index, $article := $group.Articles}}
+                        <a class="fluid-topic-article" href="{{permalink $article}}">
+                            <span class="fluid-topic-article-index">{{printf "%02d" (add $index 1)}}</span>
+                            <span class="fluid-topic-article-copy">
+                                <strong>{{$article.Title}}</strong>
+                                <small>{{fmtdate $article.Created}} · {{intro $article.Content 100}}</small>
+                            </span>
+                            <span class="fluid-topic-article-arrow">↗</span>
+                        </a>
+                        {{end}}
+                    </div>
+                </details>
+                {{end}}
+            </section>
+            {{else}}
+            <div class="fluid-empty">
+                <p>还没有专栏。发布文章时填写分类，它会自动出现在这里。</p>
+            </div>
+            {{end}}
+            {{else}}
+            {{if .Tags}}
+            <section class="fluid-tag-index" aria-label="文章标签">
+                {{range $tag := .Tags}}
+                <a href="/tag/{{urlEncode $tag.Name}}">
+                    <strong>{{$tag.Name}}</strong>
+                    <small>{{$tag.Count}} 篇</small>
+                </a>
+                {{end}}
+            </section>
+            {{else}}
+            <div class="fluid-empty">
+                <p>还没有标签。发布文章时填写标签，它会自动出现在这里。</p>
+            </div>
+            {{end}}
+            {{end}}
+        </section>
+    </div>
+</main>
+{{template "footer" .}}
+{{end}}

@@ -35,6 +35,8 @@ type PageData struct {
 	Logs           []model.Log
 	Archives       []model.ArchiveBo
 	ArchiveCount   int
+	TopicGroups    []model.TopicGroup
+	TopicView      string
 	Links          []model.Meta
 	Categories     []model.MetaDto
 	Tags           []model.MetaDto

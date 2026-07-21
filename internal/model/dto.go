@@ -6,6 +6,13 @@ type MetaDto struct {
 	Count int `gorm:"column:count" json:"count"`
 }
 
+// TopicGroup is a public category with its published articles for the
+// expandable topic index.
+type TopicGroup struct {
+	Meta     MetaDto   `json:"meta"`
+	Articles []Content `json:"articles"`
+}
+
 // ArchiveBo groups articles by "yyyy年MM月". Mirrors ArchiveBo.
 type ArchiveBo struct {
 	Date     string    `json:"date"`

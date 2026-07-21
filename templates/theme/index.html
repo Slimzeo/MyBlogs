@@ -4,37 +4,10 @@
     <div class="fluid-container">
         <section id="board" class="fluid-board fluid-index-board">
             <h1 class="fluid-seo-title">{{siteTitle}}</h1>
-            {{if not .Title}}
-            <section id="study-map" class="fluid-home-map">
-                <div class="fluid-home-map-heading">
-                    <div>
-                        <span class="fluid-eyebrow">学习地图</span>
-                        <h2>从主题进入文章，<br/><em>按自己的路径继续。</em></h2>
-                    </div>
-                    <p>这里不是推荐算法，而是我正在整理的知识路径。每个主题都通向一组可以独立阅读、继续展开的记录。</p>
-                </div>
-                <nav class="fluid-home-topics" aria-label="学习主题">
-                    <a class="fluid-topic-card fluid-topic-primary" href="/archives">
-                        <span class="fluid-topic-icon">↘</span>
-                        <span><strong>全部文章</strong><small>按时间浏览记录</small></span>
-                    </a>
-                    {{range $category := .Categories}}
-                    <a class="fluid-topic-card" href="/category/{{urlEncode $category.Name}}">
-                        <span class="fluid-topic-icon">↗</span>
-                        <span><strong>{{$category.Name}}</strong><small>{{$category.Count}} 篇文章</small></span>
-                    </a>
-                    {{end}}
-                </nav>
-            </section>
-            <div class="fluid-section-heading">
-                <span class="fluid-eyebrow">最近记录</span>
-                <span>最近更新</span>
-            </div>
-            {{end}}
         {{if .Articles.List}}
             {{range $index, $article := .Articles.List}}
             {{$cover := showThumbFirst $article.Content}}
-            <article class="fluid-index-card{{if not $cover}} fluid-index-card-no-image{{end}}{{if eq $index 0}} fluid-index-card-featured{{end}}" data-reveal>
+            <article class="fluid-index-card{{if not $cover}} fluid-index-card-no-image{{end}}">
                 {{if $cover}}
                 <div class="fluid-index-image">
                     <a href="{{permalink $article}}">
@@ -45,10 +18,7 @@
                 </div>
                 {{end}}
                 <div class="fluid-index-info">
-                    <div class="fluid-index-heading">
-                        <span class="fluid-index-number">{{printf "%02d" (add $index 1)}}</span>
-                        <h2><a href="{{permalink $article}}">{{$article.Title}}</a></h2>
-                    </div>
+                    <h2><a href="{{permalink $article}}">{{$article.Title}}</a></h2>
                     <a class="fluid-index-excerpt" href="{{permalink $article}}">
                         {{intro $article.Content 200}}
                     </a>
