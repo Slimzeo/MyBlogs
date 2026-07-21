@@ -6,6 +6,73 @@ import (
 	"myblog/internal/model"
 )
 
+// GetPublishedTopicGroups builds the public category tree in two reads:
+// first the visible categories, then their published article relationships.
+func (s *Service) GetPublishedTopicGroups(metaLimit, articleLimit int) []model.TopicGroup {
+	if metaLimit < 1 || metaLimit > model.MaxPosts {
+		metaLimit = 50
+	}
+	if articleLimit < 1 || articleLimit > model.MaxPosts {
+		articleLimit = 20
+	}
+	metas := s.GetPublishedMetaList(model.TypeCategory, metaLimit)
+	if len(metas) == 0 {
+		return nil
+	}
+
+	metaIDs := make([]int, 0, len(metas))
+	groups := make(map[int]*model.TopicGroup, len(metas))
+	for index := range metas {
+		metaIDs = append(metaIDs, metas[index].Mid)
+		groups[metas[index].Mid] = &model.TopicGroup{Meta: metas[index]}
+	}
+
+	var relationships []model.Relationship
+	if err := s.db.Where("mid IN ?", metaIDs).Find(&relationships).Error; err != nil {
+		return nil
+	}
+	articleMetaIDs := make(map[int][]int)
+	articleIDs := make([]int, 0, len(relationships))
+	seenArticles := make(map[int]struct{}, len(relationships))
+	for _, relationship := range relationships {
+		articleMetaIDs[relationship.Cid] = append(articleMetaIDs[relationship.Cid], relationship.Mid)
+		if _, exists := seenArticles[relationship.Cid]; !exists {
+			seenArticles[relationship.Cid] = struct{}{}
+			articleIDs = append(articleIDs, relationship.Cid)
+		}
+	}
+	if len(articleIDs) == 0 {
+		return topicGroupsInOrder(metas, groups)
+	}
+
+	var articles []model.Content
+	if err := s.db.Where(
+		"cid IN ? AND type = ? AND status = ?",
+		articleIDs, model.TypeArticle, model.TypePublish,
+	).Order("created desc").Find(&articles).Error; err != nil {
+		return nil
+	}
+	for _, article := range articles {
+		for _, metaID := range articleMetaIDs[article.Cid] {
+			group := groups[metaID]
+			if group != nil && len(group.Articles) < articleLimit {
+				group.Articles = append(group.Articles, article)
+			}
+		}
+	}
+	return topicGroupsInOrder(metas, groups)
+}
+
+func topicGroupsInOrder(metas []model.MetaDto, groups map[int]*model.TopicGroup) []model.TopicGroup {
+	result := make([]model.TopicGroup, 0, len(metas))
+	for _, meta := range metas {
+		if group := groups[meta.Mid]; group != nil {
+			result = append(result, *group)
+		}
+	}
+	return result
+}
+
 // GetMeta returns a category/tag with its article count by type+name.
 // Mirrors MetaServiceImpl.getMeta + selectDtoByNameAndType.
 func (s *Service) GetMeta(typ, name string) *model.MetaDto {
@@ -84,6 +151,7 @@ func (s *Service) GetPublishedMetaList(typ string, limit int) []model.MetaDto {
 		Joins("left join t_contents c on c.cid = b.cid AND c.type = ? AND c.status = ?", model.TypeArticle, model.TypePublish).
 		Where("a.type = ?", typ).
 		Group("a.mid").
+		Having("count(distinct c.cid) > 0").
 		Order("count desc, a.mid desc").
 		Limit(limit).
 		Scan(&list)

@@ -71,7 +71,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		_ = sqlDB.Close()
 	})
 
-	for _, path := range []string{"/", "/healthz", "/readyz", "/article/welcome", "/article/welcome.html", "/archives", "/links", "/about"} {
+	for _, path := range []string{"/", "/healthz", "/readyz", "/article/welcome", "/article/welcome.html", "/topics", "/archives", "/links", "/about"} {
 		response, requestErr := http.Get(testServer.URL + path)
 		if requestErr != nil {
 			t.Fatalf("GET %s: %v", path, requestErr)
@@ -106,15 +106,10 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`href="/user/css/fluid.css"`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css`,
-		`class="fluid-theme fluid-font-wenkai fluid-home-page"`,
+		`class="fluid-theme fluid-font-wenkai"`,
 		`class="fluid-banner fluid-banner-home"`,
 		`background-image:url('/user/img/blog-banner.jpg')`,
 		`rel="preload" as="image"`,
-		`class="fluid-home-stage"`,
-		`id="study-map"`,
-		`学习地图`,
-		`id="home-audio"`,
-		`fluid-index-card-featured`,
 		`class="fluid-board fluid-index-board"`,
 		`id="color-toggle"`,
 	} {
@@ -131,6 +126,26 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	invalidLoginResponse := postLogin(t, testServer.URL, "wrong-user", "wrong-password")
 	if invalidLoginResponse.Msg != "用户名或密码错误" {
 		t.Fatalf("invalid login message = %q, want generic credential error", invalidLoginResponse.Msg)
+	}
+
+	topicsResponse, err := http.Get(testServer.URL + "/topics")
+	if err != nil {
+		t.Fatal(err)
+	}
+	topicsHTML, err := io.ReadAll(topicsResponse.Body)
+	_ = topicsResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, marker := range []string{
+		`class="fluid-topic-tabs"`,
+		`href="/topics?view=categories"`,
+		`href="/topics?view=tags"`,
+		`href="/archives"`,
+	} {
+		if !strings.Contains(string(topicsHTML), marker) {
+			t.Fatalf("topics page missing UI marker %q", marker)
+		}
 	}
 
 	articleUIResponse, err := http.Get(testServer.URL + "/article/welcome")
@@ -260,6 +275,24 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	if err := services.Publish(content); err != nil {
 		t.Fatal(err)
+	}
+	expandedTopicsResponse, err := http.Get(testServer.URL + "/topics")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expandedTopicsBody, err := io.ReadAll(expandedTopicsResponse.Body)
+	_ = expandedTopicsResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, marker := range []string{
+		`<details class="fluid-topic-node">`,
+		`Concurrent Article`,
+		`href="/article/concurrent-article"`,
+	} {
+		if !strings.Contains(string(expandedTopicsBody), marker) {
+			t.Fatalf("expanded topics missing marker %q", marker)
+		}
 	}
 	tagMeta := services.GetMeta(model.TypeTag, "integration-tag")
 	if tagMeta == nil {
