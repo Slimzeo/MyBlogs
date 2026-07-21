@@ -235,6 +235,117 @@
             if (tocCard) tocCard.hidden = !headings.length;
         }
 
+        function mountLeafAnimation() {
+            var canvas = document.getElementById('leaf-canvas');
+            if (!canvas || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                if (window.fluidLeafCleanup) window.fluidLeafCleanup();
+                return;
+            }
+            if (window.fluidLeafCanvas === canvas) return;
+            if (window.fluidLeafCleanup) window.fluidLeafCleanup();
+
+            var context = canvas.getContext('2d');
+            if (!context) return;
+            var leaves = [];
+            var animationFrame = 0;
+            var lastTime = 0;
+            var viewportWidth = 0;
+            var viewportHeight = 0;
+            var pixelRatio = 1;
+            var leafColors = ['#c47b45', '#d2a35b', '#9c633e', '#e0bd72'];
+
+            function randomBetween(minimum, maximum) {
+                return minimum + Math.random() * (maximum - minimum);
+            }
+
+            function resizeCanvas() {
+                viewportWidth = window.innerWidth;
+                viewportHeight = window.innerHeight;
+                pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+                canvas.width = Math.floor(viewportWidth * pixelRatio);
+                canvas.height = Math.floor(viewportHeight * pixelRatio);
+                canvas.style.width = viewportWidth + 'px';
+                canvas.style.height = viewportHeight + 'px';
+                context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+            }
+
+            function resetLeaf(leaf, startAboveViewport) {
+                leaf.x = randomBetween(-40, viewportWidth + 40);
+                leaf.y = startAboveViewport
+                    ? randomBetween(-viewportHeight, -leaf.size)
+                    : randomBetween(-leaf.size, viewportHeight);
+                leaf.size = randomBetween(4, 10);
+                leaf.fallSpeed = randomBetween(0.35, 1.05);
+                leaf.wind = randomBetween(-0.45, 0.45);
+                leaf.sway = randomBetween(0.35, 1.2);
+                leaf.phase = randomBetween(0, Math.PI * 2);
+                leaf.rotation = randomBetween(0, Math.PI * 2);
+                leaf.spin = randomBetween(-0.0018, 0.0018);
+                leaf.opacity = randomBetween(0.32, 0.8);
+                leaf.color = leafColors[Math.floor(Math.random() * leafColors.length)];
+            }
+
+            function drawLeaf(leaf) {
+                context.save();
+                context.translate(leaf.x, leaf.y);
+                context.rotate(leaf.rotation);
+                context.scale(leaf.size, leaf.size * 0.62);
+                context.beginPath();
+                context.moveTo(0, -1);
+                context.bezierCurveTo(0.9, -0.5, 1, 0.45, 0, 1);
+                context.bezierCurveTo(-1, 0.45, -0.9, -0.5, 0, -1);
+                context.fillStyle = leaf.color;
+                context.globalAlpha = leaf.opacity;
+                context.fill();
+                context.beginPath();
+                context.moveTo(0, -0.78);
+                context.lineTo(0, 0.78);
+                context.strokeStyle = 'rgba(83, 54, 35, .55)';
+                context.lineWidth = 0.1;
+                context.stroke();
+                context.restore();
+            }
+
+            function renderLeaves(timestamp) {
+                var elapsed = lastTime ? Math.min(timestamp - lastTime, 40) : 16;
+                lastTime = timestamp;
+                context.clearRect(0, 0, viewportWidth, viewportHeight);
+                for (var index = 0; index < leaves.length; index++) {
+                    var leaf = leaves[index];
+                    leaf.phase += elapsed * 0.0012;
+                    leaf.x += (leaf.wind + Math.sin(leaf.phase) * leaf.sway + Math.sin(timestamp * 0.00035 + index) * 0.2) * elapsed;
+                    leaf.y += leaf.fallSpeed * elapsed;
+                    leaf.rotation += leaf.spin * elapsed;
+                    if (leaf.y > viewportHeight + 24 || leaf.x < -70 || leaf.x > viewportWidth + 70) {
+                        resetLeaf(leaf, true);
+                    }
+                    drawLeaf(leaf);
+                }
+                animationFrame = window.requestAnimationFrame(renderLeaves);
+            }
+
+            resizeCanvas();
+            var leafCount = Math.min(34, Math.max(14, Math.round(viewportWidth / 45)));
+            for (var index = 0; index < leafCount; index++) {
+                var leaf = {};
+                resetLeaf(leaf, false);
+                leaves.push(leaf);
+            }
+            var resizeHandler = function () {
+                resizeCanvas();
+            };
+            window.addEventListener('resize', resizeHandler, {passive: true});
+            window.fluidLeafCanvas = canvas;
+            window.fluidLeafCleanup = function () {
+                window.cancelAnimationFrame(animationFrame);
+                window.removeEventListener('resize', resizeHandler);
+                window.fluidLeafCanvas = null;
+                window.fluidLeafCleanup = null;
+                context.clearRect(0, 0, viewportWidth, viewportHeight);
+            };
+            animationFrame = window.requestAnimationFrame(renderLeaves);
+        }
+
         function mountPage() {
             var navbar = document.getElementById('navbar');
             var progress = document.getElementById('reading-progress');
@@ -322,6 +433,7 @@
             updateScrollUI();
             mountComments();
             mountArticleTOC();
+            mountLeafAnimation();
             bindNavigation();
             if (!pageCache.has(window.location.href)) {
                 var snapshot = new DOMParser().parseFromString(

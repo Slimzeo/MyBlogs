@@ -108,8 +108,11 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css`,
 		`class="fluid-theme fluid-font-wenkai"`,
 		`class="fluid-banner fluid-banner-home"`,
-		`background-image:url('/user/img/blog-banner.jpg')`,
+		`background-image:url('/user/img/forest.jpg')`,
 		`rel="preload" as="image"`,
+		`fluid-home-quote`,
+		`如果这个`,
+		`fluid-leaf-canvas`,
 		`class="fluid-board fluid-index-board"`,
 		`id="color-toggle"`,
 	} {
@@ -122,6 +125,18 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	if strings.Contains(string(homeHTML), "highlight.js/9.9.0/styles/xcode.min.css") {
 		t.Fatal("home page should not load article highlight styles")
+	}
+	aboutResponse, err := http.Get(testServer.URL + "/about")
+	if err != nil {
+		t.Fatal(err)
+	}
+	aboutHTML, err := io.ReadAll(aboutResponse.Body)
+	_ = aboutResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(aboutHTML), "Hi, 这里是Hypnos") {
+		t.Fatal("about page is missing the personal introduction")
 	}
 	invalidLoginResponse := postLogin(t, testServer.URL, "wrong-user", "wrong-password")
 	if invalidLoginResponse.Msg != "用户名或密码错误" {
@@ -159,7 +174,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	for _, marker := range []string{
 		`class="fluid-banner fluid-banner-post"`,
-		`background-image:url('/user/img/blog-banner.jpg')`,
+		`background-image:url('/user/img/forest.jpg')`,
 		`class="fluid-post-layout"`,
 		`class="fluid-board fluid-post-board"`,
 		`id="article-toc"`,
