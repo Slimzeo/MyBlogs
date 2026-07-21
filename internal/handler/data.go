@@ -34,6 +34,7 @@ type PageData struct {
 	RecentComments []model.Comment
 	Logs           []model.Log
 	Archives       []model.ArchiveBo
+	ArchiveCount   int
 	Links          []model.Meta
 	Categories     []model.MetaDto
 	Tags           []model.MetaDto

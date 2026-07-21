@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -40,7 +41,7 @@ func main() {
 	}
 
 	httpServer := &http.Server{
-		Addr:              ":" + runtimeConfig.Port,
+		Addr:              net.JoinHostPort(runtimeConfig.BindAddress, runtimeConfig.Port),
 		Handler:           router.New(webServer, "static"),
 		ReadTimeout:       runtimeConfig.ReadTimeout,
 		ReadHeaderTimeout: 5 * time.Second,

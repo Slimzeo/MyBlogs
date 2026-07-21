@@ -24,6 +24,11 @@
             <option value="sans" {{if eq (index .Options "theme_font") "sans"}}selected{{end}}>系统无衬线</option>
             <option value="serif" {{if eq (index .Options "theme_font") "serif"}}selected{{end}}>系统宋体</option>
         </select>
+        <label>首页音乐地址（可选）</label>
+        <input type="url" name="theme_music_url" value="{{index .Options "theme_music_url"}}" placeholder="/upload/music.mp3 或 https://..."/>
+        <label>音乐标题</label>
+        <input type="text" name="theme_music_title" value="{{default "留一首歌给今天" (index .Options "theme_music_title")}}" placeholder="留一首歌给今天"/>
+        <p class="help-block">音乐地址支持站内 `/upload/...` 或 HTTPS 音频地址。未配置时播放器会保持关闭，不会自动播放。</p>
         <hr/>
         <label>微博</label><input type="text" name="social_weibo" value="{{index .Options "social_weibo"}}"/>
         <label>知乎</label><input type="text" name="social_zhihu" value="{{index .Options "social_zhihu"}}"/>

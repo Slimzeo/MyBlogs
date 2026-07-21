@@ -32,7 +32,7 @@
         <ol class="fluid-comment-list">
             {{range $comment := .Comments.List}}
             <li id="li-comment-{{$comment.Coid}}">
-                <img src="{{gravatar $comment.Mail}}?s=96&r=G&d=mp" alt="" width="46" height="46" loading="lazy"/>
+                <img src="{{gravatar $comment.Mail}}?s=96&r=G&d=mp" alt="" width="46" height="46" loading="lazy" decoding="async"/>
                 <div>
                     <div class="fluid-comment-author">{{$comment.Author}} <time>{{fmtdate $comment.Created}}</time></div>
                     <div class="fluid-comment-content">{{article $comment.Content}}</div>
@@ -53,50 +53,5 @@
         {{end}}
     </section>
 </div>
-<script>
-    (function () {
-        window.TaleComment = {
-            reply: function (coid) {
-                document.querySelector('#comment-form input[name=coid]').value = coid;
-                document.querySelector('.fluid-comments-wrap').scrollIntoView({behavior: 'smooth'});
-                document.getElementById('textarea').focus();
-            },
-            subComment: function () {
-                var form = document.getElementById('comment-form');
-                var button = document.getElementById('misubmit');
-                button.disabled = true;
-                button.textContent = '提交中…';
-                fetch('/comment', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
-                    body: new URLSearchParams(new FormData(form))
-                }).then(function (response) {
-                    return response.json();
-                }).then(function (result) {
-                    form.querySelector('input[name=coid]').value = '';
-                    if (result && result.success) {
-                        window.location.reload();
-                        return;
-                    }
-                    alert(result.msg || '评论发布失败');
-                }).catch(function () {
-                    alert('网络异常，请稍后再试');
-                }).finally(function () {
-                    button.disabled = false;
-                    button.textContent = '发表评论';
-                });
-                return false;
-            }
-        };
-    })();
-    function getCommentCookie(name) {
-        var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]*)(;|$)'));
-        return match ? decodeURIComponent(match[2].replace(/\+/g, ' ')) : '';
-    }
-    ['author', 'mail', 'url'].forEach(function (name) {
-        var input = document.getElementById(name);
-        if (input) input.value = getCommentCookie('tale_remember_' + name);
-    });
-</script>
 {{end}}
 {{end}}

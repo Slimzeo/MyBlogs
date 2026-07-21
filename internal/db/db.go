@@ -138,6 +138,8 @@ func seed(gdb *gorm.DB, cfg *config.Config) error {
 			{Name: "theme_post_banner", Value: "/user/img/blog-banner.jpg"},
 			{Name: "theme_page_banner", Value: "/user/img/blog-banner.jpg"},
 			{Name: "theme_font", Value: "wenkai"},
+			{Name: "theme_music_url", Value: ""},
+			{Name: "theme_music_title", Value: "留一首歌给今天"},
 			{Name: "social_github", Value: "https://github.com/"},
 			{Name: "social_weibo", Value: ""},
 			{Name: "social_zhihu", Value: ""},

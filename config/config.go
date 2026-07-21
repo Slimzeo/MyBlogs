@@ -14,6 +14,7 @@ import (
 type Config struct {
 	// Server
 	Port            string
+	BindAddress     string
 	GinMode         string
 	ReadTimeout     time.Duration
 	WriteTimeout    time.Duration
@@ -46,6 +47,7 @@ type Config struct {
 func Load() *Config {
 	c := &Config{
 		Port:            env("BLOG_PORT", "8081"),
+		BindAddress:     env("BLOG_BIND_ADDRESS", "127.0.0.1"),
 		GinMode:         env("BLOG_GIN_MODE", "release"),
 		ReadTimeout:     time.Duration(envInt("BLOG_READ_TIMEOUT_SEC", 15)) * time.Second,
 		WriteTimeout:    time.Duration(envInt("BLOG_WRITE_TIMEOUT_SEC", 30)) * time.Second,

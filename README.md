@@ -158,6 +158,8 @@ CSRF 校验和频率限制，防止重复提交。
 - `首页标语`：首页头图中央的文字。
 - `首页头图`、`文章头图`、`其他页面头图`：Fluid 风格 Banner。
 - `正文字体`：霞鹜文楷、系统无衬线或系统宋体。
+- `首页音乐地址`、`音乐标题`：首页右侧播放器配置。音乐地址可填 `/upload/...`
+  或 HTTPS 音频地址；不填写时播放器不会自动播放。
 - 微博、知乎、Github、Twitter 地址。
 
 头图支持 `/user/img/...`、`/upload/...` 和完整的 `https://...` 地址。推荐使用至少
@@ -193,6 +195,7 @@ Go 模板中。对应位置是：
 | 环境变量 | 默认值 | 说明 |
 | --- | --- | --- |
 | `BLOG_PORT` | `8081` | HTTP 端口 |
+| `BLOG_BIND_ADDRESS` | `127.0.0.1` | 监听地址；Nginx 反代部署保持 `127.0.0.1` |
 | `BLOG_GIN_MODE` | `release` | Gin 运行模式，生产保持 `release` |
 | `BLOG_DB_DRIVER` | `sqlite` | `sqlite` 或 `mysql` |
 | `BLOG_DB_DSN` | `data/blog.db?...` | 数据库 DSN |
