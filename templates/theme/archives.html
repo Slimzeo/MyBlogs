@@ -1,31 +1,46 @@
 {{define "archives"}}
 {{template "header" .}}
-<main class="fluid-main">
+<main id="fluid-page-main" class="fluid-main">
     <div class="fluid-container">
-    <section id="board" class="fluid-board fluid-list-board">
-        <div class="fluid-list-heading">
-            <h2>文章归档</h2>
-        </div>
-        {{if .Archives}}
-        {{range $archive := .Archives}}
-        <div class="fluid-archive-group">
-            <h3>{{$archive.Date}}</h3>
-            <div class="fluid-archive-list">
-                {{range $article := $archive.Articles}}
-                <a class="fluid-archive-item" href="{{permalink $article}}">
-                    <time>{{fmtdate $article.Created}}</time>
-                    <span>{{$article.Title}}</span>
-                </a>
+        <section id="board" class="fluid-board fluid-archive-board">
+            <div class="fluid-archive-intro">
+                <div>
+                    <span class="fluid-eyebrow">公开文章 · 按月整理</span>
+                    <h2>归档不是仓库，<br/><em>是一路走过的时间。</em></h2>
+                    <p>这里按文章发布时间整理所有公开记录。月份是章节，文章是每一次具体的思考。</p>
+                </div>
+                <div class="fluid-archive-total">
+                    <strong>{{.ArchiveCount}}</strong>
+                    <span>篇公开文章</span>
+                </div>
+            </div>
+            {{if .Archives}}
+            <div class="fluid-archive-timeline">
+                {{range $archive := .Archives}}
+                <section class="fluid-archive-group">
+                    <div class="fluid-archive-period">
+                        <span class="fluid-archive-dot"></span>
+                        <h3>{{$archive.Date}}</h3>
+                        <span class="fluid-archive-count">{{len $archive.Articles}} 篇</span>
+                    </div>
+                    <div class="fluid-archive-list">
+                        {{range $article := $archive.Articles}}
+                        <a class="fluid-archive-item" href="{{permalink $article}}">
+                            <time>{{fmtdate $article.Created}}</time>
+                            <span class="fluid-archive-title">{{$article.Title}}</span>
+                            <span class="fluid-archive-arrow">↗</span>
+                        </a>
+                        {{end}}
+                    </div>
+                </section>
                 {{end}}
             </div>
-        </div>
-        {{end}}
-        {{else}}
-        <div class="fluid-empty">
-            <p>还没有归档内容。</p>
-        </div>
-        {{end}}
-    </section>
+            {{else}}
+            <div class="fluid-empty">
+                <p>还没有公开文章。</p>
+            </div>
+            {{end}}
+        </section>
     </div>
 </main>
 {{template "footer" .}}

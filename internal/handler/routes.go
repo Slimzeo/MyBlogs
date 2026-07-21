@@ -137,6 +137,7 @@ func (server *Server) ApplicationMiddleware() []gin.HandlerFunc {
 		middleware.RequestLogger(),
 		middleware.SecurityHeaders(),
 		middleware.RequestBodyLimit(),
+		middleware.StaticCacheHeaders(),
 		server.rateLimiter.Middleware(),
 		server.sessions.Load(),
 	}

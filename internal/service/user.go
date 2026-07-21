@@ -53,7 +53,7 @@ func (s *Service) Login(username, password string) (*model.User, error) {
 	var count int64
 	s.db.Model(&model.User{}).Where("username = ?", username).Count(&count)
 	if count < 1 {
-		return nil, Tip("不存在该用户")
+		return nil, Tip("用户名或密码错误")
 	}
 	var user model.User
 	if err := s.db.Where("username = ?", username).First(&user).Error; err != nil {
@@ -82,12 +82,33 @@ func (s *Service) UpdateUserByUID(u *model.User) error {
 	}
 	updates := map[string]interface{}{}
 	if u.Username != "" {
+		if len([]rune(u.Username)) > 32 {
+			return Tip("用户名不能超过32个字符")
+		}
+		var count int64
+		if err := s.db.Model(&model.User{}).
+			Where("username = ? AND uid <> ?", u.Username, u.Uid).
+			Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			return Tip("用户名已存在")
+		}
 		updates["username"] = u.Username
 	}
 	if u.Password != "" {
 		updates["password"] = u.Password
 	}
 	if u.Email != "" {
+		var count int64
+		if err := s.db.Model(&model.User{}).
+			Where("email = ? AND uid <> ?", u.Email, u.Uid).
+			Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			return Tip("邮箱已存在")
+		}
 		updates["email"] = u.Email
 	}
 	if u.ScreenName != "" {

@@ -9,98 +9,222 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"></path></svg>
 </button>
 
-<script src="//cdn.bootcdn.net/ajax/libs/highlight.js/9.9.0/highlight.min.js"></script>
 <script>
     (function () {
         var root = document.documentElement;
-        var navbar = document.getElementById('navbar');
-        var progress = document.getElementById('reading-progress');
-        var backToTop = document.getElementById('back-to-top');
-        var colorToggle = document.getElementById('color-toggle');
-        var navbarToggle = document.getElementById('navbar-toggle');
-        var navbarMenu = document.getElementById('navbar-menu');
-        var searchToggle = document.getElementById('search-toggle');
-        var searchModal = document.getElementById('search-modal');
-        var searchClose = document.getElementById('search-close');
-        var searchInput = document.getElementById('search-inp');
-        var searchForm = document.getElementById('site-search-form');
-        var scrollDown = document.getElementById('scroll-down');
+        var pageCache = new Map();
+        var pendingPages = new Map();
+        var prefetchTimers = new Map();
+        var maxCachedPages = 6;
 
         function setColorScheme(scheme) {
             root.dataset.colorScheme = scheme;
             localStorage.setItem('fluid-color-scheme', scheme);
-            document.querySelector('meta[name=theme-color]').setAttribute(
-                'content',
-                scheme === 'dark' ? '#1f3144' : '#2f4154'
-            );
+            var themeColor = document.querySelector('meta[name=theme-color]');
+            if (themeColor) themeColor.setAttribute('content', scheme === 'dark' ? '#1f3144' : '#2f4154');
         }
+
+        function pageParts(documentNode) {
+            return {
+                banner: documentNode.querySelector('#banner'),
+                main: documentNode.querySelector('#fluid-page-main'),
+                title: documentNode.querySelector('title'),
+                description: documentNode.querySelector('meta[name=description]'),
+                keywords: documentNode.querySelector('meta[name=keywords]')
+            };
+        }
+
+        function cachePage(url, documentNode) {
+            pageCache.set(url, documentNode);
+            while (pageCache.size > maxCachedPages) pageCache.delete(pageCache.keys().next().value);
+        }
+
+        function fetchPage(url) {
+            if (pageCache.has(url)) return Promise.resolve(pageCache.get(url));
+            if (pendingPages.has(url)) return pendingPages.get(url);
+            var request = fetch(url, {
+                credentials: 'same-origin',
+                headers: {'X-Fluid-Prefetch': '1'}
+            }).then(function (response) {
+                if (!response.ok) throw new Error('page request failed');
+                return response.text();
+            }).then(function (html) {
+                var documentNode = new DOMParser().parseFromString(html, 'text/html');
+                var parts = pageParts(documentNode);
+                if (!parts.banner || !parts.main) throw new Error('page shell is incomplete');
+                cachePage(url, documentNode);
+                return documentNode;
+            }).finally(function () {
+                pendingPages.delete(url);
+            });
+            pendingPages.set(url, request);
+            return request;
+        }
+
+        function canNavigate(link, event) {
+            if (!link || !link.href || link.target || link.hasAttribute('download')) return false;
+            if (event && (event.defaultPrevented || event.button !== 0 || event.metaKey ||
+                event.ctrlKey || event.shiftKey || event.altKey)) return false;
+            var url = new URL(link.href, window.location.href);
+            return url.origin === window.location.origin &&
+                url.protocol === window.location.protocol &&
+                !url.hash &&
+                !url.pathname.startsWith('/admin') &&
+                url.pathname !== '/logout';
+        }
+
+        function closeNavigation() {
+            var navbar = document.getElementById('navbar');
+            var navbarMenu = document.getElementById('navbar-menu');
+            var navbarToggle = document.getElementById('navbar-toggle');
+            if (!navbar || !navbarMenu || !navbarToggle) return;
+            navbarMenu.classList.remove('is-open');
+            navbarToggle.classList.remove('is-open');
+            navbar.classList.remove('is-open');
+            navbarToggle.setAttribute('aria-expanded', 'false');
+        }
+
+        function updateDocument(url, documentNode) {
+            var current = pageParts(document);
+            var next = pageParts(documentNode);
+            var currentAudio = document.getElementById('home-audio');
+            if (currentAudio && currentAudio !== next.main.querySelector('#home-audio')) {
+                currentAudio.pause();
+            }
+            current.banner.replaceWith(next.banner.cloneNode(true));
+            current.main.replaceWith(next.main.cloneNode(true));
+            if (current.title && next.title) document.title = next.title.textContent;
+            ['description', 'keywords'].forEach(function (name) {
+                var currentMeta = current[name];
+                var nextMeta = next[name];
+                if (!currentMeta || !nextMeta) return;
+                currentMeta.setAttribute('content', nextMeta.getAttribute('content') || '');
+            });
+            document.body.className = documentNode.body.className;
+            document.body.classList.add('fluid-page-enter');
+            window.setTimeout(function () {
+                document.body.classList.remove('fluid-page-enter');
+            }, 420);
+        }
+
+        function navigate(url, replace) {
+            document.body.classList.add('fluid-page-loading');
+            closeNavigation();
+            fetchPage(url).then(function (documentNode) {
+                updateDocument(url, documentNode);
+                if (replace) window.history.pushState({fluid: true}, '', url);
+                window.scrollTo({top: 0, behavior: 'auto'});
+                mountPage();
+            }).catch(function () {
+                window.location.href = url;
+            }).finally(function () {
+                document.body.classList.remove('fluid-page-loading');
+            });
+        }
+
+        function prefetch(link) {
+            if (!link || link.dataset.fluidPrefetched === '1') return;
+            var url = new URL(link.href, window.location.href);
+            if (url.origin !== window.location.origin || url.pathname.startsWith('/admin')) return;
+            link.dataset.fluidPrefetched = '1';
+            fetchPage(url.href).catch(function () {
+                delete link.dataset.fluidPrefetched;
+            });
+        }
+
+        function schedulePrefetch(link) {
+            if (!link || link.dataset.fluidPrefetched === '1' || prefetchTimers.has(link)) return;
+            var timer = window.setTimeout(function () {
+                prefetchTimers.delete(link);
+                prefetch(link);
+            }, 100);
+            prefetchTimers.set(link, timer);
+        }
+
+        function cancelPrefetch(link) {
+            var timer = prefetchTimers.get(link);
+            if (timer) {
+                window.clearTimeout(timer);
+                prefetchTimers.delete(link);
+            }
+        }
+
+        function bindNavigation() {
+            document.querySelectorAll('a[href]').forEach(function (link) {
+                if (link.dataset.fluidBound === '1') return;
+                link.dataset.fluidBound = '1';
+                link.addEventListener('mouseenter', function () { schedulePrefetch(link); }, {passive: true});
+                link.addEventListener('mouseleave', function () { cancelPrefetch(link); }, {passive: true});
+                link.addEventListener('focus', function () { prefetch(link); }, {passive: true});
+                link.addEventListener('blur', function () { cancelPrefetch(link); }, {passive: true});
+                link.addEventListener('click', function (event) {
+                    if (!canNavigate(link, event)) return;
+                    event.preventDefault();
+                    var url = new URL(link.href, window.location.href);
+                    if (url.href !== window.location.href) navigate(url.href, true);
+                });
+            });
+        }
+
         function toggleSearchModal(open) {
+            var searchModal = document.getElementById('search-modal');
+            var searchInput = document.getElementById('search-inp');
+            if (!searchModal) return;
             searchModal.classList.toggle('is-open', open);
             document.body.style.overflow = open ? 'hidden' : '';
-            if (open) window.setTimeout(function () { searchInput.focus(); }, 50);
+            if (open && searchInput) window.setTimeout(function () { searchInput.focus(); }, 50);
         }
 
-        colorToggle.addEventListener('click', function () {
-            setColorScheme(root.dataset.colorScheme === 'dark' ? 'light' : 'dark');
-        });
-        navbarToggle.addEventListener('click', function () {
-            var open = !navbarMenu.classList.contains('is-open');
-            navbarMenu.classList.toggle('is-open', open);
-            navbarToggle.classList.toggle('is-open', open);
-            navbar.classList.toggle('is-open', open);
-            navbarToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        });
-        searchToggle.addEventListener('click', function () { toggleSearchModal(true); });
-        searchClose.addEventListener('click', function () { toggleSearchModal(false); });
-        searchModal.addEventListener('click', function (event) {
-            if (event.target === searchModal) toggleSearchModal(false);
-        });
-        searchForm.addEventListener('submit', function (event) {
-            event.preventDefault();
-            var keyword = searchInput.value.trim();
-            if (keyword) window.location.href = '/search/' + encodeURIComponent(keyword);
-        });
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') toggleSearchModal(false);
-            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-                event.preventDefault();
-                toggleSearchModal(true);
-            }
-        });
-        document.querySelectorAll('#navbar-menu a').forEach(function (link) {
-            link.addEventListener('click', function () {
-                navbarMenu.classList.remove('is-open');
-                navbarToggle.classList.remove('is-open');
-                navbar.classList.remove('is-open');
-                navbarToggle.setAttribute('aria-expanded', 'false');
+        function mountComments() {
+            var form = document.getElementById('comment-form');
+            if (!form) return;
+            window.TaleComment = {
+                reply: function (coid) {
+                    var parent = form.querySelector('input[name=coid]');
+                    var text = document.getElementById('textarea');
+                    if (parent) parent.value = coid;
+                    form.scrollIntoView({behavior: 'smooth'});
+                    if (text) text.focus();
+                },
+                subComment: function () {
+                    var button = document.getElementById('misubmit');
+                    if (!button) return false;
+                    button.disabled = true;
+                    button.textContent = '提交中…';
+                    fetch('/comment', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+                        body: new URLSearchParams(new FormData(form))
+                    }).then(function (response) {
+                        return response.json();
+                    }).then(function (result) {
+                        if (result && result.success) {
+                            window.location.reload();
+                            return;
+                        }
+                        alert((result && result.msg) || '评论发布失败');
+                    }).catch(function () {
+                        alert('网络异常，请稍后再试');
+                    }).finally(function () {
+                        button.disabled = false;
+                        button.textContent = '提交';
+                    });
+                    return false;
+                }
+            };
+            ['author', 'mail', 'url'].forEach(function (name) {
+                var input = document.getElementById(name);
+                var match = document.cookie.match(new RegExp('(^| )tale_remember_' + name + '=([^;]*)(;|$)'));
+                if (input && match) input.value = decodeURIComponent(match[2].replace(/\+/g, ' '));
             });
-        });
-
-        function updateScrollUI() {
-            var top = window.scrollY || document.documentElement.scrollTop;
-            var height = document.documentElement.scrollHeight - window.innerHeight;
-            navbar.classList.toggle('is-collapsed', top > 30);
-            backToTop.classList.toggle('is-visible', top > 500);
-            progress.style.width = (height > 0 ? Math.min(100, top / height * 100) : 0) + '%';
         }
-        window.addEventListener('scroll', updateScrollUI, {passive: true});
-        updateScrollUI();
-        backToTop.addEventListener('click', function () {
-            window.scrollTo({top: 0, behavior: 'smooth'});
-        });
-        scrollDown.addEventListener('click', function () {
-            var board = document.getElementById('board');
-            if (board) board.scrollIntoView({behavior: 'smooth'});
-        });
 
-        document.querySelectorAll('pre code').forEach(function (block) {
-            if (window.hljs) hljs.highlightBlock(block);
-        });
-
-        var article = document.getElementById('post-content');
-        var toc = document.getElementById('article-toc');
-        var tocCard = document.getElementById('toc-card');
-        if (article && toc) {
+        function mountArticleTOC() {
+            var article = document.getElementById('post-content');
+            var toc = document.getElementById('article-toc');
+            var tocCard = document.getElementById('toc-card');
+            if (!article || !toc) return;
+            toc.innerHTML = '';
             var headings = article.querySelectorAll('h2, h3');
             headings.forEach(function (heading, index) {
                 heading.id = heading.id || 'section-' + (index + 1);
@@ -112,8 +236,180 @@
                 item.appendChild(link);
                 toc.appendChild(item);
             });
-            if (!headings.length && tocCard) tocCard.hidden = true;
+            if (tocCard) tocCard.hidden = !headings.length;
         }
+
+        function mountHomeWidgets() {
+            var clock = document.getElementById('home-clock');
+            var date = document.getElementById('home-date');
+            if (clock && !window.fluidClockTimer) {
+                function updateClock() {
+                    var currentClock = document.getElementById('home-clock');
+                    var currentDate = document.getElementById('home-date');
+                    if (!currentClock) return;
+                    var now = new Date();
+                    currentClock.textContent = now.toLocaleTimeString('zh-CN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                    if (currentDate) {
+                        currentDate.textContent = now.toLocaleDateString('zh-CN', {
+                            weekday: 'long',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                    }
+                }
+                updateClock();
+                window.fluidClockTimer = window.setInterval(updateClock, 30000);
+            }
+
+            var musicWidget = document.querySelector('.fluid-music-widget');
+            var audio = document.getElementById('home-audio');
+            var toggle = document.getElementById('music-toggle');
+            var status = document.getElementById('music-status');
+            var progress = document.getElementById('music-progress');
+            if (!musicWidget || !audio || !toggle || !status || toggle.dataset.fluidBound === '1') return;
+            toggle.dataset.fluidBound = '1';
+            var source = musicWidget.getAttribute('data-music-url') || '';
+            if (!source) return;
+            audio.src = source;
+            toggle.disabled = false;
+            status.textContent = '点击播放';
+            toggle.addEventListener('click', function () {
+                if (audio.paused) {
+                    audio.play().then(function () {
+                        toggle.setAttribute('aria-label', '暂停音乐');
+                        toggle.classList.add('is-playing');
+                        toggle.querySelector('.music-play-icon').textContent = 'Ⅱ';
+                        status.textContent = '正在播放';
+                    }).catch(function () {
+                        status.textContent = '音频无法播放';
+                    });
+                } else {
+                    audio.pause();
+                    toggle.setAttribute('aria-label', '播放音乐');
+                    toggle.classList.remove('is-playing');
+                    toggle.querySelector('.music-play-icon').textContent = '▶';
+                    status.textContent = '已暂停';
+                }
+            });
+            audio.addEventListener('timeupdate', function () {
+                if (audio.duration && progress) {
+                    progress.style.width = (audio.currentTime / audio.duration * 100) + '%';
+                }
+            });
+            audio.addEventListener('ended', function () {
+                toggle.classList.remove('is-playing');
+                toggle.querySelector('.music-play-icon').textContent = '▶';
+                status.textContent = '播放结束';
+            });
+            audio.addEventListener('error', function () {
+                status.textContent = '音频地址不可用';
+            });
+        }
+
+        function mountPage() {
+            var navbar = document.getElementById('navbar');
+            var progress = document.getElementById('reading-progress');
+            var backToTop = document.getElementById('back-to-top');
+            var colorToggle = document.getElementById('color-toggle');
+            var navbarToggle = document.getElementById('navbar-toggle');
+            var navbarMenu = document.getElementById('navbar-menu');
+            var searchToggle = document.getElementById('search-toggle');
+            var searchModal = document.getElementById('search-modal');
+            var searchClose = document.getElementById('search-close');
+            var searchForm = document.getElementById('site-search-form');
+            var scrollDown = document.getElementById('scroll-down');
+
+            if (colorToggle && !colorToggle.dataset.fluidBound) {
+                colorToggle.dataset.fluidBound = '1';
+                colorToggle.addEventListener('click', function () {
+                    setColorScheme(root.dataset.colorScheme === 'dark' ? 'light' : 'dark');
+                });
+            }
+            if (navbarToggle && !navbarToggle.dataset.fluidBound) {
+                navbarToggle.dataset.fluidBound = '1';
+                navbarToggle.addEventListener('click', function () {
+                    var open = !navbarMenu.classList.contains('is-open');
+                    navbarMenu.classList.toggle('is-open', open);
+                    navbarToggle.classList.toggle('is-open', open);
+                    navbar.classList.toggle('is-open', open);
+                    navbarToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                });
+            }
+            if (searchToggle && !searchToggle.dataset.fluidBound) {
+                searchToggle.dataset.fluidBound = '1';
+                searchToggle.addEventListener('click', function () { toggleSearchModal(true); });
+            }
+            if (searchClose && !searchClose.dataset.fluidBound) {
+                searchClose.dataset.fluidBound = '1';
+                searchClose.addEventListener('click', function () { toggleSearchModal(false); });
+            }
+            if (searchModal && !searchModal.dataset.fluidBound) {
+                searchModal.dataset.fluidBound = '1';
+                searchModal.addEventListener('click', function (event) {
+                    if (event.target === searchModal) toggleSearchModal(false);
+                });
+            }
+            if (searchForm && !searchForm.dataset.fluidBound) {
+                searchForm.dataset.fluidBound = '1';
+                searchForm.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    var input = document.getElementById('search-inp');
+                    var keyword = input && input.value.trim();
+                    if (keyword) navigate('/search/' + encodeURIComponent(keyword), true);
+                    toggleSearchModal(false);
+                });
+            }
+            if (scrollDown && !scrollDown.dataset.fluidBound) {
+                scrollDown.dataset.fluidBound = '1';
+                scrollDown.addEventListener('click', function () {
+                    var board = document.getElementById('board');
+                    if (board) board.scrollIntoView({behavior: 'smooth'});
+                });
+            }
+            function updateScrollUI() {
+                var top = window.scrollY || document.documentElement.scrollTop;
+                var height = document.documentElement.scrollHeight - window.innerHeight;
+                if (navbar) navbar.classList.toggle('is-collapsed', top > 30);
+                if (backToTop) backToTop.classList.toggle('is-visible', top > 500);
+                if (progress) progress.style.width = (height > 0 ? Math.min(100, top / height * 100) : 0) + '%';
+            }
+            if (!window.fluidScrollBound) {
+                window.fluidScrollBound = true;
+                window.addEventListener('scroll', updateScrollUI, {passive: true});
+                document.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') toggleSearchModal(false);
+                    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+                        event.preventDefault();
+                        toggleSearchModal(true);
+                    }
+                });
+                if (backToTop) backToTop.addEventListener('click', function () {
+                    window.scrollTo({top: 0, behavior: 'smooth'});
+                });
+                window.addEventListener('popstate', function () {
+                    navigate(window.location.href, false);
+                });
+            }
+            updateScrollUI();
+            mountComments();
+            mountArticleTOC();
+            mountHomeWidgets();
+            bindNavigation();
+            if (!pageCache.has(window.location.href)) {
+                var snapshot = new DOMParser().parseFromString(
+                    '<!doctype html>' + document.documentElement.outerHTML,
+                    'text/html'
+                );
+                cachePage(window.location.href, snapshot);
+            }
+        }
+
+        window.FluidPage = {navigate: navigate, prefetch: prefetch};
+        mountPage();
     })();
 </script>
 </body>

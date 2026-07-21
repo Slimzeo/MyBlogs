@@ -3,6 +3,7 @@
 <div class="card">
     <h3>分类</h3>
     <form id="cat-form" style="display:flex;gap:10px;align-items:flex-end;">
+        <input type="hidden" name="type" value="category"/>
         <div style="flex:1;"><label>新增/重命名分类</label><input type="text" name="cname" id="cname" placeholder="分类名"/></div>
         <input type="hidden" name="mid" id="cat-mid" value="0"/>
         <button type="submit" class="btn btn-primary" style="margin-bottom:12px;">保存</button>
@@ -23,7 +24,13 @@
     </table>
 </div>
 <div class="card">
-    <h3>标签</h3>
+    <h3 style="display:flex;justify-content:space-between;align-items:center;">标签 <button type="button" class="btn btn-primary btn-sm" id="new-tag">新增标签</button></h3>
+    <form id="tag-form" style="display:none;gap:10px;align-items:flex-end;margin-bottom:20px;">
+        <input type="hidden" name="type" value="tag"/>
+        <div style="flex:1;"><label>标签名</label><input type="text" name="cname" id="tag-name" placeholder="标签名"/></div>
+        <button type="submit" class="btn btn-primary" style="margin-bottom:12px;">保存</button>
+        <button type="button" class="btn btn-default" id="cancel-tag" style="margin-bottom:12px;">取消</button>
+    </form>
     <table>
         <thead><tr><th>标签名</th><th style="width:100px;">文章数</th><th style="width:100px;">操作</th></tr></thead>
         <tbody>
@@ -35,9 +42,29 @@
 </div>
 <script>
     function renameCat(mid,name){ $('#cat-mid').val(mid); $('#cname').val(name); }
+    function saveMeta(form, successMessage){
+        var resultBox = $('<div class="alert" role="alert"></div>');
+        form.before(resultBox);
+        $.post('/admin/category/save', $(form).serialize(), function(r){
+            if(r.success){ location.reload(); }
+            else { resultBox.addClass('alert-danger').text(r.msg||'保存失败'); }
+        }).fail(function(){ resultBox.addClass('alert-danger').text('网络异常，请稍后再试'); });
+    }
     $('#cat-form').submit(function(e){
         e.preventDefault();
-        $.post('/admin/category/save', $(this).serialize(), function(r){ if(r.success){location.reload();}else{alert(r.msg||'保存失败');}});
+        saveMeta(this, '分类保存成功');
+    });
+    $('#new-tag').click(function(){
+        $('#tag-form').css('display','flex');
+        $('#tag-name').focus();
+    });
+    $('#cancel-tag').click(function(){
+        $('#tag-form').hide();
+        $('#tag-name').val('');
+    });
+    $('#tag-form').submit(function(e){
+        e.preventDefault();
+        saveMeta(this, '标签保存成功');
     });
     function delMeta(mid){
         if(!confirm('确定删除?'))return;

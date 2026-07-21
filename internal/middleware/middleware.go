@@ -81,6 +81,7 @@ func SecurityHeaders() gin.HandlerFunc {
 		header.Set("Content-Security-Policy",
 			"default-src 'self'; base-uri 'self'; form-action 'self'; "+
 				"img-src 'self' data: https:; "+
+				"media-src 'self' https:; "+
 				"style-src 'self' 'unsafe-inline' https:; "+
 				"font-src 'self' https: data:; "+
 				"script-src 'self' 'unsafe-inline' https:; "+
@@ -118,6 +119,22 @@ func RequestBodyLimit() gin.HandlerFunc {
 			limit = int64(model.MaxFileSize*16) + (1 << 20)
 		}
 		context.Request.Body = http.MaxBytesReader(context.Writer, context.Request.Body, limit)
+		context.Next()
+	}
+}
+
+// StaticCacheHeaders lets browsers reuse versionless public assets briefly
+// without caching dynamic HTML or admin responses.
+func StaticCacheHeaders() gin.HandlerFunc {
+	return func(context *gin.Context) {
+		path := context.Request.URL.Path
+		if context.Request.Method == http.MethodGet || context.Request.Method == http.MethodHead {
+			if strings.HasPrefix(path, "/user/") || strings.HasPrefix(path, "/assets/admin/") {
+				context.Header("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400")
+			} else if strings.HasPrefix(path, "/upload/") {
+				context.Header("Cache-Control", "private, max-age=300")
+			}
+		}
 		context.Next()
 	}
 }

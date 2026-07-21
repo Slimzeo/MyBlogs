@@ -67,6 +67,29 @@ func (s *Service) GetMetaList(typ, orderBy string, limit int) []model.MetaDto {
 	return list
 }
 
+// GetPublishedMetaList lists public categories/tags with only published
+// article counts. It is used by the public homepage, so drafts and private
+// articles do not affect the numbers shown to visitors.
+func (s *Service) GetPublishedMetaList(typ string, limit int) []model.MetaDto {
+	if strings.TrimSpace(typ) == "" {
+		return nil
+	}
+	if limit < 1 || limit > model.MaxPosts {
+		limit = 10
+	}
+	var list []model.MetaDto
+	s.db.Table("t_metas a").
+		Select("a.*, count(distinct c.cid) as count").
+		Joins("left join t_relationships b on a.mid = b.mid").
+		Joins("left join t_contents c on c.cid = b.cid AND c.type = ? AND c.status = ?", model.TypeArticle, model.TypePublish).
+		Where("a.type = ?", typ).
+		Group("a.mid").
+		Order("count desc, a.mid desc").
+		Limit(limit).
+		Scan(&list)
+	return list
+}
+
 // DeleteMeta removes a meta and rewrites the tags/categories of its posts.
 // Mirrors MetaServiceImpl.delete.
 func (s *Service) DeleteMeta(mid int) error {
@@ -113,11 +136,19 @@ func (s *Service) DeleteMeta(mid int) error {
 // SaveOrRenameCategory creates a category, or renames an existing one (by mid)
 // propagating the new name to posts. Mirrors saveMeta(type,name,mid).
 func (s *Service) SaveOrRenameCategory(typ, name string, mid int) error {
-	if strings.TrimSpace(typ) == "" || strings.TrimSpace(name) == "" {
-		return nil
+	name = strings.TrimSpace(name)
+	if typ != model.TypeCategory && typ != model.TypeTag {
+		return Tip("项目类型不合法")
+	}
+	if name == "" {
+		return Tip("名称不能为空")
 	}
 	var existing []model.Meta
-	s.db.Where("type = ? AND name = ?", typ, name).Find(&existing)
+	query := s.db.Where("type = ? AND name = ?", typ, name)
+	if mid != 0 {
+		query = query.Where("mid <> ?", mid)
+	}
+	query.Find(&existing)
 	if len(existing) != 0 {
 		return Tip("已经存在该项")
 	}
@@ -125,6 +156,9 @@ func (s *Service) SaveOrRenameCategory(typ, name string, mid int) error {
 		var original model.Meta
 		if err := s.db.First(&original, mid).Error; err != nil {
 			return err
+		}
+		if original.Type != typ {
+			return Tip("项目类型不匹配")
 		}
 		var affected []model.Content
 		err := s.db.Transaction(func(tx txLike) error {
@@ -140,9 +174,14 @@ func (s *Service) SaveOrRenameCategory(typ, name string, mid int) error {
 				return err
 			}
 			for _, content := range affected {
-				categories := replaceMeta(original.Name, name, content.Categories)
+				field := "categories"
+				value := replaceMeta(original.Name, name, content.Categories)
+				if typ == model.TypeTag {
+					field = "tags"
+					value = replaceMeta(original.Name, name, content.Tags)
+				}
 				if err := tx.Model(&model.Content{}).Where("cid = ?", content.Cid).
-					Update("categories", categories).Error; err != nil {
+					Update(field, value).Error; err != nil {
 					return err
 				}
 			}
@@ -155,7 +194,7 @@ func (s *Service) SaveOrRenameCategory(typ, name string, mid int) error {
 		}
 		return err
 	}
-	meta := model.Meta{Name: name, Type: typ}
+	meta := model.Meta{Name: name, Slug: name, Type: typ}
 	return s.db.Create(&meta).Error
 }
 

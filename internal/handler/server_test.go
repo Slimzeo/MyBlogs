@@ -49,7 +49,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		RateLimitRPS:         100_000,
 		RateLimitBurst:       200_000,
 		AdminUsername:        testUsername,
-		AdminEmail:           "test@example.invalid",
+		AdminEmail:           "test@example.com",
 		AdminInitialPassword: testPassword,
 	}
 	database, err := db.Open(runtimeConfig)
@@ -94,20 +94,43 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if value := homeResponse.Header.Get("Content-Security-Policy"); value == "" {
 		t.Fatal("home page is missing Content-Security-Policy")
 	}
+	staticResponse, err := http.Get(testServer.URL + "/user/css/fluid.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = staticResponse.Body.Close()
+	if value := staticResponse.Header.Get("Cache-Control"); value == "" {
+		t.Fatal("public static asset is missing Cache-Control")
+	}
 	for _, marker := range []string{
 		`href="/user/css/fluid.css"`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css`,
-		`class="fluid-theme fluid-font-wenkai"`,
+		`class="fluid-theme fluid-font-wenkai fluid-home-page"`,
 		`class="fluid-banner fluid-banner-home"`,
 		`background-image:url('/user/img/blog-banner.jpg')`,
+		`rel="preload" as="image"`,
+		`class="fluid-home-stage"`,
+		`id="study-map"`,
+		`学习地图`,
+		`id="home-audio"`,
+		`fluid-index-card-featured`,
 		`class="fluid-board fluid-index-board"`,
-		`class="fluid-index-card fluid-index-card-no-image"`,
 		`id="color-toggle"`,
 	} {
 		if !strings.Contains(string(homeHTML), marker) {
 			t.Fatalf("home page missing UI marker %q", marker)
 		}
+	}
+	if !strings.Contains(string(homeHTML), "fluid-index-card-no-image") {
+		t.Fatal("home page is missing image-less article card")
+	}
+	if strings.Contains(string(homeHTML), "highlight.js/9.9.0/styles/xcode.min.css") {
+		t.Fatal("home page should not load article highlight styles")
+	}
+	invalidLoginResponse := postLogin(t, testServer.URL, "wrong-user", "wrong-password")
+	if invalidLoginResponse.Msg != "用户名或密码错误" {
+		t.Fatalf("invalid login message = %q, want generic credential error", invalidLoginResponse.Msg)
 	}
 
 	articleUIResponse, err := http.Get(testServer.URL + "/article/welcome")
@@ -125,6 +148,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`class="fluid-post-layout"`,
 		`class="fluid-board fluid-post-board"`,
 		`id="article-toc"`,
+		`highlight.js/9.9.0/styles/xcode.min.css`,
 	} {
 		if !strings.Contains(string(articleHTML), marker) {
 			t.Fatalf("article page missing UI marker %q", marker)
@@ -173,6 +197,53 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 			t.Fatalf("admin page leaks credential text %q", leakedValue)
 		}
 	}
+	profileResult := postAdminForm(t, client, testServer.URL, "/admin/profile", "/admin/profile", url.Values{
+		"username":   {"renamed-admin"},
+		"screenName": {"Renamed Admin"},
+		"email":      {"renamed@example.com"},
+	})
+	if !profileResult.Success {
+		t.Fatalf("profile update failed: %s", profileResult.Msg)
+	}
+	renamedProfile, err := client.Get(testServer.URL + "/admin/profile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	renamedProfileBody, err := io.ReadAll(renamedProfile.Body)
+	_ = renamedProfile.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(renamedProfileBody), `value="renamed-admin"`) {
+		t.Fatal("profile update did not persist username")
+	}
+	categoryResult := postAdminForm(t, client, testServer.URL, "/admin/category/save", "/admin/category", url.Values{
+		"type":  {"category"},
+		"cname": {"integration-category"},
+	})
+	if !categoryResult.Success {
+		t.Fatalf("category create failed: %s", categoryResult.Msg)
+	}
+	tagResult := postAdminForm(t, client, testServer.URL, "/admin/category/save", "/admin/category", url.Values{
+		"type":  {"tag"},
+		"cname": {"integration-tag"},
+	})
+	if !tagResult.Success {
+		t.Fatalf("tag create failed: %s", tagResult.Msg)
+	}
+	categoryPage, err := client.Get(testServer.URL + "/admin/category")
+	if err != nil {
+		t.Fatal(err)
+	}
+	categoryPageBody, err := io.ReadAll(categoryPage.Body)
+	_ = categoryPage.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(categoryPageBody), "integration-category") ||
+		!strings.Contains(string(categoryPageBody), "integration-tag") {
+		t.Fatal("category/tag create did not persist")
+	}
 
 	content := &model.Content{
 		Title:        "Concurrent Article",
@@ -182,12 +253,27 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		Type:         model.TypeArticle,
 		Status:       model.TypePublish,
 		Categories:   "默认分类",
+		Tags:         "integration-tag",
 		AllowComment: true,
 		AllowPing:    true,
 		AllowFeed:    true,
 	}
 	if err := services.Publish(content); err != nil {
 		t.Fatal(err)
+	}
+	tagMeta := services.GetMeta(model.TypeTag, "integration-tag")
+	if tagMeta == nil {
+		t.Fatal("integration tag was not created")
+	}
+	if err := services.SaveOrRenameCategory(model.TypeTag, "integration-tag-renamed", tagMeta.Mid); err != nil {
+		t.Fatal(err)
+	}
+	var renamedArticle model.Content
+	if err := database.First(&renamedArticle, content.Cid).Error; err != nil {
+		t.Fatal(err)
+	}
+	if renamedArticle.Tags != "integration-tag-renamed" || renamedArticle.Categories != "默认分类" {
+		t.Fatalf("tag rename changed wrong fields: tags=%q categories=%q", renamedArticle.Tags, renamedArticle.Categories)
 	}
 	privateContent := &model.Content{
 		Title:        "Private Article",
@@ -437,6 +523,86 @@ func authenticatedClient(t *testing.T, baseURL, username, password string) *http
 		t.Fatalf("login failed: %s", result.Msg)
 	}
 	return client
+}
+
+func postAdminForm(t *testing.T, client *http.Client, baseURL, path, csrfPath string, values url.Values) handler.RestResponse {
+	t.Helper()
+	response, err := client.Get(baseURL + csrfPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := io.ReadAll(response.Body)
+	_ = response.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	match := csrfPattern.FindSubmatch(body)
+	if len(match) != 2 {
+		t.Fatalf("%s has no CSRF token", csrfPath)
+	}
+	values.Set("_csrf_token", string(match[1]))
+	request, err := http.NewRequest(http.MethodPost, baseURL+path, strings.NewReader(values.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("Referer", baseURL+path)
+	resultResponse, err := client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resultResponse.Body.Close()
+	var result handler.RestResponse
+	if err := json.NewDecoder(resultResponse.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	return result
+}
+
+func postLogin(t *testing.T, baseURL, username, password string) handler.RestResponse {
+	t.Helper()
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := &http.Client{Jar: jar, Timeout: 5 * time.Second}
+	response, err := client.Get(baseURL + "/admin/login")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := io.ReadAll(response.Body)
+	_ = response.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	match := csrfPattern.FindSubmatch(body)
+	if len(match) != 2 {
+		t.Fatal("login page has no CSRF token")
+	}
+	values := url.Values{
+		"username":    {username},
+		"password":    {password},
+		"_csrf_token": {string(match[1])},
+	}
+	request, err := http.NewRequest(
+		http.MethodPost,
+		baseURL+"/admin/login",
+		strings.NewReader(values.Encode()),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	loginResponse, err := client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer loginResponse.Body.Close()
+	var result handler.RestResponse
+	if err := json.NewDecoder(loginResponse.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	return result
 }
 
 func randomTestPassword(t *testing.T) string {

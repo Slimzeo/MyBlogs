@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -37,6 +38,7 @@ func (server *Server) adminDoLogin(context *gin.Context) {
 	user, err := server.service.Login(context.PostForm("username"), context.PostForm("password"))
 	if err != nil {
 		failures := server.service.Cache().Incr(failureKey, 10*60)
+		log.Printf("admin login failed username=%q client_ip=%s failures=%d", context.PostForm("username"), clientIP, failures)
 		if failures >= 3 {
 			respondFail(context, "您输入密码已经错误超过3次，请10分钟后尝试")
 			return
@@ -74,17 +76,19 @@ func (server *Server) adminProfile(context *gin.Context) {
 
 func (server *Server) adminSaveProfile(context *gin.Context) {
 	user := server.sessions.User(context)
+	username := strings.TrimSpace(context.PostForm("username"))
 	screenName := strings.TrimSpace(context.PostForm("screenName"))
 	email := strings.TrimSpace(context.PostForm("email"))
-	if screenName == "" || !util.IsEmail(email) {
-		respondFail(context, "请确认昵称和邮箱格式正确")
+	if username == "" || screenName == "" || !util.IsEmail(email) {
+		respondFail(context, "请确认用户名、昵称和邮箱格式正确")
 		return
 	}
-	update := &model.User{Uid: user.Uid, ScreenName: screenName, Email: email}
+	update := &model.User{Uid: user.Uid, Username: username, ScreenName: screenName, Email: email}
 	if err := server.service.UpdateUserByUID(update); err != nil {
-		respondFail(context, "保存个人信息失败")
+		respondServiceError(context, err, "保存个人信息失败")
 		return
 	}
+	user.Username = username
 	user.ScreenName = screenName
 	user.Email = email
 	server.sessions.Login(context, user, false)
@@ -351,8 +355,13 @@ func (server *Server) adminCategory(context *gin.Context) {
 
 func (server *Server) adminCategorySave(context *gin.Context) {
 	mid, _ := strconv.Atoi(context.PostForm("mid"))
-	if err := server.service.SaveOrRenameCategory(model.TypeCategory, strings.TrimSpace(context.PostForm("cname")), mid); err != nil {
-		respondServiceError(context, err, "分类保存失败")
+	metaType := strings.TrimSpace(context.PostForm("type"))
+	if metaType != model.TypeCategory && metaType != model.TypeTag {
+		respondFail(context, "项目类型不合法")
+		return
+	}
+	if err := server.service.SaveOrRenameCategory(metaType, strings.TrimSpace(context.PostForm("cname")), mid); err != nil {
+		respondServiceError(context, err, "分类或标签保存失败")
 		return
 	}
 	respondOK(context)

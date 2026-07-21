@@ -3,10 +3,13 @@
 <div class="card">
     <h3>个人资料</h3>
     <form id="profile-form">
+        <label>登录用户名</label>
+        <input type="text" name="username" value="{{.LoginUser.Username}}" maxlength="32" autocomplete="username"/>
         <label>显示名称</label>
         <input type="text" name="screenName" value="{{.LoginUser.ScreenName}}"/>
         <label>邮箱</label>
         <input type="email" name="email" value="{{.LoginUser.Email}}"/>
+        <p class="help-block">修改用户名后，下次登录需要使用新用户名。</p>
         <button type="submit" class="btn btn-primary">保存资料</button>
     </form>
 </div>

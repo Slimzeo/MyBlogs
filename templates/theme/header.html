@@ -10,6 +10,9 @@
     <meta name="description" content="{{if .Description}}{{.Description}}{{else}}{{siteOption "site_description" ""}}{{end}}"/>
     <link rel="shortcut icon" href="/user/img/favicon.png"/>
     <link rel="apple-touch-icon" href="/user/img/apple-touch-icon.png"/>
+    {{if not .Title}}
+    <link rel="preload" as="image" href="{{siteOption "theme_home_banner" "/user/img/blog-banner.jpg"}}" fetchpriority="high"/>
+    {{end}}
     <title>{{if .Title}}{{.Title}}{{else}}首页{{end}} - {{siteOption "site_title" "My Blog"}}</title>
     <script>
         (function () {
@@ -19,12 +22,20 @@
         })();
     </script>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
-    <link href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css" rel="stylesheet"/>
-    <link href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css" rel="stylesheet"/>
-    <link href="//cdn.bootcdn.net/ajax/libs/highlight.js/9.9.0/styles/xcode.min.css" rel="stylesheet"/>
+    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css" onload="this.onload=null;this.rel='stylesheet'"/>
+    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css" onload="this.onload=null;this.rel='stylesheet'"/>
+    <noscript>
+        <link href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css" rel="stylesheet"/>
+        <link href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css" rel="stylesheet"/>
+    </noscript>
+    {{if .IsPost}}
+    <link rel="preconnect" href="https://cdn.bootcdn.net" crossorigin/>
+    <link rel="preload" as="style" href="https://cdn.bootcdn.net/ajax/libs/highlight.js/9.9.0/styles/xcode.min.css" onload="this.onload=null;this.rel='stylesheet'"/>
+    <noscript><link href="https://cdn.bootcdn.net/ajax/libs/highlight.js/9.9.0/styles/xcode.min.css" rel="stylesheet"/></noscript>
+    {{end}}
     <link href="/user/css/fluid.css" rel="stylesheet"/>
 </head>
-<body class="fluid-theme fluid-font-{{siteOption "theme_font" "wenkai"}}">
+<body class="fluid-theme fluid-font-{{siteOption "theme_font" "wenkai"}}{{if not .Title}} fluid-home-page{{end}}">
 <div id="reading-progress" class="fluid-progress" aria-hidden="true"></div>
 <header class="fluid-header">
     <nav id="navbar" class="fluid-navbar" aria-label="主导航">
@@ -53,6 +64,51 @@
          class="fluid-banner {{if .IsPost}}fluid-banner-post{{else if .Title}}fluid-banner-page{{else}}fluid-banner-home{{end}}"
          style="background-image:url('{{if .IsPost}}{{siteOption "theme_post_banner" "/user/img/blog-banner.jpg"}}{{else if .Title}}{{siteOption "theme_page_banner" "/user/img/blog-banner.jpg"}}{{else}}{{siteOption "theme_home_banner" "/user/img/blog-banner.jpg"}}{{end}}')">
         <div class="fluid-banner-mask">
+            {{if not .Title}}
+            <div class="fluid-home-stage">
+                <section class="fluid-home-profile fluid-glass-card">
+                    <div class="fluid-home-avatar">
+                        <img src="/user/img/logo.png" alt="{{siteTitle}}" width="64" height="64" fetchpriority="high" decoding="async"/>
+                    </div>
+                    <span class="fluid-eyebrow">学习档案</span>
+                    <h1>{{siteTitle}}</h1>
+                    <p>把工程实践、学习过程和还没有答案的问题，整理成一张可回看的地图。</p>
+                    <div class="fluid-home-profile-line"></div>
+                    <div class="fluid-home-profile-meta">
+                        <span><strong>{{.Articles.Total}}</strong><small>篇文章</small></span>
+                        <span><strong>{{len .Categories}}</strong><small>个主题</small></span>
+                    </div>
+                </section>
+                <div class="fluid-home-hero">
+                    <div class="fluid-home-kicker">工程 · 学习 · 回看</div>
+                    <div class="fluid-banner-title">边学边写，留下可复用的路径。</div>
+                    <p>从一个问题出发，沿着主题、文章和归档继续走。</p>
+                    <a class="fluid-home-hero-link" href="#study-map">进入学习地图 <span>↓</span></a>
+                </div>
+                <aside class="fluid-home-widgets">
+                    <section class="fluid-home-widget fluid-glass-card">
+                        <span class="fluid-widget-label">此刻</span>
+                        <strong id="home-clock">--:--</strong>
+                        <small id="home-date">正在读取时间</small>
+                    </section>
+                    <section class="fluid-home-widget fluid-glass-card fluid-music-widget"
+                             data-music-url="{{siteOption "theme_music_url" ""}}">
+                        <span class="fluid-widget-label">一首歌</span>
+                        <div class="fluid-music-row">
+                            <button id="music-toggle" type="button" aria-label="播放音乐" disabled>
+                                <span class="music-play-icon">▶</span>
+                            </button>
+                            <div>
+                                <strong>{{siteOption "theme_music_title" "留一首歌给今天"}}</strong>
+                                <small id="music-status">未配置音乐</small>
+                            </div>
+                        </div>
+                        <div class="fluid-music-progress"><span id="music-progress"></span></div>
+                        <audio id="home-audio" preload="none"></audio>
+                    </section>
+                </aside>
+            </div>
+            {{else}}
             <div class="fluid-banner-text">
                 {{if .Article}}
                 <div class="fluid-banner-title">{{.Article.Title}}</div>
@@ -71,6 +127,7 @@
                 <div class="fluid-banner-title">{{siteOption "theme_slogan" "山水有相逢"}}</div>
                 {{end}}
             </div>
+            {{end}}
             <button id="scroll-down" class="fluid-scroll-down" type="button" aria-label="向下滚动">
                 <span></span>
             </button>
