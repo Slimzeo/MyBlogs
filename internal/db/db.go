@@ -134,9 +134,9 @@ func seed(gdb *gorm.DB, cfg *config.Config) error {
 			{Name: "site_theme", Value: "default"},
 			{Name: "site_url", Value: ""},
 			{Name: "theme_slogan", Value: "山水有相逢"},
-			{Name: "theme_home_banner", Value: "/user/img/blog-banner.jpg"},
-			{Name: "theme_post_banner", Value: "/user/img/blog-banner.jpg"},
-			{Name: "theme_page_banner", Value: "/user/img/blog-banner.jpg"},
+			{Name: "theme_home_banner", Value: "/user/img/forest.jpg"},
+			{Name: "theme_post_banner", Value: "/user/img/forest.jpg"},
+			{Name: "theme_page_banner", Value: "/user/img/forest.jpg"},
 			{Name: "theme_font", Value: "wenkai"},
 			{Name: "theme_music_url", Value: ""},
 			{Name: "theme_music_title", Value: "留一首歌给今天"},
@@ -149,6 +149,9 @@ func seed(gdb *gorm.DB, cfg *config.Config) error {
 		if err := gdb.Create(&opts).Error; err != nil {
 			return err
 		}
+	}
+	if err := migrateThemeBanners(gdb); err != nil {
+		return err
 	}
 
 	var contentCount int64
@@ -177,7 +180,7 @@ func seed(gdb *gorm.DB, cfg *config.Config) error {
 			Slug:         "about",
 			Created:      now,
 			Modified:     now,
-			Content:      "## 关于本站\n\n这是由 Java Spring Boot 博客迁移而来的 Go 版本，使用 Gin + GORM 构建，支持高并发访问。",
+			Content:      aboutMarkdown,
 			AuthorID:     1,
 			Type:         model.TypePage,
 			Status:       model.TypePublish,
@@ -195,8 +198,41 @@ func seed(gdb *gorm.DB, cfg *config.Config) error {
 		seedMetas(gdb, welcome.Cid, "Go,Blog", model.TypeTag)
 		seedMetas(gdb, welcome.Cid, "默认分类", model.TypeCategory)
 	}
+	if err := migrateAboutPage(gdb); err != nil {
+		return err
+	}
 
 	return nil
+}
+
+func migrateThemeBanners(gdb *gorm.DB) error {
+	return gdb.Model(&model.Option{}).
+		Where(
+			"name IN ? AND (value = ? OR value = '')",
+			[]string{"theme_home_banner", "theme_post_banner", "theme_page_banner"},
+			"/user/img/blog-banner.jpg",
+		).
+		Update("value", "/user/img/forest.jpg").Error
+}
+
+func migrateAboutPage(gdb *gorm.DB) error {
+	var about model.Content
+	err := gdb.Where("slug = ? AND type = ?", "about", model.TypePage).First(&about).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil
+		}
+		return err
+	}
+	if strings.TrimSpace(about.Content) != strings.TrimSpace(legacyAboutMarkdown) {
+		return nil
+	}
+	return gdb.Model(&model.Content{}).
+		Where("cid = ?", about.Cid).
+		Updates(map[string]interface{}{
+			"content":  aboutMarkdown,
+			"modified": int(time.Now().Unix()),
+		}).Error
 }
 
 func seedMetas(gdb *gorm.DB, cid int, names, typ string) {
@@ -220,6 +256,20 @@ const welcomeMarkdown = `## 欢迎 👋
 + 可切换 MySQL：设置 ` + "`BLOG_DB_DRIVER=mysql`" + ` 即可复用原 tale 数据库
 
 `
+
+const legacyAboutMarkdown = "## 关于本站\n\n这是由 Java Spring Boot 博客迁移而来的 Go 版本，使用 Gin + GORM 构建，支持高并发访问。"
+
+const aboutMarkdown = `Hi, 这里是Hypnos
+
+一个低能量,低精力的鼠鼠
+
+目前在某宇宙厂实习
+
+喜欢音乐,少女乐队番拥护者
+
+在吉他,钢琴层面是横着的凶
+
+目前在艰难向AI Infra和LLM相关知识蠕动`
 
 func splitComma(s string) []string {
 	var out []string

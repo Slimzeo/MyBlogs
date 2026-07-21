@@ -11,7 +11,7 @@
     <link rel="shortcut icon" href="/user/img/favicon.png"/>
     <link rel="apple-touch-icon" href="/user/img/apple-touch-icon.png"/>
     {{if not .Title}}
-    <link rel="preload" as="image" href="{{siteOption "theme_home_banner" "/user/img/blog-banner.jpg"}}" fetchpriority="high"/>
+    <link rel="preload" as="image" href="{{siteOption "theme_home_banner" "/user/img/forest.jpg"}}" fetchpriority="high"/>
     {{end}}
     <title>{{if .Title}}{{.Title}}{{else}}首页{{end}} - {{siteOption "site_title" "My Blog"}}</title>
     <script>
@@ -63,7 +63,7 @@
 
     <div id="banner"
          class="fluid-banner {{if .IsPost}}fluid-banner-post{{else if .Title}}fluid-banner-page{{else}}fluid-banner-home{{end}}"
-         style="background-image:url('{{if .IsPost}}{{siteOption "theme_post_banner" "/user/img/blog-banner.jpg"}}{{else if .Title}}{{siteOption "theme_page_banner" "/user/img/blog-banner.jpg"}}{{else}}{{siteOption "theme_home_banner" "/user/img/blog-banner.jpg"}}{{end}}')">
+         style="background-image:url('{{if .IsPost}}{{siteOption "theme_post_banner" "/user/img/forest.jpg"}}{{else if .Title}}{{siteOption "theme_page_banner" "/user/img/forest.jpg"}}{{else}}{{siteOption "theme_home_banner" "/user/img/forest.jpg"}}{{end}}')">
         <div class="fluid-banner-mask">
             <div class="fluid-banner-text">
                 {{if .Article}}
@@ -80,9 +80,13 @@
                 {{else if .Title}}
                 <div class="fluid-banner-title">{{if .Keyword}}{{.Type}} · {{.Keyword}}{{else}}{{.Title}}{{end}}</div>
                 {{else}}
-                <div class="fluid-banner-title">{{siteOption "theme_slogan" "山水有相逢"}}</div>
+                <div class="fluid-banner-title fluid-home-quote">
+                    如果这个<strong><em>宇宙</em></strong>的结局 是注定的，是<strong><em>消亡，是归于死寂</em></strong>；<br/>
+                    或许这更说明，只有<strong><em>过程</em></strong>才是最重要的
+                </div>
                 {{end}}
             </div>
+            <canvas id="leaf-canvas" class="fluid-leaf-canvas" aria-hidden="true"></canvas>
             <button id="scroll-down" class="fluid-scroll-down" type="button" aria-label="向下滚动">
                 <span></span>
             </button>
