@@ -128,7 +128,7 @@ func seed(gdb *gorm.DB, cfg *config.Config) error {
 	}
 	if optCount == 0 {
 		opts := []model.Option{
-			{Name: "site_title", Value: "My Blog"},
+			{Name: "site_title", Value: "HypN0s-Cloud"},
 			{Name: "site_keywords", Value: "Blog"},
 			{Name: "site_description", Value: "Go + Gin + GORM 搭建的高并发博客系统"},
 			{Name: "site_theme", Value: "default"},
@@ -151,6 +151,9 @@ func seed(gdb *gorm.DB, cfg *config.Config) error {
 		}
 	}
 	if err := migrateThemeBanners(gdb); err != nil {
+		return err
+	}
+	if err := migrateSiteTitle(gdb); err != nil {
 		return err
 	}
 
@@ -213,6 +216,12 @@ func migrateThemeBanners(gdb *gorm.DB) error {
 			"/user/img/blog-banner.jpg",
 		).
 		Update("value", "/user/img/forest.jpg").Error
+}
+
+func migrateSiteTitle(gdb *gorm.DB) error {
+	return gdb.Model(&model.Option{}).
+		Where("name = ? AND (value = ? OR value = '')", "site_title", "My Blog").
+		Update("value", "HypN0s-Cloud").Error
 }
 
 func migrateAboutPage(gdb *gorm.DB) error {

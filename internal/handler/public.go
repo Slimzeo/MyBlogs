@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 
 	"myblog/internal/middleware"
 	"myblog/internal/model"
+	"myblog/internal/notes"
 	"myblog/internal/service"
 	"myblog/internal/util"
 
@@ -200,6 +202,43 @@ func (server *Server) topics(context *gin.Context) {
 	data.Tags = server.service.GetPublishedMetaList(model.TypeTag, 100)
 	data.TopicGroups = server.service.GetPublishedTopicGroups(100, 20)
 	server.render(context, http.StatusOK, "topics", data)
+}
+
+func (server *Server) notesPage(context *gin.Context) {
+	path := strings.TrimPrefix(context.Param("path"), "/")
+	data := server.baseData(context, "Notes", "")
+	data.NotesPath = path
+	data.NotesTree, _ = server.notes.Tree()
+
+	if path != "" {
+		document, documentErr := server.notes.Document(path)
+		if documentErr == nil {
+			data.NotesDocument = document
+			data.Title = document.Title
+			server.render(context, http.StatusOK, "notes", data)
+			return
+		}
+	}
+
+	folder, folderErr := server.notes.Folder(path)
+	if folderErr != nil {
+		if errors.Is(folderErr, notes.ErrNotFound) {
+			server.render(context, http.StatusNotFound, "error_404", PageData{})
+			return
+		}
+		server.render(context, http.StatusInternalServerError, "error_500", PageData{Message: "读取 Notes 目录失败"})
+		return
+	}
+	data.NotesFolder = folder
+	data.NotesIsFolder = true
+	readmePath := "README"
+	if path != "" {
+		readmePath = path + "/README"
+	}
+	if readme, readmeErr := server.notes.Document(readmePath); readmeErr == nil {
+		data.NotesDocument = readme
+	}
+	server.render(context, http.StatusOK, "notes", data)
 }
 
 func (server *Server) archives(context *gin.Context) {

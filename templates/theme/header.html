@@ -13,7 +13,7 @@
     {{if not .Title}}
     <link rel="preload" as="image" href="{{siteOption "theme_home_banner" "/user/img/forest.jpg"}}" fetchpriority="high"/>
     {{end}}
-    <title>{{if .Title}}{{.Title}}{{else}}首页{{end}} - {{siteOption "site_title" "My Blog"}}</title>
+    <title>{{if .Title}}{{.Title}}{{else}}首页{{end}} - {{siteOption "site_title" "HypN0s-Cloud"}}</title>
     <script>
         (function () {
             var saved = localStorage.getItem('fluid-color-scheme');
@@ -45,8 +45,8 @@
                 <span></span><span></span><span></span>
             </button>
             <div id="navbar-menu" class="fluid-navbar-menu">
-                <a href="{{siteUrl ""}}/">首页</a>
-                <a href="{{siteUrl "/topics"}}">学习目录</a>
+                <a href="{{siteUrl ""}}/">Blogs</a>
+                <a href="{{siteUrl "/notes"}}">Notes</a>
                 <a href="{{siteUrl "/archives"}}">归档</a>
                 <a href="{{siteUrl "/links"}}">友链</a>
                 <a href="{{siteUrl "/about"}}">关于</a>
@@ -81,8 +81,9 @@
                 <div class="fluid-banner-title">{{if .Keyword}}{{.Type}} · {{.Keyword}}{{else}}{{.Title}}{{end}}</div>
                 {{else}}
                 <div class="fluid-banner-title fluid-home-quote">
-                    如果这个<strong><em>宇宙</em></strong>的结局 是注定的，是<strong><em>消亡，是归于死寂</em></strong>；<br/>
-                    或许这更说明，只有<strong><em>过程</em></strong>才是最重要的
+                    如果这个<strong><em>宇宙</em></strong>的结局 是注定的，<br/>
+                    是<strong><em>消亡，是归于死寂</em></strong>；<br/>
+                    或许这更说明，只有<strong><em>过程</em></strong>才是<strong><em>最重要的</em></strong>
                 </div>
                 {{end}}
             </div>
