@@ -8,12 +8,18 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
 )
 
 // md is configured once. GFM + unsafe HTML passthrough (the original commonmark
 // renderer allowed raw HTML); we sanitize the output separately for safety.
 var md = goldmark.New(
+	goldmark.WithParser(parser.NewParser(
+		parser.WithBlockParsers(parser.DefaultBlockParsers()[1:]...),
+		parser.WithInlineParsers(parser.DefaultInlineParsers()...),
+		parser.WithParagraphTransformers(parser.DefaultParagraphTransformers()...),
+	)),
 	goldmark.WithExtensions(extension.GFM),
 	goldmark.WithRendererOptions(html.WithUnsafe()),
 )

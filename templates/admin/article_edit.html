@@ -1,7 +1,6 @@
 {{define "admin/article_edit"}}
 {{template "admin/header" .}}
 {{$c := .Contents}}
-<link href="/assets/admin/plugins/md/css/style.css" rel="stylesheet"/>
 <style>
     .article-editor-card{padding:28px}
     .article-editor-heading{display:flex;margin-bottom:20px;align-items:baseline;justify-content:space-between;gap:16px}
@@ -35,6 +34,9 @@
     .article-editor-textarea.is-dragging{background:#eff5ff;box-shadow:inset 0 0 0 2px var(--admin-primary)}
     .article-editor-preview{min-height:480px;padding:18px 22px;overflow:auto;color:#263248;font-size:14px;line-height:1.8}
     .article-editor-preview:empty:before{color:#a0aec0;content:"右侧会实时显示文章预览"}
+    .article-editor-preview p{margin:0 0 16px}
+    .article-editor-preview ul,.article-editor-preview ol{margin:0 0 16px;padding-left:24px}
+    .article-editor-preview h1,.article-editor-preview h2,.article-editor-preview h3,.article-editor-preview h4{margin:0 0 16px}
     .article-editor-preview img{max-width:100%;height:auto;border-radius:8px}
     .article-editor-preview pre{padding:14px;overflow:auto;border-radius:7px;background:#f3f5f8}
     .article-editor-preview code{padding:2px 4px;border-radius:4px;background:#f3f5f8}
@@ -132,8 +134,6 @@
         </div>
     </form>
 </div>
-<script src="/assets/admin/plugins/md/js/pagedown.js"></script>
-<script src="/assets/admin/plugins/md/js/pagedown-extra.js"></script>
 <script>
     (function () {
         var form = document.getElementById('article-form');
@@ -148,14 +148,36 @@
         var archiveFile = document.getElementById('archive-file');
         var archiveFileName = document.getElementById('archive-file-name');
         var csrf = document.querySelector('meta[name=csrf-token]').getAttribute('content');
-        var converter = new Markdown.Converter();
-        if (window.Markdown && Markdown.Extra) Markdown.Extra.init(converter, {
-            extensions: ['tables', 'fenced_code_gfm', 'def_list', 'attr_list', 'footnotes']
-        });
+        var previewTimer;
+        var previewRequest = 0;
 
         function renderPreview() {
-            preview.innerHTML = converter.makeHtml(textarea.value || '');
-            previewStatus.textContent = '已更新';
+            var requestID = ++previewRequest;
+            clearTimeout(previewTimer);
+            previewStatus.textContent = '预览中…';
+            previewTimer = setTimeout(function () {
+                fetch('/admin/article/preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                        'X-CSRF-Token': csrf
+                    },
+                    body: new URLSearchParams({content: textarea.value || ''})
+                }).then(function (response) {
+                    return response.json();
+                }).then(function (result) {
+                    if (requestID !== previewRequest) return;
+                    if (!result.success || !result.payload) {
+                        throw new Error(result.msg || '预览失败');
+                    }
+                    preview.innerHTML = result.payload.html || '';
+                    previewStatus.textContent = '已更新';
+                }).catch(function (error) {
+                    if (requestID === previewRequest) {
+                        previewStatus.textContent = error.message || '预览失败';
+                    }
+                });
+            }, 120);
         }
 
         function insertText(before, after, placeholder) {

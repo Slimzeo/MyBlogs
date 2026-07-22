@@ -180,6 +180,10 @@ func (server *Server) adminArticleModify(context *gin.Context) {
 	respondOK(context)
 }
 
+func (server *Server) adminArticlePreview(context *gin.Context) {
+	respondOK(context, gin.H{"html": util.Article(context.PostForm("content"))})
+}
+
 func (server *Server) adminArticleDelete(context *gin.Context) {
 	cid, err := strconv.Atoi(context.PostForm("cid"))
 	if err != nil {
