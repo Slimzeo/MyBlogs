@@ -445,7 +445,7 @@
         }
 
         window.FluidPage = {navigate: navigate, prefetch: prefetch};
-        mountPage();
+        window.addEventListener('load', mountPage, {once: true});
     })();
 </script>
 </body>

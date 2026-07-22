@@ -62,8 +62,11 @@
     </nav>
 
     <div id="banner"
-         class="fluid-banner {{if .IsPost}}fluid-banner-post{{else if .Title}}fluid-banner-page{{else}}fluid-banner-home{{end}}"
-         style="background-image:url('{{if .IsPost}}{{siteOption "theme_post_banner" "/user/img/forest.jpg"}}{{else if .Title}}{{siteOption "theme_page_banner" "/user/img/forest.jpg"}}{{else}}{{siteOption "theme_home_banner" "/user/img/forest.jpg"}}{{end}}')">
+         class="fluid-banner {{if .IsPost}}fluid-banner-post{{else if .Title}}fluid-banner-page{{else}}fluid-banner-home{{end}}">
+        <img class="fluid-banner-image{{if not .Title}} fluid-banner-image-priority{{end}}"
+             src="{{if .IsPost}}{{siteOption "theme_post_banner" "/user/img/forest.jpg"}}{{else if .Title}}{{siteOption "theme_page_banner" "/user/img/forest.jpg"}}{{else}}{{siteOption "theme_home_banner" "/user/img/forest.jpg"}}{{end}}"
+             alt="" decoding="async"{{if not .Title}} fetchpriority="high"{{end}}
+             onload="this.classList.add('is-loaded')"/>
         <div class="fluid-banner-mask">
             <div class="fluid-banner-text">
                 {{if .Article}}
