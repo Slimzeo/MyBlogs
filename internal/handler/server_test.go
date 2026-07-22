@@ -287,6 +287,27 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 			t.Fatalf("admin page leaks credential text %q", leakedValue)
 		}
 	}
+	articleEditorResponse, err := client.Get(testServer.URL + "/admin/article/publish")
+	if err != nil {
+		t.Fatal(err)
+	}
+	articleEditorHTML, err := io.ReadAll(articleEditorResponse.Body)
+	_ = articleEditorResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, marker := range []string{
+		`class="article-editor-grid"`,
+		`id="article-preview"`,
+		`id="markdown-toolbar"`,
+		`/admin/article/image`,
+		`clipboardData`,
+		`data-action="image"`,
+	} {
+		if !strings.Contains(string(articleEditorHTML), marker) {
+			t.Fatalf("article editor missing marker %q", marker)
+		}
+	}
 	profileResult := postAdminForm(t, client, testServer.URL, "/admin/profile", "/admin/profile", url.Values{
 		"username":   {"renamed-admin"},
 		"screenName": {"Renamed Admin"},

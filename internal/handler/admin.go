@@ -194,6 +194,45 @@ func (server *Server) adminArticleDelete(context *gin.Context) {
 	respondOK(context)
 }
 
+func (server *Server) adminArticleImageUpload(context *gin.Context) {
+	if err := context.Request.ParseMultipartForm(int64(model.MaxFileSize) + (1 << 20)); err != nil {
+		respondFail(context, "图片上传失败")
+		return
+	}
+	header := firstMultipartFile(context, "file")
+	if header == nil {
+		respondFail(context, "请选择一张图片")
+		return
+	}
+	if header.Size > model.MaxFileSize {
+		respondFail(context, "图片不能超过1MB")
+		return
+	}
+	fkey, fileType, err := server.saveUploadedFile(header)
+	if err != nil || fileType != model.TypeImage {
+		respondFail(context, "只支持 JPG、PNG、GIF、WEBP 或 BMP 图片")
+		return
+	}
+	user := server.sessions.User(context)
+	if err := server.service.SaveAttach(filepath.Base(header.Filename), fkey, fileType, user.Uid); err != nil {
+		_ = os.Remove(filepath.Join(server.config.UploadDir, strings.TrimPrefix(fkey, "/upload/")))
+		respondFail(context, "图片记录保存失败")
+		return
+	}
+	respondOK(context, gin.H{"url": fkey})
+}
+
+func firstMultipartFile(context *gin.Context, field string) *multipart.FileHeader {
+	if context.Request.MultipartForm == nil {
+		return nil
+	}
+	headers := context.Request.MultipartForm.File[field]
+	if len(headers) == 0 {
+		return nil
+	}
+	return headers[0]
+}
+
 func (server *Server) articleFromForm(context *gin.Context) *model.Content {
 	return &model.Content{
 		Title:        strings.TrimSpace(context.PostForm("title")),

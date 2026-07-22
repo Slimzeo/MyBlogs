@@ -1,14 +1,69 @@
 {{define "admin/article_edit"}}
 {{template "admin/header" .}}
 {{$c := .Contents}}
-<div class="card">
-    <h3>{{if $c}}编辑文章{{else}}发表文章{{end}}</h3>
+<link href="/assets/admin/plugins/md/css/style.css" rel="stylesheet"/>
+<style>
+    .article-editor-card{padding:28px}
+    .article-editor-heading{display:flex;margin-bottom:20px;align-items:baseline;justify-content:space-between;gap:16px}
+    .article-editor-heading h3{margin:0}
+    .article-editor-status{color:var(--admin-muted);font-size:12px}
+    .article-editor-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+    .article-editor-pane{min-width:0;border:1px solid var(--admin-line);border-radius:10px;overflow:hidden;background:#fff}
+    .article-editor-pane-heading{display:flex;height:42px;padding:0 13px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--admin-line);background:#f8fafc;color:var(--admin-muted);font-size:12px}
+    .article-editor-toolbar{display:flex;flex-wrap:wrap;gap:4px}
+    .article-editor-toolbar button{min-width:30px;height:28px;padding:0 7px;border:1px solid transparent;border-radius:5px;color:var(--admin-muted);background:transparent;cursor:pointer;font-size:12px}
+    .article-editor-toolbar button:hover{border-color:var(--admin-line);color:var(--admin-primary);background:#fff}
+    .article-editor-textarea{display:block;width:100%;min-height:480px;margin:0;padding:18px;border:0;outline:0;resize:vertical;color:#263248;background:#fff;font:14px/1.8 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .article-editor-textarea.is-dragging{background:#eff5ff;box-shadow:inset 0 0 0 2px var(--admin-primary)}
+    .article-editor-preview{min-height:480px;padding:18px 22px;overflow:auto;color:#263248;font-size:14px;line-height:1.8}
+    .article-editor-preview:empty:before{color:#a0aec0;content:"右侧会实时显示文章预览"}
+    .article-editor-preview img{max-width:100%;height:auto;border-radius:8px}
+    .article-editor-preview pre{padding:14px;overflow:auto;border-radius:7px;background:#f3f5f8}
+    .article-editor-preview code{padding:2px 4px;border-radius:4px;background:#f3f5f8}
+    .article-editor-preview blockquote{margin:16px 0;padding:8px 14px;border-left:3px solid var(--admin-primary);color:#718096;background:#f7f9fc}
+    .article-editor-help{margin:10px 0 0;color:var(--admin-muted);font-size:12px}
+    .article-editor-fields{display:grid;margin-top:20px;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px}
+    .article-editor-fields label:first-child,.article-editor-fields textarea,.article-editor-fields .help-block{grid-column:1/-1}
+    .article-editor-actions{display:flex;margin-top:18px;align-items:center;gap:8px}
+    @media (max-width:900px){.article-editor-card{padding:18px}.article-editor-grid{grid-template-columns:1fr}.article-editor-preview{min-height:260px}.article-editor-textarea{min-height:360px}}
+    @media (max-width:560px){.article-editor-fields{display:block}.article-editor-heading{display:block}.article-editor-status{display:block;margin-top:6px}}
+</style>
+<div class="card article-editor-card">
+    <div class="article-editor-heading">
+        <h3>{{if $c}}编辑文章{{else}}发表文章{{end}}</h3>
+        <span class="article-editor-status" id="editor-status">支持 Markdown、粘贴图片和拖拽图片</span>
+    </div>
     <form id="article-form">
         {{if $c}}<input type="hidden" name="cid" value="{{$c.Cid}}"/>{{end}}
         <label>标题</label>
         <input type="text" name="title" value="{{if $c}}{{$c.Title}}{{end}}" placeholder="文章标题"/>
         <label>内容 (Markdown)</label>
-        <textarea name="content" rows="18" placeholder="支持 Markdown">{{if $c}}{{$c.Content}}{{end}}</textarea>
+        <div class="article-editor-grid">
+            <section class="article-editor-pane">
+                <div class="article-editor-pane-heading">
+                    <span>撰写</span>
+                    <div class="article-editor-toolbar" id="markdown-toolbar">
+                        <button type="button" data-action="bold" title="加粗">B</button>
+                        <button type="button" data-action="italic" title="斜体"><em>I</em></button>
+                        <button type="button" data-action="heading" title="标题">H</button>
+                        <button type="button" data-action="quote" title="引用">❝</button>
+                        <button type="button" data-action="code" title="代码">&lt;/&gt;</button>
+                        <button type="button" data-action="ul" title="无序列表">•</button>
+                        <button type="button" data-action="ol" title="有序列表">1.</button>
+                        <button type="button" data-action="link" title="链接">↗</button>
+                        <button type="button" data-action="image" title="插入图片">▧</button>
+                    </div>
+                </div>
+                <textarea id="article-content" class="article-editor-textarea" name="content" placeholder="从这里开始写 Markdown…">{{if $c}}{{$c.Content}}{{end}}</textarea>
+            </section>
+            <section class="article-editor-pane">
+                <div class="article-editor-pane-heading"><span>预览</span><span id="preview-status">实时预览</span></div>
+                <div id="article-preview" class="article-editor-preview"></div>
+            </section>
+        </div>
+        <p class="article-editor-help">可以直接把截图或图片粘贴到左侧，也可以拖进左侧编辑区；上传完成后会自动插入图片 Markdown。</p>
+        <input id="image-file-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp" hidden/>
+        <div class="article-editor-fields">
         <label>标签 (逗号分隔)</label>
         <input type="text" name="tags" value="{{if $c}}{{$c.Tags}}{{end}}" placeholder="Go,Blog"/>
         <label>分类 (逗号分隔)</label>
@@ -22,19 +77,135 @@
             <option value="private" {{if and $c (eq $c.Status "private")}}selected{{end}}>私密（仅登录管理员可见）</option>
         </select>
         <p class="help-block">私密文章不会出现在首页、搜索、归档、分类或标签列表；只有登录后台的管理员能通过文章地址查看。</p>
+        </div>
+        <div class="article-editor-actions">
         <button type="submit" class="btn btn-primary">保存</button>
         <a href="/admin/article" class="btn btn-default">返回</a>
+        </div>
     </form>
 </div>
+<script src="/assets/admin/plugins/md/js/pagedown.js"></script>
+<script src="/assets/admin/plugins/md/js/pagedown-extra.js"></script>
 <script>
-    var isEdit = {{if $c}}true{{else}}false{{end}};
-    $('#article-form').submit(function(e){
-        e.preventDefault();
-        var url = isEdit ? '/admin/article/modify' : '/admin/article/publish';
-        $.post(url, $(this).serialize(), function(r){
-            if(r.success){ location.href='/admin/article'; } else { alert(r.msg||'保存失败'); }
+    (function () {
+        var form = document.getElementById('article-form');
+        var textarea = document.getElementById('article-content');
+        var preview = document.getElementById('article-preview');
+        var status = document.getElementById('editor-status');
+        var previewStatus = document.getElementById('preview-status');
+        var fileInput = document.getElementById('image-file-input');
+        var csrf = document.querySelector('meta[name=csrf-token]').getAttribute('content');
+        var converter = new Markdown.Converter();
+        if (window.Markdown && Markdown.Extra) Markdown.Extra.init(converter, {
+            extensions: ['tables', 'fenced_code_gfm', 'def_list', 'attr_list', 'footnotes']
         });
-    });
+
+        function renderPreview() {
+            preview.innerHTML = converter.makeHtml(textarea.value || '');
+            previewStatus.textContent = '已更新';
+        }
+
+        function insertText(before, after, placeholder) {
+            var start = textarea.selectionStart;
+            var end = textarea.selectionEnd;
+            var selected = textarea.value.slice(start, end) || placeholder;
+            textarea.setRangeText(before + selected + after, start, end, 'end');
+            textarea.focus();
+            renderPreview();
+        }
+
+        function insertImage(url) {
+            insertText('![', '](' + url + ')', '图片说明');
+        }
+
+        function uploadImage(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                status.textContent = '请选择图片文件';
+                return;
+            }
+            if (file.size > 1024 * 1024) {
+                status.textContent = '图片不能超过 1MB';
+                return;
+            }
+            var data = new FormData();
+            data.append('file', file, file.name || 'pasted-image.png');
+            status.textContent = '正在上传图片…';
+            fetch('/admin/article/image', {
+                method: 'POST',
+                headers: {'X-CSRF-Token': csrf},
+                body: data
+            }).then(function (response) {
+                return response.json();
+            }).then(function (result) {
+                if (!result.success || !result.payload || !result.payload.url) {
+                    throw new Error(result.msg || '图片上传失败');
+                }
+                insertImage(result.payload.url);
+                status.textContent = '图片已插入';
+            }).catch(function (error) {
+                status.textContent = error.message || '图片上传失败';
+            });
+        }
+
+        document.querySelectorAll('#markdown-toolbar button').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var action = button.dataset.action;
+                if (action === 'bold') insertText('**', '**', '加粗文字');
+                if (action === 'italic') insertText('*', '*', '斜体文字');
+                if (action === 'heading') insertText('## ', '', '标题');
+                if (action === 'quote') insertText('> ', '', '引用文字');
+                if (action === 'code') insertText('`', '`', '代码');
+                if (action === 'ul') insertText('- ', '', '列表项目');
+                if (action === 'ol') insertText('1. ', '', '列表项目');
+                if (action === 'link') insertText('[', '](https://)', '链接文字');
+                if (action === 'image') fileInput.click();
+            });
+        });
+        textarea.addEventListener('input', renderPreview);
+        textarea.addEventListener('paste', function (event) {
+            var items = event.clipboardData && event.clipboardData.items;
+            if (!items) return;
+            for (var index = 0; index < items.length; index++) {
+                if (items[index].type.startsWith('image/')) {
+                    event.preventDefault();
+                    uploadImage(items[index].getAsFile());
+                    return;
+                }
+            }
+        });
+        textarea.addEventListener('dragover', function (event) {
+            event.preventDefault();
+            textarea.classList.add('is-dragging');
+        });
+        textarea.addEventListener('dragleave', function () {
+            textarea.classList.remove('is-dragging');
+        });
+        textarea.addEventListener('drop', function (event) {
+            event.preventDefault();
+            textarea.classList.remove('is-dragging');
+            if (event.dataTransfer.files.length) uploadImage(event.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', function () {
+            if (fileInput.files.length) uploadImage(fileInput.files[0]);
+            fileInput.value = '';
+        });
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            var url = {{if $c}}'/admin/article/modify'{{else}}'/admin/article/publish'{{end}};
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    'X-CSRF-Token': csrf
+                },
+                body: new URLSearchParams(new FormData(form))
+            }).then(function (response) { return response.json(); }).then(function (result) {
+                if (result.success) location.href = '/admin/article';
+                else status.textContent = result.msg || '保存失败';
+            }).catch(function () { status.textContent = '网络异常，请稍后再试'; });
+        });
+        renderPreview();
+    })();
 </script>
 {{template "admin/footer" .}}
 {{end}}
