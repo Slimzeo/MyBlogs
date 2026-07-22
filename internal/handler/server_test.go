@@ -2,10 +2,12 @@ package handler_test
 
 import (
 	"archive/zip"
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -358,6 +360,94 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		t.Fatal("category/tag create did not persist")
 	}
 
+	var contentsBeforeImport int64
+	var attachsBeforeImport int64
+	if err := database.Model(&model.Content{}).Count(&contentsBeforeImport).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := database.Model(&model.Attach{}).Count(&attachsBeforeImport).Error; err != nil {
+		t.Fatal(err)
+	}
+	uploadFilesBeforeImport := countFiles(t, runtimeConfig.UploadDir)
+	invalidArchives := []struct {
+		name string
+		data []byte
+	}{
+		{name: "broken.zip", data: []byte("not a zip archive")},
+		{
+			name: "multiple-markdown.zip",
+			data: buildTestImportArchive(t, map[string]string{
+				"first.md":  "# first",
+				"second.md": "# second",
+			}),
+		},
+		{
+			name: "unsafe-path.zip",
+			data: buildTestImportArchive(t, map[string]string{
+				"../escape.md": "# escape",
+			}),
+		},
+	}
+	for _, invalidArchive := range invalidArchives {
+		result := postAdminMultipart(t, client, testServer.URL, "/admin/article/import", "/admin/article", "archive", invalidArchive.name, invalidArchive.data)
+		if result.Success {
+			t.Fatalf("invalid archive %s unexpectedly succeeded", invalidArchive.name)
+		}
+	}
+	invalidImportArchive := buildTestImportArchive(t, map[string]string{
+		"invalid.md":         "![截图](assets/diagram.png)",
+		"assets/diagram.png": string([]byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a}),
+		"assets/unsafe.exe":  "not an allowed attachment",
+	})
+	invalidImportResponse := postAdminMultipart(t, client, testServer.URL, "/admin/article/import", "/admin/article", "archive", "invalid.zip", invalidImportArchive)
+	if invalidImportResponse.Success {
+		t.Fatal("invalid archive import unexpectedly succeeded")
+	}
+	var contentsAfterInvalidImport int64
+	var attachsAfterInvalidImport int64
+	if err := database.Model(&model.Content{}).Count(&contentsAfterInvalidImport).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := database.Model(&model.Attach{}).Count(&attachsAfterInvalidImport).Error; err != nil {
+		t.Fatal(err)
+	}
+	uploadFilesAfterInvalidImport := countFiles(t, runtimeConfig.UploadDir)
+	if contentsAfterInvalidImport != contentsBeforeImport ||
+		attachsAfterInvalidImport != attachsBeforeImport ||
+		uploadFilesAfterInvalidImport != uploadFilesBeforeImport {
+		t.Fatalf(
+			"invalid archive left changes: contents %d->%d attachments %d->%d files %d->%d",
+			contentsBeforeImport,
+			contentsAfterInvalidImport,
+			attachsBeforeImport,
+			attachsAfterInvalidImport,
+			uploadFilesBeforeImport,
+			uploadFilesAfterInvalidImport,
+		)
+	}
+
+	importArchive := buildTestImportArchive(t, map[string]string{
+		"商单灵感工具复盘.md":       "![截图](图片和附件/diagram.png)\n\n正文内容。",
+		"图片和附件/diagram.png": string([]byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a}),
+	})
+	importResponse := postAdminMultipart(t, client, testServer.URL, "/admin/article/import", "/admin/article", "archive", "notes.zip", importArchive)
+	if !importResponse.Success {
+		t.Fatalf("article import failed: %s", importResponse.Msg)
+	}
+	importedCID, ok := importResponse.Payload.(map[string]interface{})["cid"].(float64)
+	if !ok || importedCID <= 0 {
+		t.Fatalf("article import returned invalid cid: %#v", importResponse.Payload)
+	}
+	importedArticle, err := services.GetContentByID(strconv.Itoa(int(importedCID)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if importedArticle == nil || importedArticle.Title != "商单灵感工具复盘" ||
+		importedArticle.Status != model.TypeDraft ||
+		!strings.Contains(importedArticle.Content, "/upload/") {
+		t.Fatalf("article import result invalid: %#v", importedArticle)
+	}
+
 	content := &model.Content{
 		Title:        "Concurrent Article",
 		Slug:         "concurrent-article",
@@ -688,6 +778,91 @@ func postAdminForm(t *testing.T, client *http.Client, baseURL, path, csrfPath st
 		t.Fatal(err)
 	}
 	return result
+}
+
+func postAdminMultipart(t *testing.T, client *http.Client, baseURL, path, csrfPath, field, filename string, content []byte) handler.RestResponse {
+	t.Helper()
+	response, err := client.Get(baseURL + csrfPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := io.ReadAll(response.Body)
+	_ = response.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	match := csrfPattern.FindSubmatch(body)
+	if len(match) != 2 {
+		t.Fatalf("%s has no CSRF token", csrfPath)
+	}
+	var requestBody bytes.Buffer
+	writer := multipart.NewWriter(&requestBody)
+	if err := writer.WriteField("_csrf_token", string(match[1])); err != nil {
+		t.Fatal(err)
+	}
+	part, err := writer.CreateFormFile(field, filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := part.Write(content); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	request, err := http.NewRequest(http.MethodPost, baseURL+path, &requestBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	request.Header.Set("Referer", baseURL+path)
+	resultResponse, err := client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resultResponse.Body.Close()
+	var result handler.RestResponse
+	if err := json.NewDecoder(resultResponse.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	return result
+}
+
+func buildTestImportArchive(t *testing.T, files map[string]string) []byte {
+	t.Helper()
+	var output bytes.Buffer
+	writer := zip.NewWriter(&output)
+	for name, content := range files {
+		entry, err := writer.Create(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := entry.Write([]byte(content)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return output.Bytes()
+}
+
+func countFiles(t *testing.T, root string) int {
+	t.Helper()
+	count := 0
+	err := filepath.WalkDir(root, func(_ string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !entry.IsDir() {
+			count++
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return count
 }
 
 func postLogin(t *testing.T, baseURL, username, password string) handler.RestResponse {

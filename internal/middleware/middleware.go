@@ -118,6 +118,9 @@ func RequestBodyLimit() gin.HandlerFunc {
 		if strings.HasPrefix(context.Request.URL.Path, "/admin/attach/upload") {
 			limit = int64(model.MaxFileSize*16) + (1 << 20)
 		}
+		if strings.HasPrefix(context.Request.URL.Path, "/admin/article/import") {
+			limit = int64(16<<20) + (1 << 20)
+		}
 		context.Request.Body = http.MaxBytesReader(context.Writer, context.Request.Body, limit)
 		context.Next()
 	}

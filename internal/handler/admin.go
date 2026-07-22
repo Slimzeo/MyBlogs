@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"myblog/internal/model"
+	"myblog/internal/service"
 	"myblog/internal/util"
 
 	"github.com/gin-gonic/gin"
@@ -220,6 +221,53 @@ func (server *Server) adminArticleImageUpload(context *gin.Context) {
 		return
 	}
 	respondOK(context, gin.H{"url": fkey})
+}
+
+func (server *Server) adminArticleImport(context *gin.Context) {
+	if err := context.Request.ParseMultipartForm(int64(16<<20) + (1 << 20)); err != nil {
+		respondFail(context, "压缩包上传失败")
+		return
+	}
+	header := firstMultipartFile(context, "archive")
+	if header == nil {
+		respondFail(context, "请选择一个 ZIP 压缩包")
+		return
+	}
+	if header.Size > 16<<20 {
+		respondFail(context, "压缩包不能超过16MB")
+		return
+	}
+	file, err := header.Open()
+	if err != nil {
+		respondFail(context, "压缩包无法读取")
+		return
+	}
+	defer file.Close()
+	archiveData, err := io.ReadAll(io.LimitReader(file, (16<<20)+1))
+	if err != nil || len(archiveData) > 16<<20 {
+		respondFail(context, "压缩包读取失败")
+		return
+	}
+	user := server.sessions.User(context)
+	content, err := server.service.ImportMarkdownArchive(archiveData, service.ImportOptions{
+		AuthorID:   user.Uid,
+		Tags:       context.PostForm("tags"),
+		Categories: context.PostForm("categories"),
+		Status:     model.TypeDraft,
+	})
+	if err != nil {
+		if message, ok := service.AsTip(err); ok {
+			respondFail(context, message)
+			return
+		}
+		respondFail(context, "压缩包导入失败")
+		return
+	}
+	respondOK(context, gin.H{
+		"cid":    content.Cid,
+		"title":  content.Title,
+		"status": content.Status,
+	})
 }
 
 func firstMultipartFile(context *gin.Context, field string) *multipart.FileHeader {
