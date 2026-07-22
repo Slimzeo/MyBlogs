@@ -134,6 +134,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`src="/user/img/forest.jpg"`,
 		`fluid-home-quote`,
 		`如果这个`,
+		`fluid-quote-space`,
 		`是注定的，<br/>`,
 		`<strong><em>最重要的</em></strong>`,
 		`fluid-leaf-canvas`,
