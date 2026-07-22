@@ -6,9 +6,12 @@
     .article-editor-card{padding:28px}
     .article-editor-heading{display:flex;margin-bottom:20px;align-items:baseline;justify-content:space-between;gap:16px}
     .article-editor-heading h3{margin:0}
-    .article-editor-heading-actions{display:flex;align-items:center;gap:8px}
+    .article-editor-heading-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     .article-editor-status{color:var(--admin-muted);font-size:12px}
-    .article-import-box{display:none;margin:0 0 20px;padding:16px;border:1px dashed var(--admin-primary);border-radius:10px;background:#f8fbff}
+    .article-import-trigger{display:inline-flex;height:30px;padding:0 11px;align-items:center;border:1px solid #cbd6ea;border-radius:8px;color:var(--admin-primary);background:#f8fbff;cursor:pointer;font-size:12px;line-height:1;transition:border-color .2s ease,background .2s ease,color .2s ease}
+    .article-import-trigger:hover{border-color:#9db2df;color:#2349a9;background:#eef4ff}
+    .article-import-trigger:focus-visible{outline:2px solid rgba(59,103,217,.28);outline-offset:2px}
+    .article-import-box{display:none;margin:0 0 20px;padding:16px;border:1px solid #dbe5f2;border-left:3px solid rgba(59,103,217,.48);border-radius:10px;background:#fbfdff}
     .article-import-box.is-open{display:block}
     .article-import-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .article-import-fields input{margin-bottom:10px}
@@ -39,7 +42,7 @@
     <div class="article-editor-heading">
         <h3>{{if $c}}编辑文章{{else}}发表文章{{end}}</h3>
         <div class="article-editor-heading-actions">
-            <button type="button" class="btn btn-default btn-sm" id="open-import">导入 Markdown ZIP</button>
+            <button type="button" class="article-import-trigger" id="open-import" aria-expanded="false" aria-controls="import-box">导入 Markdown ZIP</button>
             <span class="article-editor-status" id="editor-status">支持 Markdown、粘贴图片和拖拽图片</span>
         </div>
     </div>
@@ -183,6 +186,7 @@
 
         document.getElementById('open-import').addEventListener('click', function () {
             importBox.classList.toggle('is-open');
+            this.setAttribute('aria-expanded', importBox.classList.contains('is-open') ? 'true' : 'false');
         });
         importForm.addEventListener('submit', function (event) {
             event.preventDefault();
