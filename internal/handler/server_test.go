@@ -306,6 +306,9 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`id="article-preview"`,
 		`id="markdown-toolbar"`,
 		`/admin/article/image`,
+		`id="open-import"`,
+		`id="import-form"`,
+		`/admin/article/import`,
 		`clipboardData`,
 		`data-action="image"`,
 	} {

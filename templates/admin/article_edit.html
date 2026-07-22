@@ -6,7 +6,14 @@
     .article-editor-card{padding:28px}
     .article-editor-heading{display:flex;margin-bottom:20px;align-items:baseline;justify-content:space-between;gap:16px}
     .article-editor-heading h3{margin:0}
+    .article-editor-heading-actions{display:flex;align-items:center;gap:8px}
     .article-editor-status{color:var(--admin-muted);font-size:12px}
+    .article-import-box{display:none;margin:0 0 20px;padding:16px;border:1px dashed var(--admin-primary);border-radius:10px;background:#f8fbff}
+    .article-import-box.is-open{display:block}
+    .article-import-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .article-import-fields input{margin-bottom:10px}
+    .article-import-help{margin:0 0 12px}
+    .article-import-actions{display:flex;align-items:center;gap:10px}
     .article-editor-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
     .article-editor-pane{min-width:0;border:1px solid var(--admin-line);border-radius:10px;overflow:hidden;background:#fff}
     .article-editor-pane-heading{display:flex;height:42px;padding:0 13px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--admin-line);background:#f8fafc;color:var(--admin-muted);font-size:12px}
@@ -31,7 +38,31 @@
 <div class="card article-editor-card">
     <div class="article-editor-heading">
         <h3>{{if $c}}编辑文章{{else}}发表文章{{end}}</h3>
-        <span class="article-editor-status" id="editor-status">支持 Markdown、粘贴图片和拖拽图片</span>
+        <div class="article-editor-heading-actions">
+            <button type="button" class="btn btn-default btn-sm" id="open-import">导入 Markdown ZIP</button>
+            <span class="article-editor-status" id="editor-status">支持 Markdown、粘贴图片和拖拽图片</span>
+        </div>
+    </div>
+    <div id="import-box" class="article-import-box">
+        <form id="import-form" enctype="multipart/form-data">
+            <label>Markdown 压缩包</label>
+            <input type="file" name="archive" accept=".zip,application/zip" required/>
+            <div class="article-import-fields">
+                <div>
+                    <label>标签（可选，逗号分隔）</label>
+                    <input type="text" name="tags" placeholder="Go,Blog"/>
+                </div>
+                <div>
+                    <label>分类（可选，逗号分隔）</label>
+                    <input type="text" name="categories" value="默认分类"/>
+                </div>
+            </div>
+            <p class="help-block article-import-help">ZIP 内必须有且只有一个 Markdown 文件；同级图片和附件会自动上传，导入后默认保存为草稿。</p>
+            <div class="article-import-actions">
+                <button type="submit" class="btn btn-primary btn-sm">开始导入</button>
+                <span id="import-status" class="help-block"></span>
+            </div>
+        </form>
     </div>
     <form id="article-form">
         {{if $c}}<input type="hidden" name="cid" value="{{$c.Cid}}"/>{{end}}
@@ -94,6 +125,9 @@
         var status = document.getElementById('editor-status');
         var previewStatus = document.getElementById('preview-status');
         var fileInput = document.getElementById('image-file-input');
+        var importBox = document.getElementById('import-box');
+        var importForm = document.getElementById('import-form');
+        var importStatus = document.getElementById('import-status');
         var csrf = document.querySelector('meta[name=csrf-token]').getAttribute('content');
         var converter = new Markdown.Converter();
         if (window.Markdown && Markdown.Extra) Markdown.Extra.init(converter, {
@@ -146,6 +180,30 @@
                 status.textContent = error.message || '图片上传失败';
             });
         }
+
+        document.getElementById('open-import').addEventListener('click', function () {
+            importBox.classList.toggle('is-open');
+        });
+        importForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            importStatus.textContent = '正在解析并导入…';
+            var data = new FormData(importForm);
+            fetch('/admin/article/import', {
+                method: 'POST',
+                headers: {'X-CSRF-Token': csrf},
+                body: data
+            }).then(function (response) {
+                return response.json();
+            }).then(function (result) {
+                if (!result.success || !result.payload || !result.payload.cid) {
+                    throw new Error(result.msg || '导入失败');
+                }
+                importStatus.textContent = '导入成功，文章已保存为草稿';
+                location.href = '/admin/article/' + result.payload.cid;
+            }).catch(function (error) {
+                importStatus.textContent = error.message || '导入失败';
+            });
+        });
 
         document.querySelectorAll('#markdown-toolbar button').forEach(function (button) {
             button.addEventListener('click', function () {
