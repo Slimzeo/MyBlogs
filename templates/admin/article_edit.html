@@ -13,6 +13,14 @@
     .article-import-trigger:focus-visible{outline:2px solid rgba(59,103,217,.28);outline-offset:2px}
     .article-import-box{display:none;margin:0 0 20px;padding:16px;border:1px solid #dbe5f2;border-left:3px solid rgba(59,103,217,.48);border-radius:10px;background:#fbfdff}
     .article-import-box.is-open{display:block}
+    .article-import-file{position:relative;margin-bottom:14px}
+    .article-import-file-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;clip-path:inset(50%)}
+    .article-import-file-picker{display:flex;min-height:42px;padding:5px 7px 5px 9px;align-items:center;gap:10px;border:1px solid #d9e0eb;border-radius:8px;background:#fff;cursor:pointer;transition:border-color .2s ease,box-shadow .2s ease,background .2s ease}
+    .article-import-file-picker:hover{border-color:#b8c8e5;background:#fbfdff}
+    .article-import-file-input:focus-visible + .article-import-file-picker{border-color:var(--admin-primary);box-shadow:0 0 0 3px rgba(59,103,217,.12)}
+    .article-import-file-action{display:inline-flex;min-height:30px;padding:0 11px;align-items:center;border:1px solid #cbd6ea;border-radius:6px;color:var(--admin-primary);background:#f8fbff;font-size:12px;line-height:1;white-space:nowrap}
+    .article-import-file-picker:hover .article-import-file-action{border-color:#9db2df;background:#eef4ff}
+    .article-import-file-name{min-width:0;overflow:hidden;color:var(--admin-muted);font-size:12px;text-overflow:ellipsis;white-space:nowrap}
     .article-import-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .article-import-fields input{margin-bottom:10px}
     .article-import-help{margin:0 0 12px}
@@ -49,7 +57,13 @@
     <div id="import-box" class="article-import-box">
         <form id="import-form" enctype="multipart/form-data">
             <label>Markdown 压缩包</label>
-            <input type="file" name="archive" accept=".zip,application/zip" required/>
+            <div class="article-import-file">
+                <input class="article-import-file-input" id="archive-file" type="file" name="archive" accept=".zip,application/zip" required/>
+                <label class="article-import-file-picker" for="archive-file">
+                    <span class="article-import-file-action">选择 ZIP 文件</span>
+                    <span class="article-import-file-name" id="archive-file-name">尚未选择文件</span>
+                </label>
+            </div>
             <div class="article-import-fields">
                 <div>
                     <label>标签（可选，逗号分隔）</label>
@@ -131,6 +145,8 @@
         var importBox = document.getElementById('import-box');
         var importForm = document.getElementById('import-form');
         var importStatus = document.getElementById('import-status');
+        var archiveFile = document.getElementById('archive-file');
+        var archiveFileName = document.getElementById('archive-file-name');
         var csrf = document.querySelector('meta[name=csrf-token]').getAttribute('content');
         var converter = new Markdown.Converter();
         if (window.Markdown && Markdown.Extra) Markdown.Extra.init(converter, {
@@ -187,6 +203,9 @@
         document.getElementById('open-import').addEventListener('click', function () {
             importBox.classList.toggle('is-open');
             this.setAttribute('aria-expanded', importBox.classList.contains('is-open') ? 'true' : 'false');
+        });
+        archiveFile.addEventListener('change', function () {
+            archiveFileName.textContent = archiveFile.files.length ? archiveFile.files[0].name : '尚未选择文件';
         });
         importForm.addEventListener('submit', function (event) {
             event.preventDefault();
