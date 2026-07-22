@@ -26,6 +26,7 @@ func registerAdminRoutes(engine *gin.Engine, routes handler.AdminRouteHandlers, 
 	admin.POST("/article/modify", routes.ModifyArticle)
 	admin.POST("/article/delete", routes.DeleteArticle)
 	admin.POST("/article/image", routes.UploadArticleImage)
+	admin.POST("/article/import", routes.ImportArticle)
 
 	admin.GET("/page", routes.Page)
 	admin.GET("/page/new", routes.NewPage)

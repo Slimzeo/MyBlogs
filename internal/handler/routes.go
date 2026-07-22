@@ -38,6 +38,7 @@ type AdminRouteHandlers struct {
 	ModifyArticle      gin.HandlerFunc
 	DeleteArticle      gin.HandlerFunc
 	UploadArticleImage gin.HandlerFunc
+	ImportArticle      gin.HandlerFunc
 	Page               gin.HandlerFunc
 	NewPage            gin.HandlerFunc
 	EditPage           gin.HandlerFunc
@@ -112,6 +113,7 @@ func (server *Server) RouteHandlers() RouteHandlers {
 			ModifyArticle:      server.adminArticleModify,
 			DeleteArticle:      server.adminArticleDelete,
 			UploadArticleImage: server.adminArticleImageUpload,
+			ImportArticle:      server.adminArticleImport,
 			Page:               server.adminPageList,
 			NewPage:            server.adminPageNew,
 			EditPage:           server.adminPageEdit,
