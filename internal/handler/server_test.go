@@ -307,6 +307,10 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`id="article-preview"`,
 		`class="article-editor-preview fluid-markdown"`,
 		`/user/css/markdown.css`,
+		`syncPreviewScroll`,
+		`insertEditorLineBreak`,
+		`shiftKey`,
+		`Enter 换段，Shift+Enter 半换行`,
 		`id="markdown-toolbar"`,
 		`/admin/article/preview`,
 		`/admin/article/image`,
@@ -357,12 +361,15 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if !ok {
 		t.Fatalf("markdown preview html type = %T", previewPayload["html"])
 	}
-	for _, marker := range []string{"<h1>一、起因</h1>", "<li>项目复盘文档</li>", "<p>普通段落第一行\n普通段落第二行</p>", "<hr>"} {
+	for _, marker := range []string{"<h1>一、起因</h1>", "<li>项目复盘文档</li>", "<hr>"} {
 		if !strings.Contains(previewHTML, marker) {
 			t.Fatalf("markdown preview missing marker %q: %s", marker, previewHTML)
 		}
 	}
-	if strings.Contains(previewHTML, "<br>") || strings.Contains(previewHTML, "<h2>") {
+	if !strings.Contains(previewHTML, "普通段落第一行<br>") {
+		t.Fatalf("markdown soft line break was not rendered: %s", previewHTML)
+	}
+	if strings.Contains(previewHTML, "<h2>") {
 		t.Fatalf("markdown preview unexpectedly parsed setext heading: %s", previewHTML)
 	}
 	profileResult := postAdminForm(t, client, testServer.URL, "/admin/profile", "/admin/profile", url.Values{

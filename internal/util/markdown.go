@@ -21,7 +21,7 @@ var md = goldmark.New(
 		parser.WithParagraphTransformers(parser.DefaultParagraphTransformers()...),
 	)),
 	goldmark.WithExtensions(extension.GFM),
-	goldmark.WithRendererOptions(html.WithUnsafe()),
+	goldmark.WithRendererOptions(html.WithUnsafe(), html.WithHardWraps()),
 )
 
 // sanitizer scrubs dangerous markup while keeping the tags a blog post needs

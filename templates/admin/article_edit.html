@@ -10,21 +10,21 @@
     .article-editor-heading h3{margin:0}
     .article-editor-heading-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     .article-editor-status{color:var(--admin-muted);font-size:12px}
-    .article-editor-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
-    .article-editor-pane{min-width:0;border:1px solid var(--admin-line);border-radius:10px;overflow:hidden;background:#fff}
+    .article-editor-grid{display:grid;height:min(68vh,680px);min-height:480px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+    .article-editor-pane{display:flex;min-width:0;min-height:0;border:1px solid var(--admin-line);border-radius:10px;overflow:hidden;flex-direction:column;background:#fff}
     .article-editor-pane-heading{display:flex;height:42px;padding:0 13px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--admin-line);background:#f8fafc;color:var(--admin-muted);font-size:12px}
     .article-editor-toolbar{display:flex;flex-wrap:wrap;gap:4px}
     .article-editor-toolbar button{min-width:30px;height:28px;padding:0 7px;border:1px solid transparent;border-radius:5px;color:var(--admin-muted);background:transparent;cursor:pointer;font-size:12px}
     .article-editor-toolbar button:hover{border-color:var(--admin-line);color:var(--admin-primary);background:#fff}
-    .article-editor-textarea{display:block;width:100%;min-height:480px;margin:0;padding:18px;border:0;outline:0;resize:vertical;color:#263248;background:#fff;font:14px/1.8 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .article-editor-textarea{display:block;width:100%;height:auto;min-height:0;margin:0;padding:18px;border:0;outline:0;resize:none;flex:1;overflow:auto;color:#263248;background:#fff;font:14px/1.8 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;overscroll-behavior:contain}
     .article-editor-textarea.is-dragging{background:#eff5ff;box-shadow:inset 0 0 0 2px var(--admin-primary)}
-    .article-editor-preview{min-height:480px;padding:18px 22px;overflow:auto}
+    .article-editor-preview{height:auto;min-height:0;padding:18px 22px;overflow:auto;flex:1;overscroll-behavior:contain}
     .article-editor-preview:empty:before{color:#a0aec0;content:"右侧会实时显示文章预览"}
     .article-editor-help{margin:10px 0 0;color:var(--admin-muted);font-size:12px}
     .article-editor-fields{display:grid;margin-top:20px;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px}
     .article-editor-fields label:first-child,.article-editor-fields textarea,.article-editor-fields .help-block{grid-column:1/-1}
     .article-editor-actions{display:flex;margin-top:18px;align-items:center;gap:8px}
-    @media (max-width:900px){.article-editor-card{padding:18px}.article-editor-grid{grid-template-columns:1fr}.article-editor-preview{min-height:260px}.article-editor-textarea{min-height:360px}}
+    @media (max-width:900px){.article-editor-card{padding:18px}.article-editor-grid{height:auto;min-height:0;grid-template-columns:1fr}.article-editor-pane{min-height:360px}.article-editor-preview{min-height:360px}.article-editor-textarea{min-height:360px;flex:none}}
     @media (max-width:560px){.article-editor-fields{display:block}.article-editor-heading{display:block}.article-editor-status{display:block;margin-top:6px}}
 </style>
 <div class="card article-editor-card">
@@ -64,7 +64,7 @@
                 <div id="article-preview" class="article-editor-preview fluid-markdown"></div>
             </section>
         </div>
-        <p class="article-editor-help">可以直接把截图或图片粘贴到左侧，也可以拖进左侧编辑区；上传完成后会自动插入图片 Markdown。</p>
+        <p class="article-editor-help">可以直接把截图或图片粘贴到左侧，也可以拖进左侧编辑区；上传完成后会自动插入图片 Markdown。Enter 换段，Shift+Enter 半换行。</p>
         <input id="image-file-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp" hidden/>
         <div class="article-editor-fields">
         <label>标签 (逗号分隔)</label>
@@ -98,6 +98,37 @@
         var csrf = document.querySelector('meta[name=csrf-token]').getAttribute('content');
         var previewTimer;
         var previewRequest = 0;
+        var previewScrollFrame;
+
+        function syncPreviewScroll() {
+            cancelAnimationFrame(previewScrollFrame);
+            previewScrollFrame = requestAnimationFrame(function () {
+                var sourceScrollHeight = textarea.scrollHeight - textarea.clientHeight;
+                var targetScrollHeight = preview.scrollHeight - preview.clientHeight;
+                if (sourceScrollHeight <= 0 || targetScrollHeight <= 0) {
+                    preview.scrollTop = 0;
+                    return;
+                }
+                preview.scrollTop = textarea.scrollTop / sourceScrollHeight * targetScrollHeight;
+            });
+        }
+
+        function isInsideFencedCode(position) {
+            var before = textarea.value.slice(0, position);
+            var fences = before.match(/(?:^|\n)[ \t]*(```|~~~)/g);
+            return fences ? fences.length % 2 === 1 : false;
+        }
+
+        function insertEditorLineBreak(event) {
+            if (event.isComposing || isInsideFencedCode(textarea.selectionStart)) return;
+            event.preventDefault();
+            var start = textarea.selectionStart;
+            var end = textarea.selectionEnd;
+            var insertion = event.shiftKey ? '  \n' : '\n\n';
+            textarea.setRangeText(insertion, start, end, 'end');
+            textarea.setSelectionRange(start + insertion.length, start + insertion.length);
+            renderPreview();
+        }
 
         function renderPreview() {
             var requestID = ++previewRequest;
@@ -119,6 +150,7 @@
                         throw new Error(result.msg || '预览失败');
                     }
                     preview.innerHTML = result.payload.html || '';
+                    syncPreviewScroll();
                     previewStatus.textContent = '已更新';
                 }).catch(function (error) {
                     if (requestID === previewRequest) {
@@ -185,6 +217,10 @@
             });
         });
         textarea.addEventListener('input', renderPreview);
+        textarea.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') insertEditorLineBreak(event);
+        });
+        textarea.addEventListener('scroll', syncPreviewScroll, {passive: true});
         textarea.addEventListener('paste', function (event) {
             var items = event.clipboardData && event.clipboardData.items;
             if (!items) return;
