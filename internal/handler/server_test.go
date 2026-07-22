@@ -305,6 +305,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`class="article-editor-grid"`,
 		`id="article-preview"`,
 		`id="markdown-toolbar"`,
+		`/admin/article/preview`,
 		`/admin/article/image`,
 		`id="open-import"`,
 		`id="import-form"`,
@@ -318,6 +319,28 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		if !strings.Contains(string(articleEditorHTML), marker) {
 			t.Fatalf("article editor missing marker %q", marker)
 		}
+	}
+	previewResult := postAdminForm(t, client, testServer.URL, "/admin/article/preview", "/admin/article/publish", url.Values{
+		"content": {"# 一、起因\n\nmentor叫我写三个文档：\n\n- 项目复盘文档\n- 团队agent框架复盘文档\n- agent评测体系调研文档\n\n普通段落第一行\n普通段落第二行\n\n普通文字\n---\n后续文字"},
+	})
+	if !previewResult.Success {
+		t.Fatalf("markdown preview failed: %s", previewResult.Msg)
+	}
+	previewPayload, ok := previewResult.Payload.(map[string]interface{})
+	if !ok {
+		t.Fatalf("markdown preview payload type = %T", previewResult.Payload)
+	}
+	previewHTML, ok := previewPayload["html"].(string)
+	if !ok {
+		t.Fatalf("markdown preview html type = %T", previewPayload["html"])
+	}
+	for _, marker := range []string{"<h1>一、起因</h1>", "<li>项目复盘文档</li>", "<p>普通段落第一行\n普通段落第二行</p>", "<hr>"} {
+		if !strings.Contains(previewHTML, marker) {
+			t.Fatalf("markdown preview missing marker %q: %s", marker, previewHTML)
+		}
+	}
+	if strings.Contains(previewHTML, "<br>") || strings.Contains(previewHTML, "<h2>") {
+		t.Fatalf("markdown preview unexpectedly parsed setext heading: %s", previewHTML)
 	}
 	profileResult := postAdminForm(t, client, testServer.URL, "/admin/profile", "/admin/profile", url.Values{
 		"username":   {"renamed-admin"},

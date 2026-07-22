@@ -37,6 +37,7 @@ type AdminRouteHandlers struct {
 	PublishArticle     gin.HandlerFunc
 	ModifyArticle      gin.HandlerFunc
 	DeleteArticle      gin.HandlerFunc
+	PreviewArticle     gin.HandlerFunc
 	UploadArticleImage gin.HandlerFunc
 	ImportArticle      gin.HandlerFunc
 	Page               gin.HandlerFunc
@@ -112,6 +113,7 @@ func (server *Server) RouteHandlers() RouteHandlers {
 			PublishArticle:     server.adminArticlePublish,
 			ModifyArticle:      server.adminArticleModify,
 			DeleteArticle:      server.adminArticleDelete,
+			PreviewArticle:     server.adminArticlePreview,
 			UploadArticleImage: server.adminArticleImageUpload,
 			ImportArticle:      server.adminArticleImport,
 			Page:               server.adminPageList,
