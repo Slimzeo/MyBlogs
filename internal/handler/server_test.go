@@ -127,8 +127,9 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css`,
 		`class="fluid-theme fluid-font-wenkai"`,
 		`class="fluid-banner fluid-banner-home"`,
-		`background-image:url('/user/img/forest.jpg')`,
 		`rel="preload" as="image"`,
+		`class="fluid-banner-image fluid-banner-image-priority"`,
+		`src="/user/img/forest.jpg"`,
 		`fluid-home-quote`,
 		`如果这个`,
 		`是注定的，<br/>`,
@@ -234,7 +235,8 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	for _, marker := range []string{
 		`class="fluid-banner fluid-banner-post"`,
-		`background-image:url('/user/img/forest.jpg')`,
+		`class="fluid-banner-image"`,
+		`src="/user/img/forest.jpg"`,
 		`class="fluid-post-layout"`,
 		`class="fluid-board fluid-post-board"`,
 		`id="article-toc"`,
