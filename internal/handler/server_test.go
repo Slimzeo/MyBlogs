@@ -125,6 +125,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	for _, marker := range []string{
 		`href="/user/css/fluid.css"`,
+		`href="/user/css/markdown.css"`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css`,
 		`class="fluid-theme fluid-font-wenkai"`,
@@ -304,6 +305,8 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	for _, marker := range []string{
 		`class="article-editor-grid"`,
 		`id="article-preview"`,
+		`class="article-editor-preview fluid-markdown"`,
+		`/user/css/markdown.css`,
 		`id="markdown-toolbar"`,
 		`/admin/article/preview`,
 		`/admin/article/image`,
@@ -318,6 +321,26 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	} {
 		if !strings.Contains(string(articleEditorHTML), marker) {
 			t.Fatalf("article editor missing marker %q", marker)
+		}
+	}
+	articleListResponse, err := client.Get(testServer.URL + "/admin/article")
+	if err != nil {
+		t.Fatal(err)
+	}
+	articleListHTML, err := io.ReadAll(articleListResponse.Body)
+	_ = articleListResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, marker := range []string{
+		`class="article-import-trigger"`,
+		`class="article-import-file-picker"`,
+		`id="archive-file"`,
+		`id="archive-file-name"`,
+		`/admin/article/import`,
+	} {
+		if !strings.Contains(string(articleListHTML), marker) {
+			t.Fatalf("article list missing shared import marker %q", marker)
 		}
 	}
 	previewResult := postAdminForm(t, client, testServer.URL, "/admin/article/preview", "/admin/article/publish", url.Values{

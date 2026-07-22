@@ -1,0 +1,99 @@
+{{define "admin/article_import_styles"}}
+<style>
+    .article-import-trigger{display:inline-flex;height:30px;padding:0 11px;align-items:center;border:1px solid #cbd6ea;border-radius:8px;color:var(--admin-primary);background:#f8fbff;cursor:pointer;font-size:12px;line-height:1;transition:border-color .2s ease,background .2s ease,color .2s ease}
+    .article-import-trigger:hover{border-color:#9db2df;color:#2349a9;background:#eef4ff}
+    .article-import-trigger:focus-visible{outline:2px solid rgba(59,103,217,.28);outline-offset:2px}
+    .article-import-box{display:none;margin:0 0 20px;padding:16px;border:1px solid #dbe5f2;border-left:3px solid rgba(59,103,217,.48);border-radius:10px;background:#fbfdff}
+    .article-import-box.is-open{display:block}
+    .article-import-file{position:relative;margin-bottom:14px}
+    .article-import-file-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;clip-path:inset(50%)}
+    .article-import-file-picker{display:flex;min-height:42px;padding:5px 7px 5px 9px;align-items:center;gap:10px;border:1px solid #d9e0eb;border-radius:8px;background:#fff;cursor:pointer;transition:border-color .2s ease,box-shadow .2s ease,background .2s ease}
+    .article-import-file-picker:hover{border-color:#b8c8e5;background:#fbfdff}
+    .article-import-file-input:focus-visible + .article-import-file-picker{border-color:var(--admin-primary);box-shadow:0 0 0 3px rgba(59,103,217,.12)}
+    .article-import-file-action{display:inline-flex;min-height:30px;padding:0 11px;align-items:center;border:1px solid #cbd6ea;border-radius:6px;color:var(--admin-primary);background:#f8fbff;font-size:12px;line-height:1;white-space:nowrap}
+    .article-import-file-picker:hover .article-import-file-action{border-color:#9db2df;background:#eef4ff}
+    .article-import-file-name{min-width:0;overflow:hidden;color:var(--admin-muted);font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+    .article-import-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .article-import-fields input{margin-bottom:10px}
+    .article-import-help{margin:0 0 12px}
+    .article-import-actions{display:flex;align-items:center;gap:10px}
+    @media (max-width:560px){.article-import-fields{grid-template-columns:1fr}}
+</style>
+{{end}}
+
+{{define "admin/article_import_trigger"}}
+<button type="button" class="article-import-trigger" id="open-import" aria-expanded="false" aria-controls="import-box">导入 Markdown ZIP</button>
+{{end}}
+
+{{define "admin/article_import_box"}}
+<div id="import-box" class="article-import-box">
+    <form id="import-form" enctype="multipart/form-data">
+        <label>Markdown 压缩包</label>
+        <div class="article-import-file">
+            <input class="article-import-file-input" id="archive-file" type="file" name="archive" accept=".zip,application/zip" required/>
+            <label class="article-import-file-picker" for="archive-file">
+                <span class="article-import-file-action">选择 ZIP 文件</span>
+                <span class="article-import-file-name" id="archive-file-name">尚未选择文件</span>
+            </label>
+        </div>
+        <div class="article-import-fields">
+            <div>
+                <label>标签（可选，逗号分隔）</label>
+                <input type="text" name="tags" placeholder="Go,Blog"/>
+            </div>
+            <div>
+                <label>分类（可选，逗号分隔）</label>
+                <input type="text" name="categories" value="默认分类"/>
+            </div>
+        </div>
+        <p class="help-block article-import-help">ZIP 内必须有且只有一个 Markdown 文件；同级图片和附件会自动上传，导入后默认保存为草稿。</p>
+        <div class="article-import-actions">
+            <button type="submit" class="btn btn-primary btn-sm">开始导入</button>
+            <span id="import-status" class="help-block"></span>
+        </div>
+    </form>
+</div>
+{{end}}
+
+{{define "admin/article_import_script"}}
+<script>
+    (function () {
+        var trigger = document.getElementById('open-import');
+        var importBox = document.getElementById('import-box');
+        var importForm = document.getElementById('import-form');
+        var importStatus = document.getElementById('import-status');
+        var archiveFile = document.getElementById('archive-file');
+        var archiveFileName = document.getElementById('archive-file-name');
+        if (!trigger || !importBox || !importForm || !importStatus || !archiveFile || !archiveFileName) return;
+
+        trigger.addEventListener('click', function () {
+            importBox.classList.toggle('is-open');
+            trigger.setAttribute('aria-expanded', importBox.classList.contains('is-open') ? 'true' : 'false');
+        });
+        archiveFile.addEventListener('change', function () {
+            archiveFileName.textContent = archiveFile.files.length ? archiveFile.files[0].name : '尚未选择文件';
+        });
+        importForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            importStatus.textContent = '正在解析并导入…';
+            var data = new FormData(importForm);
+            var csrf = document.querySelector('meta[name=csrf-token]').getAttribute('content');
+            fetch('/admin/article/import', {
+                method: 'POST',
+                headers: {'X-CSRF-Token': csrf},
+                body: data
+            }).then(function (response) {
+                return response.json();
+            }).then(function (result) {
+                if (!result.success || !result.payload || !result.payload.cid) {
+                    throw new Error(result.msg || '导入失败');
+                }
+                importStatus.textContent = '导入成功，文章已保存为草稿';
+                location.href = '/admin/article/' + result.payload.cid;
+            }).catch(function (error) {
+                importStatus.textContent = error.message || '导入失败';
+            });
+        });
+    })();
+</script>
+{{end}}

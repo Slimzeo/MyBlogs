@@ -1,25 +1,14 @@
 {{define "admin/article_list"}}
 {{template "admin/header" .}}
+{{template "admin/article_import_styles" .}}
 <div class="card">
     <h3 style="display:flex;justify-content:space-between;align-items:center;">文章管理
         <span>
-            <button type="button" class="btn btn-default btn-sm" id="open-import">导入 Markdown ZIP</button>
+            {{template "admin/article_import_trigger" .}}
             <a class="btn btn-primary btn-sm" href="/admin/article/publish">写文章</a>
         </span>
     </h3>
-    <div id="import-box" style="display:none;margin-bottom:20px;padding:16px;border:1px dashed var(--admin-primary);border-radius:10px;background:#f8fbff;">
-        <form id="import-form" enctype="multipart/form-data">
-            <label>Markdown 压缩包</label>
-            <input type="file" name="archive" accept=".zip,application/zip" required/>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <div><label>标签（可选，逗号分隔）</label><input type="text" name="tags" placeholder="Go,Blog"/></div>
-                <div><label>分类（可选，逗号分隔）</label><input type="text" name="categories" value="默认分类"/></div>
-            </div>
-            <p class="help-block">压缩包内必须有且只有一个 `.md` 文件；同级图片和附件会自动上传，文章默认导入为草稿。</p>
-            <button type="submit" class="btn btn-primary btn-sm">开始导入</button>
-            <span id="import-status" class="help-block"></span>
-        </form>
-    </div>
+    {{template "admin/article_import_box" .}}
     <table>
         <thead><tr><th>标题</th><th>分类</th><th style="width:100px;">可见性</th><th style="width:80px;">点击</th><th style="width:80px;">评论</th><th style="width:160px;">时间</th><th style="width:140px;">操作</th></tr></thead>
         <tbody>
@@ -42,33 +31,11 @@
     {{template "admin/pager" dict "Page" .Articles "Base" "/admin/article"}}
 </div>
 <script>
-    $('#open-import').click(function(){ $('#import-box').toggle(); });
-    $('#import-form').submit(function(e){
-        e.preventDefault();
-        var form = this;
-        var status = $('#import-status');
-        status.text('正在解析并导入…');
-        $.ajax({
-            url:'/admin/article/import',
-            type:'post',
-            data:new FormData(form),
-            processData:false,
-            contentType:false,
-            success:function(result){
-                if(result.success){
-                    status.text('导入成功，文章已保存为草稿');
-                    setTimeout(function(){ location.href='/admin/article/' + result.payload.cid; }, 400);
-                } else {
-                    status.text(result.msg || '导入失败');
-                }
-            },
-            error:function(){ status.text('网络异常，请稍后再试'); }
-        });
-    });
     function delArticle(cid){
         if(!confirm('确定删除该文章?'))return;
         $.post('/admin/article/delete',{cid:cid},function(r){ if(r.success){location.reload();}else{alert(r.msg||'删除失败');}});
     }
 </script>
+{{template "admin/article_import_script" .}}
 {{template "admin/footer" .}}
 {{end}}
