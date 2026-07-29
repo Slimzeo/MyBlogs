@@ -308,6 +308,8 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`class="article-editor-preview fluid-markdown"`,
 		`/user/css/markdown.css`,
 		`syncPreviewScroll`,
+		`previewBlockLines`,
+		`buildSourceMap`,
 		`insertEditorLineBreak`,
 		`shiftKey`,
 		`Enter 换段，Shift+Enter 半换行`,
@@ -371,6 +373,29 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	if strings.Contains(previewHTML, "<h2>") {
 		t.Fatalf("markdown preview unexpectedly parsed setext heading: %s", previewHTML)
+	}
+	blockLines, ok := previewPayload["blockLines"].([]interface{})
+	if !ok || len(blockLines) < 4 {
+		t.Fatalf("markdown preview block line map is missing or too short: %#v", previewPayload["blockLines"])
+	}
+	longContent := strings.TrimSuffix(strings.Repeat("长文段落第一行\n长文段落第二行\n\n", 2500), "\n\n")
+	longPreviewResult := postAdminForm(t, client, testServer.URL, "/admin/article/preview", "/admin/article/publish", url.Values{
+		"content": {longContent},
+	})
+	if !longPreviewResult.Success {
+		t.Fatalf("long markdown preview failed: %s", longPreviewResult.Msg)
+	}
+	longPreviewPayload, ok := longPreviewResult.Payload.(map[string]interface{})
+	if !ok {
+		t.Fatalf("long markdown preview payload type = %T", longPreviewResult.Payload)
+	}
+	longPreviewHTML, ok := longPreviewPayload["html"].(string)
+	if !ok || !strings.Contains(longPreviewHTML, "长文段落第二行") {
+		t.Fatalf("long markdown preview was truncated: html type=%T length=%d", longPreviewPayload["html"], len(longPreviewHTML))
+	}
+	longBlockLines, ok := longPreviewPayload["blockLines"].([]interface{})
+	if !ok || len(longBlockLines) != 2500 {
+		t.Fatalf("long markdown block map length = %d, want 2500", len(longBlockLines))
 	}
 	profileResult := postAdminForm(t, client, testServer.URL, "/admin/profile", "/admin/profile", url.Values{
 		"username":   {"renamed-admin"},

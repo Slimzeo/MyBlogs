@@ -11,7 +11,7 @@
     .article-editor-heading-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     .article-editor-status{color:var(--admin-muted);font-size:12px}
     .article-editor-grid{display:grid;height:min(68vh,680px);min-height:480px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
-    .article-editor-pane{display:flex;min-width:0;min-height:0;border:1px solid var(--admin-line);border-radius:10px;overflow:hidden;flex-direction:column;background:#fff}
+    .article-editor-pane{position:relative;display:flex;min-width:0;min-height:0;border:1px solid var(--admin-line);border-radius:10px;overflow:hidden;flex-direction:column;background:#fff}
     .article-editor-pane-heading{display:flex;height:42px;padding:0 13px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--admin-line);background:#f8fafc;color:var(--admin-muted);font-size:12px}
     .article-editor-toolbar{display:flex;flex-wrap:wrap;gap:4px}
     .article-editor-toolbar button{min-width:30px;height:28px;padding:0 7px;border:1px solid transparent;border-radius:5px;color:var(--admin-muted);background:transparent;cursor:pointer;font-size:12px}
@@ -99,10 +99,74 @@
         var previewTimer;
         var previewRequest = 0;
         var previewScrollFrame;
+        var previewController;
+        var sourceMap;
+        var sourceMapLines = [];
+        var previewBlockLines = [];
+
+        function buildSourceMap() {
+            if (!sourceMap) {
+                sourceMap = document.createElement('div');
+                sourceMap.className = 'article-editor-source-map';
+                sourceMap.setAttribute('aria-hidden', 'true');
+                sourceMap.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;left:0;top:42px;width:100%;padding:18px;box-sizing:border-box;white-space:pre-wrap;overflow-wrap:break-word;word-break:break-word;';
+                textarea.parentElement.appendChild(sourceMap);
+            }
+            var computed = window.getComputedStyle(textarea);
+            sourceMap.style.font = computed.font;
+            sourceMap.style.letterSpacing = computed.letterSpacing;
+            sourceMap.style.lineHeight = computed.lineHeight;
+            sourceMap.style.width = textarea.clientWidth + 'px';
+            sourceMap.textContent = '';
+            sourceMapLines = [];
+            textarea.value.split('\n').forEach(function (line) {
+                var lineNode = document.createElement('span');
+                lineNode.style.display = 'block';
+                lineNode.textContent = line || '\u200b';
+                sourceMap.appendChild(lineNode);
+                sourceMapLines.push(lineNode);
+            });
+        }
+
+        function sourceLineAtScroll() {
+            if (!sourceMapLines.length) return 1;
+            var target = textarea.scrollTop + 24;
+            var line = 0;
+            for (var index = 1; index < sourceMapLines.length; index++) {
+                if (sourceMapLines[index].offsetTop > target) break;
+                line = index;
+            }
+            return line + 1;
+        }
+
+        function previewTopForSourceLine(sourceLine) {
+            var blocks = Array.prototype.slice.call(preview.children);
+            if (!blocks.length || !previewBlockLines.length) return null;
+            var blockIndex = 0;
+            for (var index = 1; index < previewBlockLines.length; index++) {
+                if (previewBlockLines[index] > sourceLine) break;
+                blockIndex = index;
+            }
+            blockIndex = Math.min(blockIndex, blocks.length - 1);
+            var startLine = previewBlockLines[blockIndex];
+            var startTop = blocks[blockIndex] ? blocks[blockIndex].offsetTop : 0;
+            var nextLine = previewBlockLines[blockIndex + 1];
+            var nextTop = blocks[blockIndex + 1] ? blocks[blockIndex + 1].offsetTop : preview.scrollHeight;
+            if (nextLine && nextLine > startLine) {
+                var ratio = Math.max(0, Math.min(1, (sourceLine - startLine) / (nextLine - startLine)));
+                return startTop + (nextTop - startTop) * ratio;
+            }
+            return startTop;
+        }
 
         function syncPreviewScroll() {
             cancelAnimationFrame(previewScrollFrame);
             previewScrollFrame = requestAnimationFrame(function () {
+                var mappedTop = previewTopForSourceLine(sourceLineAtScroll());
+                if (mappedTop !== null) {
+                    preview.scrollTop = Math.max(0, mappedTop - preview.clientHeight * 0.12);
+                    return;
+                }
                 var sourceScrollHeight = textarea.scrollHeight - textarea.clientHeight;
                 var targetScrollHeight = preview.scrollHeight - preview.clientHeight;
                 if (sourceScrollHeight <= 0 || targetScrollHeight <= 0) {
@@ -133,15 +197,18 @@
         function renderPreview() {
             var requestID = ++previewRequest;
             clearTimeout(previewTimer);
+            if (previewController) previewController.abort();
             previewStatus.textContent = '预览中…';
             previewTimer = setTimeout(function () {
+                previewController = new AbortController();
                 fetch('/admin/article/preview', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
                         'X-CSRF-Token': csrf
                     },
-                    body: new URLSearchParams({content: textarea.value || ''})
+                    body: new URLSearchParams({content: textarea.value || ''}),
+                    signal: previewController.signal
                 }).then(function (response) {
                     return response.json();
                 }).then(function (result) {
@@ -150,9 +217,13 @@
                         throw new Error(result.msg || '预览失败');
                     }
                     preview.innerHTML = result.payload.html || '';
+                    var blockLines = Array.isArray(result.payload.blockLines) ? result.payload.blockLines : [];
+                    previewBlockLines = blockLines.length === preview.children.length ? blockLines : [];
+                    buildSourceMap();
                     syncPreviewScroll();
                     previewStatus.textContent = '已更新';
                 }).catch(function (error) {
+                    if (error.name === 'AbortError') return;
                     if (requestID === previewRequest) {
                         previewStatus.textContent = error.message || '预览失败';
                     }
