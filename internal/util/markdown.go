@@ -10,6 +10,7 @@ import (
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
+	"github.com/yuin/goldmark/text"
 )
 
 // md is configured once. GFM + unsafe HTML passthrough (the original commonmark
@@ -81,4 +82,27 @@ func Article(value string) string {
 	}
 	value = strings.ReplaceAll(value, "<!--more-->", "\r\n")
 	return MdToHTML(value)
+}
+
+// ArticleBlockLines returns the source line for each top-level Markdown block.
+// The editor uses these anchors to map source scrolling to rendered blocks.
+func ArticleBlockLines(value string) []int {
+	if strings.TrimSpace(value) == "" {
+		return []int{}
+	}
+	value = strings.ReplaceAll(value, "<!--more-->", "\r\n")
+	source := []byte(value)
+	document := md.Parser().Parse(text.NewReader(source))
+	lines := make([]int, 0, document.ChildCount())
+	for node := document.FirstChild(); node != nil; node = node.NextSibling() {
+		start := node.Pos()
+		if segments := node.Lines(); segments != nil && segments.Len() > 0 {
+			start = segments.At(0).Start
+		}
+		if start < 0 || start > len(source) {
+			continue
+		}
+		lines = append(lines, 1+bytes.Count(source[:start], []byte{'\n'}))
+	}
+	return lines
 }

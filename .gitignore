@@ -9,3 +9,5 @@
 *.sql
 *.sql.zip
 /.DS_Store
+# @byted-motor/aicoding-telemetry: git-hook run log (do not commit)
+.motor-code/log/

@@ -181,7 +181,11 @@ func (server *Server) adminArticleModify(context *gin.Context) {
 }
 
 func (server *Server) adminArticlePreview(context *gin.Context) {
-	respondOK(context, gin.H{"html": util.Article(context.PostForm("content"))})
+	content := context.PostForm("content")
+	respondOK(context, gin.H{
+		"html":       util.Article(content),
+		"blockLines": util.ArticleBlockLines(content),
+	})
 }
 
 func (server *Server) adminArticleDelete(context *gin.Context) {
