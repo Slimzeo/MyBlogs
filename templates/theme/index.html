@@ -18,7 +18,10 @@
                 </div>
                 {{end}}
                 <div class="fluid-index-info">
-                    <h2><a href="{{permalink $article}}">{{$article.Title}}</a></h2>
+                    <h2>
+                        <a href="{{permalink $article}}">{{$article.Title}}</a>
+                        {{if eq $article.Status "encrypted"}}<span class="fluid-encrypted-badge">加密</span>{{end}}
+                    </h2>
                     <a class="fluid-index-excerpt" href="{{permalink $article}}">
                         {{intro $article.Content 200}}
                     </a>

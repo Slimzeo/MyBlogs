@@ -211,6 +211,7 @@ Go 模板中。对应位置是：
 | `BLOG_DB_CONN_MAX_LIFETIME_MIN` | `30` | 连接最大生命周期（分钟） |
 | `BLOG_SESSION_SECRET` | 无默认值 | 至少 32 字节；启动前必须设置 |
 | `BLOG_COOKIE_SECURE` | 无默认值 | HTTPS 部署设为 `true`；本地 HTTP 开发设为 `false` |
+| `BLOG_ACCESS_KEY` | 空 | 加密文章访问密钥；至少 16 个字符，不写入仓库 |
 | `BLOG_ADMIN_USERNAME` | 无默认值 | 首次初始化管理员用户名 |
 | `BLOG_ADMIN_EMAIL` | 无默认值 | 首次初始化管理员邮箱 |
 | `BLOG_ADMIN_INITIAL_PASSWORD` | 无默认值 | 首次初始化管理员密码，不写入仓库 |
@@ -248,6 +249,30 @@ make run
 也可以直接替换本地文件 `static/user/img/forest.jpg`；保持文件名不变时无需修改
 任何配置。
 
+### 加密文章与访问密钥
+
+设置 `BLOG_ACCESS_KEY` 后，后台文章编辑器会增加“加密”可见性。加密文章：
+
+- 管理员始终可见；
+- 普通访客默认无法在首页、搜索、归档、分类、标签、Topics 或直链中看到；
+- 访客从前台导航栏导入正确密钥后，可在当前浏览器查看 24 小时；
+- 浏览器只保存签名后的 HttpOnly 授权 Cookie，不保存明文密钥；
+- 密钥轮换后，旧授权 Cookie 会立即失效。
+
+建议用随机值：
+
+```bash
+openssl rand -hex 24
+```
+
+将结果只写入部署环境的 `.env`：
+
+```env
+BLOG_ACCESS_KEY=your-random-reader-key
+```
+
+这里的“加密”是服务端访问控制，不是数据库正文的静态加密；服务器管理员和数据库备份仍能读取正文。
+
 ## 使用 MySQL
 
 数据表名、字段名与原 Java 版本的 `tale` 数据库保持兼容。已有 MySQL 数据库可以直接
@@ -275,7 +300,7 @@ docker compose up --build
 ```
 
 默认持久化到 Docker volume `blog_data`。生产部署时请在部署主机的 `.env` 中设置
-`BLOG_SESSION_SECRET`、`BLOG_COOKIE_SECURE`、`BLOG_ADMIN_USERNAME`、
+`BLOG_SESSION_SECRET`、`BLOG_COOKIE_SECURE`、`BLOG_ACCESS_KEY`、`BLOG_ADMIN_USERNAME`、
 `BLOG_ADMIN_EMAIL` 和 `BLOG_ADMIN_INITIAL_PASSWORD`，不要把这些值写进
 `docker-compose.yml` 或 Git。
 

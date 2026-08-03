@@ -78,6 +78,9 @@ func (server *Server) render(context *gin.Context, status int, name string, data
 			data.CsrfToken, _ = token.(string)
 		}
 	}
+	if data.EncryptedAccess {
+		context.Header("Cache-Control", "private, no-store")
+	}
 	context.Status(status)
 	context.Header("Content-Type", "text/html; charset=utf-8")
 	if err := server.renderer.Render(context.Writer, name, data); err != nil {
@@ -89,12 +92,22 @@ func (server *Server) render(context *gin.Context, status int, name string, data
 }
 
 func (server *Server) baseData(context *gin.Context, title, active string) PageData {
+	accessExpiry := server.sessions.ArticleAccessExpiry(context.Request, server.config.AccessKey)
+	loginUser := server.sessions.User(context)
 	return PageData{
-		Title:     title,
-		Active:    active,
-		LoginUser: server.sessions.User(context),
-		CsrfToken: csrfToken(context),
+		Title:            title,
+		Active:           active,
+		LoginUser:        loginUser,
+		CsrfToken:        csrfToken(context),
+		AccessKeyEnabled: server.config.AccessKey != "",
+		EncryptedAccess:  loginUser != nil || accessExpiry > 0,
+		AccessExpiresAt:  accessExpiry,
 	}
+}
+
+func (server *Server) canAccessEncrypted(context *gin.Context) bool {
+	return server.sessions.User(context) != nil ||
+		server.sessions.ArticleAccessExpiry(context.Request, server.config.AccessKey) > 0
 }
 
 func (server *Server) health(context *gin.Context) {

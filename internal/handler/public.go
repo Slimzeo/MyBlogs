@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
 	"errors"
 	"net/http"
 	"net/url"
@@ -27,8 +29,9 @@ func (server *Server) indexPage(context *gin.Context) {
 func (server *Server) renderIndex(context *gin.Context, page int) {
 	page = clampPage(page)
 	limit := clampLimit(queryInt(context, "limit", 12), 12, 100)
+	includeEncrypted := server.canAccessEncrypted(context)
 	data := server.baseData(context, "", "")
-	data.Articles = server.service.GetContents(page, limit)
+	data.Articles = server.service.GetContents(page, limit, includeEncrypted)
 	if page > 1 {
 		data.Title = "第" + strconv.Itoa(page) + "页"
 	}
@@ -75,6 +78,9 @@ func (server *Server) canViewArticle(context *gin.Context, content *model.Conten
 	if content.Status == model.TypePublish {
 		return true
 	}
+	if content.Status == model.TypeEncrypted {
+		return server.canAccessEncrypted(context)
+	}
 	return content.Status == model.TypePrivate && server.sessions.User(context) != nil
 }
 
@@ -92,6 +98,11 @@ func (server *Server) comment(context *gin.Context) {
 	cid, err := strconv.Atoi(context.PostForm("cid"))
 	if err != nil || cid <= 0 {
 		respondFail(context, "请输入完整后评论")
+		return
+	}
+	content, _ := server.service.GetContentByID(strconv.Itoa(cid))
+	if content == nil || !server.canViewArticle(context, content, false) {
+		respondFail(context, "文章不存在或不可访问")
 		return
 	}
 	parent, _ := strconv.Atoi(context.PostForm("coid"))
@@ -174,7 +185,12 @@ func (server *Server) metaArticles(context *gin.Context, metaType, name, display
 	limit := clampLimit(queryInt(context, "limit", 12), 12, 100)
 	data := server.baseData(context, name, "")
 	data.Meta = meta
-	data.Articles = server.service.GetArticlesByMeta(meta.Mid, page, limit)
+	data.Articles = server.service.GetArticlesByMeta(
+		meta.Mid,
+		page,
+		limit,
+		server.canAccessEncrypted(context),
+	)
 	data.Type = displayType
 	data.Keyword = name
 	server.render(context, http.StatusOK, "page-category", data)
@@ -185,7 +201,12 @@ func (server *Server) search(context *gin.Context) {
 	page := clampPage(pathInt(context, "page", 1))
 	limit := clampLimit(queryInt(context, "limit", 12), 12, 100)
 	data := server.baseData(context, keyword, "")
-	data.Articles = server.service.SearchArticles(keyword, page, limit)
+	data.Articles = server.service.SearchArticles(
+		keyword,
+		page,
+		limit,
+		server.canAccessEncrypted(context),
+	)
 	data.Type = "搜索"
 	data.Keyword = keyword
 	server.render(context, http.StatusOK, "page-category", data)
@@ -198,9 +219,10 @@ func (server *Server) topics(context *gin.Context) {
 	}
 	data := server.baseData(context, "学习目录", "")
 	data.TopicView = view
-	data.Categories = server.service.GetPublishedMetaList(model.TypeCategory, 100)
-	data.Tags = server.service.GetPublishedMetaList(model.TypeTag, 100)
-	data.TopicGroups = server.service.GetPublishedTopicGroups(100, 20)
+	includeEncrypted := server.canAccessEncrypted(context)
+	data.Categories = server.service.GetPublishedMetaList(model.TypeCategory, 100, includeEncrypted)
+	data.Tags = server.service.GetPublishedMetaList(model.TypeTag, 100, includeEncrypted)
+	data.TopicGroups = server.service.GetPublishedTopicGroups(100, 20, includeEncrypted)
 	server.render(context, http.StatusOK, "topics", data)
 }
 
@@ -243,7 +265,7 @@ func (server *Server) notesPage(context *gin.Context) {
 
 func (server *Server) archives(context *gin.Context) {
 	data := server.baseData(context, "文章归档", "")
-	data.Archives = server.service.GetArchives()
+	data.Archives = server.service.GetArchives(server.canAccessEncrypted(context))
 	for _, archive := range data.Archives {
 		data.ArchiveCount += len(archive.Articles)
 	}
@@ -259,6 +281,41 @@ func (server *Server) links(context *gin.Context) {
 func (server *Server) publicLogout(context *gin.Context) {
 	server.sessions.Logout(context)
 	context.Redirect(http.StatusFound, "/")
+}
+
+func (server *Server) importAccessKey(context *gin.Context) {
+	if server.config.AccessKey == "" {
+		respondFail(context, "站点未启用访问密钥")
+		return
+	}
+	failureKey := "access_key_error_count:" + util.ClientIP(context.Request)
+	if failures, exists := server.service.Cache().GetInt(failureKey); exists && failures >= 5 {
+		respondFail(context, "密钥错误次数过多，请10分钟后再试")
+		return
+	}
+	if !accessKeyMatches(context.PostForm("accessKey"), server.config.AccessKey) {
+		failures := server.service.Cache().Incr(failureKey, 10*60)
+		if failures >= 5 {
+			respondFail(context, "密钥错误次数过多，请10分钟后再试")
+			return
+		}
+		respondFail(context, "访问密钥无效")
+		return
+	}
+	server.service.Cache().Del(failureKey)
+	expiry := server.sessions.GrantArticleAccess(context, server.config.AccessKey)
+	respondOK(context, gin.H{"expiresAt": expiry})
+}
+
+func (server *Server) revokeAccessKey(context *gin.Context) {
+	server.sessions.RevokeArticleAccess(context)
+	respondOK(context)
+}
+
+func accessKeyMatches(candidate, expected string) bool {
+	candidateHash := sha256.Sum256([]byte(strings.TrimSpace(candidate)))
+	expectedHash := sha256.Sum256([]byte(expected))
+	return subtle.ConstantTimeCompare(candidateHash[:], expectedHash[:]) == 1
 }
 
 func (server *Server) customPageOrNotFound(context *gin.Context) {

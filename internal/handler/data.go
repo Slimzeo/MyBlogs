@@ -9,17 +9,20 @@ import (
 // PageData is shared by the migrated html/template pages. Keeping one explicit
 // view model makes handler-to-template contracts discoverable.
 type PageData struct {
-	Title       string
-	Keywords    string
-	Description string
-	IsPost      bool
-	Active      string
-	Message     string
-	CsrfToken   string
-	Hits        int
-	Type        string
-	Keyword     string
-	MaxFileSize int
+	Title            string
+	Keywords         string
+	Description      string
+	IsPost           bool
+	Active           string
+	Message          string
+	CsrfToken        string
+	Hits             int
+	Type             string
+	Keyword          string
+	MaxFileSize      int
+	AccessKeyEnabled bool
+	EncryptedAccess  bool
+	AccessExpiresAt  int64
 
 	LoginUser *model.User
 	Article   *model.Content
