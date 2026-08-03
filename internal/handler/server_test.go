@@ -3,7 +3,10 @@ package handler_test
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"io"
@@ -64,6 +67,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		DBMaxIdleConns:       10,
 		DBConnMaxLifetime:    30 * time.Minute,
 		SessionSecret:        "integration-test-secret-0123456789abcdef",
+		AccessKey:            "integration-reader-key",
 		UploadDir:            filepath.Join(tempDirectory, "upload"),
 		HitFlushEvery:        100,
 		RateLimitRPS:         100_000,
@@ -141,6 +145,9 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`fluid-leaf-canvas`,
 		`class="fluid-board fluid-index-board"`,
 		`id="color-toggle"`,
+		`id="access-key-toggle"`,
+		`id="access-key-modal"`,
+		`导入访问密钥`,
 	} {
 		if !strings.Contains(string(homeHTML), marker) {
 			t.Fatalf("home page missing UI marker %q", marker)
@@ -596,6 +603,36 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if err := services.Publish(privateContent); err != nil {
 		t.Fatal(err)
 	}
+	configuredAccessKey := runtimeConfig.AccessKey
+	runtimeConfig.AccessKey = ""
+	disabledEncryptedContent := &model.Content{
+		Title:      "Disabled encrypted article",
+		Content:    "Must not persist without an access key.",
+		AuthorID:   1,
+		Type:       model.TypeArticle,
+		Status:     model.TypeEncrypted,
+		Categories: "disabled-encrypted-category",
+	}
+	if err := services.Publish(disabledEncryptedContent); err == nil {
+		t.Fatal("encrypted article persisted while BLOG_ACCESS_KEY was disabled")
+	}
+	runtimeConfig.AccessKey = configuredAccessKey
+	encryptedContent := &model.Content{
+		Title:        "Encrypted Article",
+		Slug:         "encrypted-article",
+		Content:      "Encrypted content.",
+		AuthorID:     1,
+		Type:         model.TypeArticle,
+		Status:       model.TypeEncrypted,
+		Categories:   "integration-encrypted-category",
+		Tags:         "integration-encrypted-tag",
+		AllowComment: true,
+		AllowPing:    true,
+		AllowFeed:    true,
+	}
+	if err := services.Publish(encryptedContent); err != nil {
+		t.Fatal(err)
+	}
 	homeAfterPrivate, err := http.Get(testServer.URL + "/")
 	if err != nil {
 		t.Fatal(err)
@@ -608,6 +645,9 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if strings.Contains(string(homeAfterPrivateBody), "Private Article") {
 		t.Fatal("private article appeared on the public home page")
 	}
+	if strings.Contains(string(homeAfterPrivateBody), "Encrypted Article") {
+		t.Fatal("encrypted article appeared on the public home page without access")
+	}
 	searchAfterPrivate, err := http.Get(testServer.URL + "/search/Private")
 	if err != nil {
 		t.Fatal(err)
@@ -619,6 +659,214 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	if strings.Contains(string(searchAfterPrivateBody), "Private Article") {
 		t.Fatal("private article appeared in public search results")
+	}
+	encryptedPublicPaths := []string{
+		"/search/Encrypted",
+		"/archives",
+		"/category/integration-encrypted-category",
+		"/tag/integration-encrypted-tag",
+		"/topics",
+	}
+	for _, path := range encryptedPublicPaths {
+		publicResponse, requestErr := http.Get(testServer.URL + path)
+		if requestErr != nil {
+			t.Fatalf("GET %s: %v", path, requestErr)
+		}
+		publicBody, readErr := io.ReadAll(publicResponse.Body)
+		_ = publicResponse.Body.Close()
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if strings.Contains(string(publicBody), "Encrypted Article") {
+			t.Fatalf("encrypted article leaked at %s without access", path)
+		}
+	}
+	encryptedDirectResponse, err := http.Get(testServer.URL + "/article/encrypted-article")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = encryptedDirectResponse.Body.Close()
+	if encryptedDirectResponse.StatusCode != http.StatusNotFound {
+		t.Fatalf("encrypted article status = %d, want 404 without access", encryptedDirectResponse.StatusCode)
+	}
+	unauthorizedCommentClient := newCookieClient(t)
+	unauthorizedCommentToken := fetchCSRFToken(t, unauthorizedCommentClient, testServer.URL+"/")
+	unauthorizedCommentRequest, err := http.NewRequest(
+		http.MethodPost,
+		testServer.URL+"/comment",
+		strings.NewReader(url.Values{
+			"cid":         {strconv.Itoa(encryptedContent.Cid)},
+			"author":      {"visitor"},
+			"text":        {"unauthorized encrypted comment"},
+			"_csrf_token": {unauthorizedCommentToken},
+		}.Encode()),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unauthorizedCommentRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	unauthorizedCommentRequest.Header.Set("Referer", testServer.URL+"/")
+	unauthorizedCommentResponse, err := unauthorizedCommentClient.Do(unauthorizedCommentRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var unauthorizedCommentResult handler.RestResponse
+	if err := json.NewDecoder(unauthorizedCommentResponse.Body).Decode(&unauthorizedCommentResult); err != nil {
+		_ = unauthorizedCommentResponse.Body.Close()
+		t.Fatal(err)
+	}
+	_ = unauthorizedCommentResponse.Body.Close()
+	if unauthorizedCommentResult.Success {
+		t.Fatal("unauthorized visitor commented on encrypted article")
+	}
+	accessClient := newCookieClient(t)
+	invalidAccessResult, invalidCookies := postPublicAccessKey(
+		t,
+		accessClient,
+		testServer.URL,
+		"wrong-reader-key",
+	)
+	if invalidAccessResult.Success || len(invalidCookies) != 0 {
+		t.Fatalf("invalid access key result/cookies = %#v/%#v", invalidAccessResult, invalidCookies)
+	}
+	validAccessResult, validCookies := postPublicAccessKey(
+		t,
+		accessClient,
+		testServer.URL,
+		runtimeConfig.AccessKey,
+	)
+	if !validAccessResult.Success {
+		t.Fatalf("valid access key failed: %s", validAccessResult.Msg)
+	}
+	validAccessPayload, ok := validAccessResult.Payload.(map[string]interface{})
+	if !ok {
+		t.Fatalf("valid access payload type = %T", validAccessResult.Payload)
+	}
+	expiresAt, ok := validAccessPayload["expiresAt"].(float64)
+	now := time.Now().Unix()
+	if !ok || int64(expiresAt) < now+24*60*60-5 || int64(expiresAt) > now+24*60*60+5 {
+		t.Fatalf("access expiry = %v, want about 24 hours from now", validAccessPayload["expiresAt"])
+	}
+	accessCookie := findCookie(validCookies, "BLOG_ARTICLE_ACCESS")
+	if accessCookie == nil {
+		t.Fatal("valid access key did not set access cookie")
+	}
+	if accessCookie.MaxAge != 24*60*60 || !accessCookie.HttpOnly ||
+		accessCookie.SameSite != http.SameSiteLaxMode {
+		t.Fatalf("access cookie flags invalid: %#v", accessCookie)
+	}
+	if strings.Contains(accessCookie.Value, runtimeConfig.AccessKey) {
+		t.Fatal("access cookie contains the plaintext access key")
+	}
+	for _, path := range append([]string{"/", "/article/encrypted-article"}, encryptedPublicPaths...) {
+		authorizedResponse, requestErr := accessClient.Get(testServer.URL + path)
+		if requestErr != nil {
+			t.Fatalf("authorized GET %s: %v", path, requestErr)
+		}
+		authorizedBody, readErr := io.ReadAll(authorizedResponse.Body)
+		_ = authorizedResponse.Body.Close()
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if authorizedResponse.StatusCode != http.StatusOK ||
+			!strings.Contains(string(authorizedBody), "Encrypted Article") {
+			t.Fatalf("authorized encrypted article missing at %s status=%d", path, authorizedResponse.StatusCode)
+		}
+		if !strings.Contains(string(authorizedBody), "fluid-encrypted-badge") {
+			t.Fatalf("authorized encrypted article badge missing at %s", path)
+		}
+		if path == "/" && !strings.Contains(string(authorizedBody), "加密文章已解锁") {
+			t.Fatal("authorized homepage is missing unlocked access state")
+		}
+		if value := authorizedResponse.Header.Get("Cache-Control"); value != "private, no-store" {
+			t.Fatalf("authorized response cache control = %q, want private, no-store", value)
+		}
+	}
+	keyVisitorPrivateResponse, err := accessClient.Get(testServer.URL + "/article/private-article")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = keyVisitorPrivateResponse.Body.Close()
+	if keyVisitorPrivateResponse.StatusCode != http.StatusNotFound {
+		t.Fatalf("key visitor private article status = %d, want 404", keyVisitorPrivateResponse.StatusCode)
+	}
+	expiredClient := newCookieClient(t)
+	expiredURL, _ := url.Parse(testServer.URL)
+	expiredClient.Jar.SetCookies(expiredURL, []*http.Cookie{
+		signedAccessCookie(runtimeConfig.SessionSecret, runtimeConfig.AccessKey, time.Now().Add(-time.Minute).Unix()),
+	})
+	expiredResponse, err := expiredClient.Get(testServer.URL + "/article/encrypted-article")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = expiredResponse.Body.Close()
+	if expiredResponse.StatusCode != http.StatusNotFound {
+		t.Fatalf("expired access cookie status = %d, want 404", expiredResponse.StatusCode)
+	}
+	rotatedKeyClient := newCookieClient(t)
+	rotatedKeyClient.Jar.SetCookies(expiredURL, []*http.Cookie{
+		signedAccessCookie(runtimeConfig.SessionSecret, "previous-reader-key", time.Now().Add(time.Hour).Unix()),
+	})
+	rotatedKeyResponse, err := rotatedKeyClient.Get(testServer.URL + "/article/encrypted-article")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = rotatedKeyResponse.Body.Close()
+	if rotatedKeyResponse.StatusCode != http.StatusNotFound {
+		t.Fatalf("rotated access key cookie status = %d, want 404", rotatedKeyResponse.StatusCode)
+	}
+	tamperedClient := newCookieClient(t)
+	tamperedCookie := signedAccessCookie(
+		runtimeConfig.SessionSecret,
+		runtimeConfig.AccessKey,
+		time.Now().Add(time.Hour).Unix(),
+	)
+	tamperedCookie.Value += "tampered"
+	tamperedClient.Jar.SetCookies(expiredURL, []*http.Cookie{tamperedCookie})
+	tamperedResponse, err := tamperedClient.Get(testServer.URL + "/article/encrypted-article")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = tamperedResponse.Body.Close()
+	if tamperedResponse.StatusCode != http.StatusNotFound {
+		t.Fatalf("tampered access cookie status = %d, want 404", tamperedResponse.StatusCode)
+	}
+	adminEncryptedResponse, err := client.Get(testServer.URL + "/article/encrypted-article")
+	if err != nil {
+		t.Fatal(err)
+	}
+	adminEncryptedBody, err := io.ReadAll(adminEncryptedResponse.Body)
+	_ = adminEncryptedResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if adminEncryptedResponse.StatusCode != http.StatusOK ||
+		!strings.Contains(string(adminEncryptedBody), "Encrypted Article") {
+		t.Fatalf("admin cannot view encrypted article: status=%d", adminEncryptedResponse.StatusCode)
+	}
+	adminHomeResponse, err := client.Get(testServer.URL + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	adminHomeBody, err := io.ReadAll(adminHomeResponse.Body)
+	_ = adminHomeResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(adminHomeBody), "Encrypted Article") {
+		t.Fatal("admin homepage does not include encrypted article")
+	}
+	revokeResult := postPublicAccessRevoke(t, accessClient, testServer.URL)
+	if !revokeResult.Success {
+		t.Fatalf("revoke access failed: %s", revokeResult.Msg)
+	}
+	revokedResponse, err := accessClient.Get(testServer.URL + "/article/encrypted-article")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = revokedResponse.Body.Close()
+	if revokedResponse.StatusCode != http.StatusNotFound {
+		t.Fatalf("revoked access status = %d, want 404", revokedResponse.StatusCode)
 	}
 	privateResponse, err := unauthenticatedClient.Get(testServer.URL + "/article/private-article")
 	if err != nil {
@@ -784,11 +1032,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 
 func authenticatedClient(t *testing.T, baseURL, username, password string) *http.Client {
 	t.Helper()
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	client := &http.Client{Jar: jar, Timeout: 5 * time.Second}
+	client := newCookieClient(t)
 	response, err := client.Get(baseURL + "/admin/login")
 	if err != nil {
 		t.Fatal(err)
@@ -829,6 +1073,120 @@ func authenticatedClient(t *testing.T, baseURL, username, password string) *http
 		t.Fatalf("login failed: %s", result.Msg)
 	}
 	return client
+}
+
+func newCookieClient(t *testing.T) *http.Client {
+	t.Helper()
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &http.Client{Jar: jar, Timeout: 5 * time.Second}
+}
+
+func postPublicAccessKey(
+	t *testing.T,
+	client *http.Client,
+	baseURL, accessKey string,
+) (handler.RestResponse, []*http.Cookie) {
+	t.Helper()
+	csrf := fetchCSRFToken(t, client, baseURL+"/")
+	request, err := http.NewRequest(
+		http.MethodPost,
+		baseURL+"/access-key",
+		strings.NewReader(url.Values{
+			"accessKey":   {accessKey},
+			"_csrf_token": {csrf},
+		}.Encode()),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("Referer", baseURL+"/")
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var result handler.RestResponse
+	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	return result, response.Cookies()
+}
+
+func postPublicAccessRevoke(
+	t *testing.T,
+	client *http.Client,
+	baseURL string,
+) handler.RestResponse {
+	t.Helper()
+	csrf := fetchCSRFToken(t, client, baseURL+"/")
+	request, err := http.NewRequest(
+		http.MethodPost,
+		baseURL+"/access-key/revoke",
+		strings.NewReader(url.Values{"_csrf_token": {csrf}}.Encode()),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("Referer", baseURL+"/")
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var result handler.RestResponse
+	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	return result
+}
+
+func fetchCSRFToken(t *testing.T, client *http.Client, target string) string {
+	t.Helper()
+	response, err := client.Get(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := io.ReadAll(response.Body)
+	_ = response.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	match := csrfPattern.FindSubmatch(body)
+	if len(match) != 2 {
+		t.Fatalf("%s has no CSRF token", target)
+	}
+	return string(match[1])
+}
+
+func findCookie(cookies []*http.Cookie, name string) *http.Cookie {
+	for _, cookie := range cookies {
+		if cookie.Name == name {
+			return cookie
+		}
+	}
+	return nil
+}
+
+func signedAccessCookie(sessionSecret, accessKey string, expiry int64) *http.Cookie {
+	sessionKey := sha256.Sum256([]byte(sessionSecret))
+	sign := func(payload string) string {
+		mac := hmac.New(sha256.New, sessionKey[:])
+		_, _ = mac.Write([]byte(payload))
+		return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+	}
+	scope := sign("article-access|" + accessKey)
+	payload := scope + "|" + strconv.FormatInt(expiry, 10)
+	value := base64.RawURLEncoding.EncodeToString([]byte(payload + "|" + sign(payload)))
+	return &http.Cookie{
+		Name:  "BLOG_ARTICLE_ACCESS",
+		Value: value,
+		Path:  "/",
+	}
 }
 
 func postAdminForm(t *testing.T, client *http.Client, baseURL, path, csrfPath string, values url.Values) handler.RestResponse {

@@ -77,9 +77,12 @@
         <select name="status">
             <option value="publish" {{if and $c (eq $c.Status "publish")}}selected{{end}}>发布</option>
             <option value="draft" {{if and $c (eq $c.Status "draft")}}selected{{end}}>草稿</option>
+            {{if or .AccessKeyEnabled (and $c (eq $c.Status "encrypted"))}}
+            <option value="encrypted" {{if and $c (eq $c.Status "encrypted")}}selected{{end}}>加密（管理员和密钥访客可见）</option>
+            {{end}}
             <option value="private" {{if and $c (eq $c.Status "private")}}selected{{end}}>私密（仅登录管理员可见）</option>
         </select>
-        <p class="help-block">私密文章不会出现在首页、搜索、归档、分类或标签列表；只有登录后台的管理员能通过文章地址查看。</p>
+        <p class="help-block">加密文章只对管理员和已导入有效密钥的访客展示；私密文章仅管理员可见。两者都不会泄露给未授权访客。</p>
         </div>
         <div class="article-editor-actions">
         <button type="submit" class="btn btn-primary">保存</button>

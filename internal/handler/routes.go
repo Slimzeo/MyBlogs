@@ -7,19 +7,21 @@ import (
 )
 
 type PublicRouteHandlers struct {
-	Index          gin.HandlerFunc
-	IndexPage      gin.HandlerFunc
-	Article        gin.HandlerFunc
-	ArticlePreview gin.HandlerFunc
-	Comment        gin.HandlerFunc
-	Category       gin.HandlerFunc
-	Tag            gin.HandlerFunc
-	Search         gin.HandlerFunc
-	Topics         gin.HandlerFunc
-	Notes          gin.HandlerFunc
-	Archives       gin.HandlerFunc
-	Links          gin.HandlerFunc
-	Logout         gin.HandlerFunc
+	Index           gin.HandlerFunc
+	IndexPage       gin.HandlerFunc
+	Article         gin.HandlerFunc
+	ArticlePreview  gin.HandlerFunc
+	Comment         gin.HandlerFunc
+	Category        gin.HandlerFunc
+	Tag             gin.HandlerFunc
+	Search          gin.HandlerFunc
+	Topics          gin.HandlerFunc
+	Notes           gin.HandlerFunc
+	Archives        gin.HandlerFunc
+	Links           gin.HandlerFunc
+	Logout          gin.HandlerFunc
+	ImportAccessKey gin.HandlerFunc
+	RevokeAccessKey gin.HandlerFunc
 }
 
 type AdminRouteHandlers struct {
@@ -84,19 +86,21 @@ func (server *Server) RouteHandlers() RouteHandlers {
 		AdminAuth: server.sessions.RequireAdmin(),
 		AdminCSRF: middleware.ValidateCSRF(server.sessions),
 		Public: PublicRouteHandlers{
-			Index:          server.index,
-			IndexPage:      server.indexPage,
-			Article:        server.article,
-			ArticlePreview: server.articlePreview,
-			Comment:        server.comment,
-			Category:       server.category,
-			Tag:            server.tag,
-			Search:         server.search,
-			Topics:         server.topics,
-			Notes:          server.notesPage,
-			Archives:       server.archives,
-			Links:          server.links,
-			Logout:         server.publicLogout,
+			Index:           server.index,
+			IndexPage:       server.indexPage,
+			Article:         server.article,
+			ArticlePreview:  server.articlePreview,
+			Comment:         server.comment,
+			Category:        server.category,
+			Tag:             server.tag,
+			Search:          server.search,
+			Topics:          server.topics,
+			Notes:           server.notesPage,
+			Archives:        server.archives,
+			Links:           server.links,
+			Logout:          server.publicLogout,
+			ImportAccessKey: server.importAccessKey,
+			RevokeAccessKey: server.revokeAccessKey,
 		},
 		Admin: AdminRouteHandlers{
 			Login:              server.adminLogin,

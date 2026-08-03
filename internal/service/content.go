@@ -16,6 +16,9 @@ func (s *Service) Publish(c *model.Content) error {
 	if !validContentStatus(c.Type, c.Status) {
 		return Tip("文章状态不合法")
 	}
+	if c.Status == model.TypeEncrypted && strings.TrimSpace(s.cfg.AccessKey) == "" {
+		return Tip("请先配置BLOG_ACCESS_KEY再保存加密文章")
+	}
 	if strings.TrimSpace(c.Title) == "" {
 		return Tip("文章标题不能为空")
 	}
@@ -77,21 +80,23 @@ func (s *Service) Publish(c *model.Content) error {
 }
 
 // GetContents paginates published articles. Mirrors getContents(p, limit).
-func (s *Service) GetContents(page, limit int) *PageInfo[model.Content] {
+func (s *Service) GetContents(page, limit int, includeEncrypted bool) *PageInfo[model.Content] {
 	key := "contents:" + strconv.FormatUint(s.contentListVersion.Load(), 10) +
-		":" + strconv.Itoa(page) + ":" + strconv.Itoa(limit)
+		":" + visibilityCacheKey(includeEncrypted) + ":" +
+		strconv.Itoa(page) + ":" + strconv.Itoa(limit)
 	if cached, exists := s.cache.Get(key); exists {
 		return cached.(*PageInfo[model.Content])
 	}
 	value, _, _ := s.sf.Do(key, func() (any, error) {
+		statuses := publicArticleStatuses(includeEncrypted)
 		var total int64
 		query := s.db.Model(&model.Content{}).
-			Where("type = ? AND status = ?", model.TypeArticle, model.TypePublish)
+			Where("type = ? AND status IN ?", model.TypeArticle, statuses)
 		if err := query.Count(&total).Error; err != nil {
 			return NewPageInfo([]model.Content{}, page, limit, 0), err
 		}
 		var data []model.Content
-		err := s.db.Where("type = ? AND status = ?", model.TypeArticle, model.TypePublish).
+		err := s.db.Where("type = ? AND status IN ?", model.TypeArticle, statuses).
 			Order("created desc").Offset((page - 1) * limit).Limit(limit).Find(&data).Error
 		result := NewPageInfo(data, page, limit, total)
 		if err == nil {
@@ -148,13 +153,14 @@ func (s *Service) GetContentByID(id string) (*model.Content, error) {
 
 // GetArticlesByMeta paginates published articles under a category/tag mid.
 // Mirrors getArticles(mid, page, limit) + ContentVoMapper.findByCatalog.
-func (s *Service) GetArticlesByMeta(mid, page, limit int) *PageInfo[model.Content] {
-	total := s.countArticlesByMeta(mid)
+func (s *Service) GetArticlesByMeta(mid, page, limit int, includeEncrypted bool) *PageInfo[model.Content] {
+	statuses := publicArticleStatuses(includeEncrypted)
+	total := s.countArticlesByMeta(mid, includeEncrypted)
 	var list []model.Content
 	s.db.Table("t_contents a").
 		Select("a.*").
 		Joins("left join t_relationships b on a.cid = b.cid").
-		Where("b.mid = ? AND a.status = ? AND a.type = ?", mid, model.TypePublish, model.TypeArticle).
+		Where("b.mid = ? AND a.status IN ? AND a.type = ?", mid, statuses, model.TypeArticle).
 		Order("a.created desc").
 		Offset((page - 1) * limit).Limit(limit).
 		Scan(&list)
@@ -163,14 +169,15 @@ func (s *Service) GetArticlesByMeta(mid, page, limit int) *PageInfo[model.Conten
 
 // SearchArticles paginates published articles whose title matches keyword.
 // Mirrors getArticles(keyword, page, limit).
-func (s *Service) SearchArticles(keyword string, page, limit int) *PageInfo[model.Content] {
+func (s *Service) SearchArticles(keyword string, page, limit int, includeEncrypted bool) *PageInfo[model.Content] {
 	like := "%" + keyword + "%"
+	statuses := publicArticleStatuses(includeEncrypted)
 	var total int64
 	s.db.Model(&model.Content{}).
-		Where("type = ? AND status = ? AND title LIKE ?", model.TypeArticle, model.TypePublish, like).
+		Where("type = ? AND status IN ? AND title LIKE ?", model.TypeArticle, statuses, like).
 		Count(&total)
 	var list []model.Content
-	s.db.Where("type = ? AND status = ? AND title LIKE ?", model.TypeArticle, model.TypePublish, like).
+	s.db.Where("type = ? AND status IN ? AND title LIKE ?", model.TypeArticle, statuses, like).
 		Order("created desc").Offset((page - 1) * limit).Limit(limit).Find(&list)
 	return NewPageInfo(list, page, limit, total)
 }
@@ -213,6 +220,9 @@ func (s *Service) UpdateArticle(c *model.Content) error {
 	}
 	if !validContentStatus(c.Type, c.Status) {
 		return Tip("文章状态不合法")
+	}
+	if c.Status == model.TypeEncrypted && strings.TrimSpace(s.cfg.AccessKey) == "" {
+		return Tip("请先配置BLOG_ACCESS_KEY再保存加密文章")
 	}
 	if strings.TrimSpace(c.Title) == "" {
 		return Tip("文章标题不能为空")
@@ -278,9 +288,24 @@ func (s *Service) UpdateArticle(c *model.Content) error {
 
 func validContentStatus(contentType, status string) bool {
 	switch status {
-	case model.TypePublish, model.TypeDraft, model.TypePrivate:
-		return status != model.TypePrivate || contentType == model.TypeArticle
+	case model.TypePublish, model.TypeDraft, model.TypePrivate, model.TypeEncrypted:
+		return (status != model.TypePrivate && status != model.TypeEncrypted) ||
+			contentType == model.TypeArticle
 	default:
 		return false
 	}
+}
+
+func publicArticleStatuses(includeEncrypted bool) []string {
+	if includeEncrypted {
+		return []string{model.TypePublish, model.TypeEncrypted}
+	}
+	return []string{model.TypePublish}
+}
+
+func visibilityCacheKey(includeEncrypted bool) string {
+	if includeEncrypted {
+		return "with-encrypted"
+	}
+	return "public"
 }

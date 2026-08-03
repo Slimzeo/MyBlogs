@@ -65,7 +65,7 @@ func (server *Server) adminLogout(context *gin.Context) {
 func (server *Server) adminIndex(context *gin.Context) {
 	data := server.baseData(context, "管理首页", "index")
 	data.RecentComments = server.service.RecentComments(5)
-	data.RecentArticles = server.service.RecentContents(5)
+	data.RecentArticles = server.service.RecentContents(5, true)
 	data.Statistics = server.service.GetStatistics()
 	data.Logs = server.service.GetLogs(1, 5)
 	server.render(context, http.StatusOK, "admin/index", data)

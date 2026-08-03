@@ -32,6 +32,7 @@ type Config struct {
 	// Security
 	SessionSecret string // cookie session signing key
 	CookieSecure  bool   // mark auth cookies Secure when TLS terminates at the app or proxy
+	AccessKey     string // optional key granting 24-hour access to encrypted articles
 
 	// Behaviour
 	UploadDir            string // where uploaded attachments are written
@@ -63,6 +64,7 @@ func Load() *Config {
 
 		SessionSecret: env("BLOG_SESSION_SECRET", ""),
 		CookieSecure:  envBool("BLOG_COOKIE_SECURE", false),
+		AccessKey:     strings.TrimSpace(env("BLOG_ACCESS_KEY", "")),
 
 		UploadDir:            env("BLOG_UPLOAD_DIR", "data/upload"),
 		NotesDir:             env("BLOG_NOTES_DIR", "notes"),
@@ -100,6 +102,9 @@ func (c *Config) Validate() error {
 	}
 	if c.DBDriver == "mysql" && strings.TrimSpace(c.DBDSN) == "" {
 		return errors.New("BLOG_DB_DSN must be set when BLOG_DB_DRIVER=mysql")
+	}
+	if c.AccessKey != "" && len([]rune(c.AccessKey)) < 16 {
+		return errors.New("BLOG_ACCESS_KEY must contain at least 16 characters when set")
 	}
 	bootstrapConfigured := c.AdminUsername != "" || c.AdminEmail != "" || c.AdminInitialPassword != ""
 	if bootstrapConfigured {

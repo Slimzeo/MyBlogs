@@ -19,12 +19,12 @@ func (s *Service) RecentComments(limit int) []model.Comment {
 }
 
 // RecentContents returns the newest published articles (clamped 0-10). Mirrors recentContents.
-func (s *Service) RecentContents(limit int) []model.Content {
+func (s *Service) RecentContents(limit int, includeEncrypted bool) []model.Content {
 	if limit < 0 || limit > 10 {
 		limit = 10
 	}
 	var list []model.Content
-	s.db.Where("status = ? AND type = ?", model.TypePublish, model.TypeArticle).
+	s.db.Where("status IN ? AND type = ?", publicArticleStatuses(includeEncrypted), model.TypeArticle).
 		Order("created desc").Limit(limit).Find(&list)
 	return list
 }
@@ -44,25 +44,26 @@ func (s *Service) GetStatistics() model.StatisticsBo {
 // GetArchives groups published articles by month. Mirrors getArchives +
 // ContentVoMapper.findReturnArchiveBo. Wrapped in singleflight so a burst of
 // concurrent /archives requests only runs the aggregation once.
-func (s *Service) GetArchives() []model.ArchiveBo {
-	key := "archives:" + strconv.FormatUint(s.contentListVersion.Load(), 10)
+func (s *Service) GetArchives(includeEncrypted bool) []model.ArchiveBo {
+	key := "archives:" + strconv.FormatUint(s.contentListVersion.Load(), 10) +
+		":" + visibilityCacheKey(includeEncrypted)
 	if cached, exists := s.cache.Get(key); exists {
 		return cached.([]model.ArchiveBo)
 	}
 	v, _, _ := s.sf.Do(key, func() (interface{}, error) {
-		archives := s.buildArchives()
+		archives := s.buildArchives(includeEncrypted)
 		s.cache.Set(key, archives, 30)
 		return archives, nil
 	})
 	return v.([]model.ArchiveBo)
 }
 
-func (s *Service) buildArchives() []model.ArchiveBo {
+func (s *Service) buildArchives(includeEncrypted bool) []model.ArchiveBo {
 	// Pull all published articles once, then bucket in Go. This avoids the
 	// DB-specific FROM_UNIXTIME used by the original SQL and works on both
 	// SQLite and MySQL identically.
 	var articles []model.Content
-	s.db.Where("type = ? AND status = ?", model.TypeArticle, model.TypePublish).
+	s.db.Where("type = ? AND status IN ?", model.TypeArticle, publicArticleStatuses(includeEncrypted)).
 		Order("created desc").Find(&articles)
 
 	buckets := map[string][]model.Content{}

@@ -8,14 +8,14 @@ import (
 
 // GetPublishedTopicGroups builds the public category tree in two reads:
 // first the visible categories, then their published article relationships.
-func (s *Service) GetPublishedTopicGroups(metaLimit, articleLimit int) []model.TopicGroup {
+func (s *Service) GetPublishedTopicGroups(metaLimit, articleLimit int, includeEncrypted bool) []model.TopicGroup {
 	if metaLimit < 1 || metaLimit > model.MaxPosts {
 		metaLimit = 50
 	}
 	if articleLimit < 1 || articleLimit > model.MaxPosts {
 		articleLimit = 20
 	}
-	metas := s.GetPublishedMetaList(model.TypeCategory, metaLimit)
+	metas := s.GetPublishedMetaList(model.TypeCategory, metaLimit, includeEncrypted)
 	if len(metas) == 0 {
 		return nil
 	}
@@ -47,8 +47,8 @@ func (s *Service) GetPublishedTopicGroups(metaLimit, articleLimit int) []model.T
 
 	var articles []model.Content
 	if err := s.db.Where(
-		"cid IN ? AND type = ? AND status = ?",
-		articleIDs, model.TypeArticle, model.TypePublish,
+		"cid IN ? AND type = ? AND status IN ?",
+		articleIDs, model.TypeArticle, publicArticleStatuses(includeEncrypted),
 	).Order("created desc").Find(&articles).Error; err != nil {
 		return nil
 	}
@@ -92,11 +92,12 @@ func (s *Service) GetMeta(typ, name string) *model.MetaDto {
 	return &dto
 }
 
-func (s *Service) countArticlesByMeta(mid int) int {
+func (s *Service) countArticlesByMeta(mid int, includeEncrypted bool) int {
 	var count int64
 	s.db.Table("t_contents a").
 		Joins("left join t_relationships b on a.cid = b.cid").
-		Where("b.mid = ? AND a.status = ? AND a.type = ?", mid, model.TypePublish, model.TypeArticle).
+		Where("b.mid = ? AND a.status IN ? AND a.type = ?",
+			mid, publicArticleStatuses(includeEncrypted), model.TypeArticle).
 		Count(&count)
 	return int(count)
 }
@@ -137,7 +138,7 @@ func (s *Service) GetMetaList(typ, orderBy string, limit int) []model.MetaDto {
 // GetPublishedMetaList lists public categories/tags with only published
 // article counts. It is used by the public homepage, so drafts and private
 // articles do not affect the numbers shown to visitors.
-func (s *Service) GetPublishedMetaList(typ string, limit int) []model.MetaDto {
+func (s *Service) GetPublishedMetaList(typ string, limit int, includeEncrypted bool) []model.MetaDto {
 	if strings.TrimSpace(typ) == "" {
 		return nil
 	}
@@ -148,7 +149,8 @@ func (s *Service) GetPublishedMetaList(typ string, limit int) []model.MetaDto {
 	s.db.Table("t_metas a").
 		Select("a.*, count(distinct c.cid) as count").
 		Joins("left join t_relationships b on a.mid = b.mid").
-		Joins("left join t_contents c on c.cid = b.cid AND c.type = ? AND c.status = ?", model.TypeArticle, model.TypePublish).
+		Joins("left join t_contents c on c.cid = b.cid AND c.type = ? AND c.status IN ?",
+			model.TypeArticle, publicArticleStatuses(includeEncrypted)).
 		Where("a.type = ?", typ).
 		Group("a.mid").
 		Having("count(distinct c.cid) > 0").

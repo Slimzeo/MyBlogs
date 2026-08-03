@@ -17,10 +17,12 @@ import (
 )
 
 const (
-	sessionCookie  = "BLOG_SESSION"
-	userContextKey = "login_user"
-	sessionMaxAge  = 12 * time.Hour
-	rememberMaxAge = 30 * 24 * time.Hour
+	sessionCookie       = "BLOG_SESSION"
+	articleAccessCookie = "BLOG_ARTICLE_ACCESS"
+	userContextKey      = "login_user"
+	sessionMaxAge       = 12 * time.Hour
+	rememberMaxAge      = 30 * 24 * time.Hour
+	articleAccessMaxAge = 24 * time.Hour
 )
 
 // SessionManager uses a signed, stateless cookie. It avoids a shared session
@@ -83,6 +85,46 @@ func (manager *SessionManager) Logout(context *gin.Context) {
 	manager.setCookie(context, model.UserInCookie, "", -1, true)
 }
 
+func (manager *SessionManager) GrantArticleAccess(context *gin.Context, accessKey string) int64 {
+	expiry := time.Now().Add(articleAccessMaxAge).Unix()
+	scope := manager.articleAccessScope(accessKey)
+	payload := scope + "|" + strconv.FormatInt(expiry, 10)
+	value := base64.RawURLEncoding.EncodeToString([]byte(payload + "|" + manager.sign(payload)))
+	manager.setCookie(context, articleAccessCookie, value, int(articleAccessMaxAge.Seconds()), true)
+	return expiry
+}
+
+func (manager *SessionManager) ArticleAccessExpiry(request *http.Request, accessKey string) int64 {
+	if strings.TrimSpace(accessKey) == "" {
+		return 0
+	}
+	cookie, err := request.Cookie(articleAccessCookie)
+	if err != nil {
+		return 0
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(cookie.Value)
+	if err != nil {
+		return 0
+	}
+	parts := strings.Split(string(raw), "|")
+	if len(parts) != 3 || parts[0] != manager.articleAccessScope(accessKey) {
+		return 0
+	}
+	payload := parts[0] + "|" + parts[1]
+	if !hmac.Equal([]byte(parts[2]), []byte(manager.sign(payload))) {
+		return 0
+	}
+	expiry, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil || expiry <= time.Now().Unix() {
+		return 0
+	}
+	return expiry
+}
+
+func (manager *SessionManager) RevokeArticleAccess(context *gin.Context) {
+	manager.setCookie(context, articleAccessCookie, "", -1, true)
+}
+
 func (manager *SessionManager) NewCSRFToken(path string) string {
 	expiry := strconv.FormatInt(time.Now().Add(30*time.Minute).Unix(), 10)
 	payload := path + "|" + expiry + "|" + util.Token()
@@ -138,6 +180,10 @@ func (manager *SessionManager) sign(payload string) string {
 	mac := hmac.New(sha256.New, manager.key)
 	_, _ = mac.Write([]byte(payload))
 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+}
+
+func (manager *SessionManager) articleAccessScope(accessKey string) string {
+	return manager.sign("article-access|" + accessKey)
 }
 
 func (manager *SessionManager) setCookie(context *gin.Context, name, value string, maxAge int, httpOnly bool) {

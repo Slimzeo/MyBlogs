@@ -6,6 +6,7 @@
     <meta name="renderer" content="webkit"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="theme-color" content="#2f4154"/>
+    <meta name="csrf-token" content="{{.CsrfToken}}"/>
     <meta name="keywords" content="{{if .Keywords}}{{.Keywords}}{{else}}{{siteOption "site_keywords" ""}}{{end}}"/>
     <meta name="description" content="{{if .Description}}{{.Description}}{{else}}{{siteOption "site_description" ""}}{{end}}"/>
     <link rel="shortcut icon" href="/user/img/favicon.png"/>
@@ -36,7 +37,9 @@
     {{end}}
     <link href="/user/css/fluid.css" rel="stylesheet"/>
 </head>
-<body class="fluid-theme fluid-font-{{siteOption "theme_font" "wenkai"}}">
+<body class="fluid-theme fluid-font-{{siteOption "theme_font" "wenkai"}}"
+      data-encrypted-access="{{if .EncryptedAccess}}1{{else}}0{{end}}"
+      data-access-expires-at="{{.AccessExpiresAt}}">
 <div id="reading-progress" class="fluid-progress" aria-hidden="true"></div>
 <header class="fluid-header">
     <nav id="navbar" class="fluid-navbar" aria-label="主导航">
@@ -54,6 +57,18 @@
                 <button id="search-toggle" class="fluid-nav-button" type="button" aria-label="搜索">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
                 </button>
+                {{if .AccessKeyEnabled}}
+                <button id="access-key-toggle" class="fluid-nav-button{{if .EncryptedAccess}} is-authorized{{end}}" type="button"
+                        aria-label="{{if .EncryptedAccess}}加密文章已授权{{else}}导入访问密钥{{end}}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        {{if .EncryptedAccess}}
+                        <path d="M7 10V7a5 5 0 0 1 9.4-2.4"></path><path d="M5 10h14v10H5Z"></path><path d="M12 14v2"></path>
+                        {{else}}
+                        <path d="M7 10V7a5 5 0 0 1 10 0v3"></path><path d="M5 10h14v10H5Z"></path><path d="M12 14v2"></path>
+                        {{end}}
+                    </svg>
+                </button>
+                {{end}}
                 <button id="color-toggle" class="fluid-nav-button" type="button" aria-label="切换颜色模式">
                     <svg class="fluid-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.2A8 8 0 0 1 8.8 4 8 8 0 1 0 20 15.2Z"></path></svg>
                     <svg class="fluid-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
@@ -74,6 +89,7 @@
                 <div class="fluid-banner-title">{{.Article.Title}}</div>
                 {{if .IsPost}}
                 <div class="fluid-banner-meta">
+                    {{if eq .Article.Status "encrypted"}}<span class="fluid-encrypted-badge fluid-encrypted-badge-light">加密</span><span>·</span>{{end}}
                     <span>{{fmtdate .Article.Created}}</span>
                     <span>·</span>
                     <span>{{.Hits}} 次阅读</span>
@@ -108,4 +124,29 @@
         </form>
     </div>
 </div>
+{{if .AccessKeyEnabled}}
+<div id="access-key-modal" class="fluid-search-modal fluid-access-modal" role="dialog" aria-modal="true" aria-label="加密文章访问">
+    <div class="fluid-search-box fluid-access-box">
+        <button id="access-key-close" class="fluid-search-close" type="button" aria-label="关闭">×</button>
+        <span class="fluid-eyebrow">PRIVATE READING</span>
+        <h2>{{if .EncryptedAccess}}加密文章已解锁{{else}}导入访问密钥{{end}}</h2>
+        {{if .LoginUser}}
+        <p class="fluid-access-copy">当前管理员身份始终可以查看加密文章，不受访客密钥有效期限制。</p>
+        {{else if .EncryptedAccess}}
+        <p class="fluid-access-copy">当前浏览器可以查看加密文章。授权自导入起有效 24 小时，到期后需要重新导入。</p>
+        <form id="access-key-revoke-form">
+            <button class="fluid-access-submit fluid-access-revoke" type="submit">撤销本机授权</button>
+        </form>
+        {{else}}
+        <p class="fluid-access-copy">密钥只用于本次验证，不会保存在页面或服务器数据库中。通过后将在此浏览器保存 24 小时签名授权。</p>
+        <form id="access-key-form">
+            <input id="access-key-input" name="accessKey" type="password" placeholder="输入访问密钥"
+                   autocomplete="off" minlength="16" required/>
+            <button class="fluid-access-submit" type="submit">导入密钥</button>
+        </form>
+        {{end}}
+        <p id="access-key-status" class="fluid-access-status" aria-live="polite"></p>
+    </div>
+</div>
+{{end}}
 {{end}}

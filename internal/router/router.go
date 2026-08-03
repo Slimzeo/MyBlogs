@@ -24,7 +24,7 @@ func New(applicationHandler *handler.Server, staticRoot string) *gin.Engine {
 	engine.GET("/readyz", routes.Ready)
 	engine.Use(routes.IssueCSRF)
 
-	registerPublicRoutes(engine, routes.Public)
+	registerPublicRoutes(engine, routes.Public, routes.AdminCSRF)
 	registerAdminRoutes(engine, routes.Admin, routes.AdminAuth, routes.AdminCSRF)
 	engine.NoRoute(routes.NotFound)
 	return engine

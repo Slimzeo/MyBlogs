@@ -17,6 +17,7 @@
             <a class="fluid-archive-item" href="{{permalink $article}}">
                 <time>{{fmtdate $article.Created}}</time>
                 <span>{{$article.Title}}</span>
+                {{if eq $article.Status "encrypted"}}<span class="fluid-encrypted-badge">加密</span>{{end}}
             </a>
             {{end}}
         </div>

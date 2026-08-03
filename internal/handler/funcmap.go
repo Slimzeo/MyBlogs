@@ -51,6 +51,8 @@ func buildFuncMap(sc *SiteConfig) template.FuncMap {
 				return "草稿"
 			case model.TypePrivate:
 				return "私密"
+			case model.TypeEncrypted:
+				return "加密"
 			default:
 				return status
 			}
@@ -71,7 +73,7 @@ func buildFuncMap(sc *SiteConfig) template.FuncMap {
 		"notesPath": func(path string) string {
 			return "/notes/" + strings.Trim(path, "/")
 		},
-		"dict":      dict,
+		"dict": dict,
 		"default": func(def, val string) string {
 			if strings.TrimSpace(val) == "" {
 				return def

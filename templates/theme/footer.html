@@ -16,6 +16,11 @@
         var pendingPages = new Map();
         var prefetchTimers = new Map();
         var maxCachedPages = 6;
+        var accessExpiryTimer = 0;
+
+        function hasEncryptedAccess() {
+            return document.body.dataset.encryptedAccess === '1';
+        }
 
         function setColorScheme(scheme) {
             root.dataset.colorScheme = scheme;
@@ -30,11 +35,13 @@
                 main: documentNode.querySelector('#fluid-page-main'),
                 title: documentNode.querySelector('title'),
                 description: documentNode.querySelector('meta[name=description]'),
-                keywords: documentNode.querySelector('meta[name=keywords]')
+                keywords: documentNode.querySelector('meta[name=keywords]'),
+                csrf: documentNode.querySelector('meta[name=csrf-token]')
             };
         }
 
         function cachePage(url, documentNode) {
+            if (hasEncryptedAccess()) return;
             pageCache.set(url, documentNode);
             while (pageCache.size > maxCachedPages) pageCache.delete(pageCache.keys().next().value);
         }
@@ -44,6 +51,7 @@
             if (pendingPages.has(url)) return pendingPages.get(url);
             var request = fetch(url, {
                 credentials: 'same-origin',
+                cache: hasEncryptedAccess() ? 'no-store' : 'default',
                 headers: {'X-Fluid-Prefetch': '1'}
             }).then(function (response) {
                 if (!response.ok) throw new Error('page request failed');
@@ -90,13 +98,15 @@
             current.banner.replaceWith(next.banner.cloneNode(true));
             current.main.replaceWith(next.main.cloneNode(true));
             if (current.title && next.title) document.title = next.title.textContent;
-            ['description', 'keywords'].forEach(function (name) {
+            ['description', 'keywords', 'csrf'].forEach(function (name) {
                 var currentMeta = current[name];
                 var nextMeta = next[name];
                 if (!currentMeta || !nextMeta) return;
                 currentMeta.setAttribute('content', nextMeta.getAttribute('content') || '');
             });
             document.body.className = documentNode.body.className;
+            document.body.dataset.encryptedAccess = documentNode.body.dataset.encryptedAccess || '0';
+            document.body.dataset.accessExpiresAt = documentNode.body.dataset.accessExpiresAt || '0';
             document.body.classList.add('fluid-page-enter');
             window.setTimeout(function () {
                 document.body.classList.remove('fluid-page-enter');
@@ -169,6 +179,64 @@
             searchModal.classList.toggle('is-open', open);
             document.body.style.overflow = open ? 'hidden' : '';
             if (open && searchInput) window.setTimeout(function () { searchInput.focus(); }, 50);
+        }
+
+        function toggleAccessModal(open) {
+            var accessModal = document.getElementById('access-key-modal');
+            var accessInput = document.getElementById('access-key-input');
+            if (!accessModal) return;
+            accessModal.classList.toggle('is-open', open);
+            document.body.style.overflow = open ? 'hidden' : '';
+            if (open && accessInput) window.setTimeout(function () { accessInput.focus(); }, 50);
+        }
+
+        function scheduleAccessExpiry() {
+            window.clearTimeout(accessExpiryTimer);
+            if (!hasEncryptedAccess()) return;
+            var expiry = Number(document.body.dataset.accessExpiresAt || 0) * 1000;
+            if (expiry <= 0) return;
+            var remaining = expiry - Date.now();
+            if (remaining <= 0) {
+                pageCache.clear();
+                window.location.reload();
+                return;
+            }
+            accessExpiryTimer = window.setTimeout(function () {
+                pageCache.clear();
+                window.location.reload();
+            }, Math.min(remaining + 1000, 2147483647));
+        }
+
+        function submitAccessForm(form, revoke) {
+            var status = document.getElementById('access-key-status');
+            var button = form.querySelector('button[type=submit]');
+            if (button) button.disabled = true;
+            if (status) {
+                status.classList.remove('is-error');
+                status.textContent = revoke ? '正在撤销…' : '正在验证…';
+            }
+            fetch(revoke ? '/access-key/revoke' : '/access-key', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.content || ''
+                },
+                body: revoke ? '' : new URLSearchParams(new FormData(form))
+            }).then(function (response) {
+                return response.json();
+            }).then(function (result) {
+                if (!result || !result.success) throw new Error((result && result.msg) || '密钥验证失败');
+                pageCache.clear();
+                window.location.reload();
+            }).catch(function (error) {
+                if (status) {
+                    status.classList.add('is-error');
+                    status.textContent = error.message || '密钥验证失败';
+                }
+            }).finally(function () {
+                if (button) button.disabled = false;
+            });
         }
 
         function mountComments() {
@@ -357,7 +425,13 @@
             var searchModal = document.getElementById('search-modal');
             var searchClose = document.getElementById('search-close');
             var searchForm = document.getElementById('site-search-form');
+            var accessToggle = document.getElementById('access-key-toggle');
+            var accessModal = document.getElementById('access-key-modal');
+            var accessClose = document.getElementById('access-key-close');
+            var accessForm = document.getElementById('access-key-form');
+            var accessRevokeForm = document.getElementById('access-key-revoke-form');
             var scrollDown = document.getElementById('scroll-down');
+            scheduleAccessExpiry();
 
             if (colorToggle && !colorToggle.dataset.fluidBound) {
                 colorToggle.dataset.fluidBound = '1';
@@ -399,6 +473,34 @@
                     toggleSearchModal(false);
                 });
             }
+            if (accessToggle && !accessToggle.dataset.fluidBound) {
+                accessToggle.dataset.fluidBound = '1';
+                accessToggle.addEventListener('click', function () { toggleAccessModal(true); });
+            }
+            if (accessClose && !accessClose.dataset.fluidBound) {
+                accessClose.dataset.fluidBound = '1';
+                accessClose.addEventListener('click', function () { toggleAccessModal(false); });
+            }
+            if (accessModal && !accessModal.dataset.fluidBound) {
+                accessModal.dataset.fluidBound = '1';
+                accessModal.addEventListener('click', function (event) {
+                    if (event.target === accessModal) toggleAccessModal(false);
+                });
+            }
+            if (accessForm && !accessForm.dataset.fluidBound) {
+                accessForm.dataset.fluidBound = '1';
+                accessForm.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    submitAccessForm(accessForm, false);
+                });
+            }
+            if (accessRevokeForm && !accessRevokeForm.dataset.fluidBound) {
+                accessRevokeForm.dataset.fluidBound = '1';
+                accessRevokeForm.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    submitAccessForm(accessRevokeForm, true);
+                });
+            }
             if (scrollDown && !scrollDown.dataset.fluidBound) {
                 scrollDown.dataset.fluidBound = '1';
                 scrollDown.addEventListener('click', function () {
@@ -417,7 +519,10 @@
                 window.fluidScrollBound = true;
                 window.addEventListener('scroll', updateScrollUI, {passive: true});
                 document.addEventListener('keydown', function (event) {
-                    if (event.key === 'Escape') toggleSearchModal(false);
+                    if (event.key === 'Escape') {
+                        toggleSearchModal(false);
+                        toggleAccessModal(false);
+                    }
                     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
                         event.preventDefault();
                         toggleSearchModal(true);

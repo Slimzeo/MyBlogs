@@ -9,6 +9,7 @@ const (
 	TypePage         = "page"
 	TypeDraft        = "draft"
 	TypePrivate      = "private"
+	TypeEncrypted    = "encrypted"
 	TypeLink         = "link"
 	TypeImage        = "image"
 	TypeFile         = "file"

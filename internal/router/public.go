@@ -5,7 +5,7 @@ import (
 	"myblog/internal/handler"
 )
 
-func registerPublicRoutes(engine *gin.Engine, routes handler.PublicRouteHandlers) {
+func registerPublicRoutes(engine *gin.Engine, routes handler.PublicRouteHandlers, csrf gin.HandlerFunc) {
 	engine.GET("/", routes.Index)
 	engine.GET("/index", routes.Index)
 	engine.GET("/page/:page", routes.IndexPage)
@@ -24,4 +24,6 @@ func registerPublicRoutes(engine *gin.Engine, routes handler.PublicRouteHandlers
 	engine.GET("/archives", routes.Archives)
 	engine.GET("/links", routes.Links)
 	engine.GET("/logout", routes.Logout)
+	engine.POST("/access-key", csrf, routes.ImportAccessKey)
+	engine.POST("/access-key/revoke", csrf, routes.RevokeAccessKey)
 }
