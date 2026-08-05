@@ -15,6 +15,12 @@
     .article-import-file-name{min-width:0;overflow:hidden;color:var(--admin-muted);font-size:12px;text-overflow:ellipsis;white-space:nowrap}
     .article-import-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .article-import-fields input{margin-bottom:10px}
+    .article-meta-field{min-width:0}
+    .article-meta-picker{display:flex;margin:-5px 0 12px;flex-wrap:wrap;gap:6px}
+    .article-meta-option{display:inline-flex;min-height:27px;padding:0 9px;align-items:center;border:1px solid #d9e0eb;border-radius:999px;color:var(--admin-muted);background:#fff;cursor:pointer;font-size:11px;transition:border-color .16s ease,color .16s ease,background .16s ease}
+    .article-meta-option:hover{border-color:#9db2df;color:var(--admin-primary);background:#f8fbff}
+    .article-meta-option.is-selected{border-color:rgba(59,103,217,.45);color:var(--admin-primary);background:#eef4ff}
+    .article-meta-empty{margin:-4px 0 12px;color:var(--admin-muted);font-size:11px}
     .article-import-help{margin:0 0 12px}
     .article-import-actions{display:flex;align-items:center;gap:10px}
     @media (max-width:560px){.article-import-fields{grid-template-columns:1fr}}
@@ -37,13 +43,23 @@
             </label>
         </div>
         <div class="article-import-fields">
-            <div>
-                <label>标签（可选，逗号分隔）</label>
-                <input type="text" name="tags" placeholder="Go,Blog"/>
+            <div class="article-meta-field">
+                <label for="import-tags">标签（可选，可新建）</label>
+                <input id="import-tags" type="text" name="tags" placeholder="Go,Blog"/>
+                {{if .Tags}}
+                <div class="article-meta-picker" data-meta-target="import-tags" aria-label="已有标签">
+                    {{range $meta := .Tags}}<button class="article-meta-option" type="button" data-meta-value="{{$meta.Name}}">{{$meta.Name}} · {{$meta.Count}}</button>{{end}}
+                </div>
+                {{else}}<p class="article-meta-empty">还没有标签，可直接输入新标签。</p>{{end}}
             </div>
-            <div>
-                <label>分类（可选，逗号分隔）</label>
-                <input type="text" name="categories" value="默认分类"/>
+            <div class="article-meta-field">
+                <label for="import-categories">分类（可选，可新建）</label>
+                <input id="import-categories" type="text" name="categories" value="默认分类"/>
+                {{if .Categories}}
+                <div class="article-meta-picker" data-meta-target="import-categories" aria-label="已有分类">
+                    {{range $meta := .Categories}}<button class="article-meta-option" type="button" data-meta-value="{{$meta.Name}}">{{$meta.Name}} · {{$meta.Count}}</button>{{end}}
+                </div>
+                {{else}}<p class="article-meta-empty">还没有分类，将使用“默认分类”。</p>{{end}}
             </div>
         </div>
         <p class="help-block article-import-help">ZIP 内必须有且只有一个 Markdown 文件；同级图片和附件会自动上传，导入后默认保存为草稿。</p>
@@ -65,6 +81,41 @@
         var archiveFile = document.getElementById('archive-file');
         var archiveFileName = document.getElementById('archive-file-name');
         if (!trigger || !importBox || !importForm || !importStatus || !archiveFile || !archiveFileName) return;
+
+        function metaValues(input) {
+            return input.value.split(/[,，]/).map(function (value) {
+                return value.trim();
+            }).filter(Boolean);
+        }
+
+        function syncMetaPicker(picker) {
+            var input = document.getElementById(picker.dataset.metaTarget);
+            if (!input) return;
+            var selected = new Set(metaValues(input));
+            picker.querySelectorAll('.article-meta-option').forEach(function (button) {
+                button.classList.toggle('is-selected', selected.has(button.dataset.metaValue));
+            });
+        }
+
+        document.querySelectorAll('.article-meta-picker').forEach(function (picker) {
+            var input = document.getElementById(picker.dataset.metaTarget);
+            if (!input || picker.dataset.metaBound === '1') return;
+            picker.dataset.metaBound = '1';
+            picker.addEventListener('click', function (event) {
+                var button = event.target.closest('.article-meta-option');
+                if (!button) return;
+                var values = metaValues(input);
+                var value = button.dataset.metaValue;
+                var index = values.indexOf(value);
+                if (index >= 0) values.splice(index, 1);
+                else values.push(value);
+                input.value = values.join(',');
+                input.dispatchEvent(new Event('input', {bubbles: true}));
+                input.focus();
+            });
+            input.addEventListener('input', function () { syncMetaPicker(picker); });
+            syncMetaPicker(picker);
+        });
 
         trigger.addEventListener('click', function () {
             importBox.classList.toggle('is-open');

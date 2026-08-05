@@ -67,10 +67,24 @@
         <p class="article-editor-help">可以直接把截图或图片粘贴到左侧，也可以拖进左侧编辑区；上传完成后会自动插入图片 Markdown。Enter 换段，Shift+Enter 半换行。</p>
         <input id="image-file-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp" hidden/>
         <div class="article-editor-fields">
-        <label>标签 (逗号分隔)</label>
-        <input type="text" name="tags" value="{{if $c}}{{$c.Tags}}{{end}}" placeholder="Go,Blog"/>
-        <label>分类 (逗号分隔)</label>
-        <input type="text" name="categories" value="{{if $c}}{{$c.Categories}}{{else}}默认分类{{end}}"/>
+        <div class="article-meta-field">
+            <label for="article-tags">标签（逗号分隔，可新建）</label>
+            <input id="article-tags" type="text" name="tags" value="{{if $c}}{{$c.Tags}}{{end}}" placeholder="Go,Blog"/>
+            {{if .Tags}}
+            <div class="article-meta-picker" data-meta-target="article-tags" aria-label="已有标签">
+                {{range $meta := .Tags}}<button class="article-meta-option" type="button" data-meta-value="{{$meta.Name}}">{{$meta.Name}} · {{$meta.Count}}</button>{{end}}
+            </div>
+            {{else}}<p class="article-meta-empty">还没有标签，输入新名称后保存文章会自动创建。</p>{{end}}
+        </div>
+        <div class="article-meta-field">
+            <label for="article-categories">分类（逗号分隔，可新建）</label>
+            <input id="article-categories" type="text" name="categories" value="{{if $c}}{{$c.Categories}}{{else}}默认分类{{end}}"/>
+            {{if .Categories}}
+            <div class="article-meta-picker" data-meta-target="article-categories" aria-label="已有分类">
+                {{range $meta := .Categories}}<button class="article-meta-option" type="button" data-meta-value="{{$meta.Name}}">{{$meta.Name}} · {{$meta.Count}}</button>{{end}}
+            </div>
+            {{else}}<p class="article-meta-empty">还没有分类，保存时将使用“默认分类”。</p>{{end}}
+        </div>
         <label>自定义路径 slug (可选, 至少5位)</label>
         <input type="text" name="slug" value="{{if $c}}{{$c.Slug}}{{end}}"/>
         <label>状态</label>
