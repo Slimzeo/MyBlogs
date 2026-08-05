@@ -58,6 +58,10 @@ func (s *Service) Publish(c *model.Content) error {
 
 	tags := c.Tags
 	categories := c.Categories
+	c.Tags = normalizeMetaNames(tags)
+	c.Categories = normalizeMetaNames(categories)
+	tags = c.Tags
+	categories = c.Categories
 
 	// One transaction: insert content + attach its metas/relationships.
 	err := s.db.Transaction(func(tx txLike) error {
@@ -246,6 +250,10 @@ func (s *Service) UpdateArticle(c *model.Content) error {
 	cid := c.Cid
 	tags := c.Tags
 	categories := c.Categories
+	c.Tags = normalizeMetaNames(tags)
+	c.Categories = normalizeMetaNames(categories)
+	tags = c.Tags
+	categories = c.Categories
 
 	var original model.Content
 	_ = s.db.First(&original, cid).Error

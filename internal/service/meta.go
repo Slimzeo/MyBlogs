@@ -307,11 +307,7 @@ func (s *Service) saveMetasTx(tx txLike, cid int, names, typ string) error {
 	if strings.TrimSpace(names) == "" || strings.TrimSpace(typ) == "" {
 		return nil
 	}
-	for _, name := range strings.Split(names, ",") {
-		name = strings.TrimSpace(name)
-		if name == "" {
-			continue
-		}
+	for _, name := range splitMetaNames(names) {
 		if err := s.saveOrUpdateMetaTx(tx, cid, name, typ); err != nil {
 			return err
 		}
@@ -337,10 +333,9 @@ func (s *Service) saveOrUpdateMetaTx(tx txLike, cid int, name, typ string) error
 
 // reMeta removes `name` from a comma-separated list. Mirrors MetaServiceImpl.reMeta.
 func reMeta(name, metas string) string {
-	parts := strings.Split(metas, ",")
 	var kept []string
-	for _, m := range parts {
-		if m != name && m != "" {
+	for _, m := range splitMetaNames(metas) {
+		if m != name {
 			kept = append(kept, m)
 		}
 	}
@@ -348,11 +343,33 @@ func reMeta(name, metas string) string {
 }
 
 func replaceMeta(oldName, newName, metas string) string {
-	parts := strings.Split(metas, ",")
+	parts := splitMetaNames(metas)
 	for index := range parts {
-		if strings.TrimSpace(parts[index]) == oldName {
+		if parts[index] == oldName {
 			parts[index] = newName
 		}
 	}
 	return strings.Join(parts, ",")
+}
+
+func normalizeMetaNames(value string) string {
+	return strings.Join(splitMetaNames(value), ",")
+}
+
+func splitMetaNames(value string) []string {
+	value = strings.ReplaceAll(value, "，", ",")
+	seen := make(map[string]struct{})
+	names := make([]string, 0)
+	for _, candidate := range strings.Split(value, ",") {
+		name := strings.TrimSpace(candidate)
+		if name == "" {
+			continue
+		}
+		if _, exists := seen[name]; exists {
+			continue
+		}
+		seen[name] = struct{}{}
+		names = append(names, name)
+	}
+	return names
 }

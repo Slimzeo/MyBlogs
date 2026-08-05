@@ -138,12 +138,13 @@ func (server *Server) adminArticleList(context *gin.Context) {
 	limit := clampLimit(queryInt(context, "limit", 15), 15, 100)
 	data := server.baseData(context, "文章管理", "article")
 	data.Articles = server.service.ArticlesByTypePaged(model.TypeArticle, page, limit)
+	server.loadArticleMetas(&data)
 	server.render(context, http.StatusOK, "admin/article_list", data)
 }
 
 func (server *Server) adminArticleNew(context *gin.Context) {
 	data := server.baseData(context, "发表文章", "article")
-	data.Links = server.service.GetMetas(model.TypeCategory)
+	server.loadArticleMetas(&data)
 	server.render(context, http.StatusOK, "admin/article_edit", data)
 }
 
@@ -155,7 +156,13 @@ func (server *Server) adminArticleEdit(context *gin.Context) {
 	}
 	data := server.baseData(context, "编辑文章", "article")
 	data.Contents = content
+	server.loadArticleMetas(&data)
 	server.render(context, http.StatusOK, "admin/article_edit", data)
+}
+
+func (server *Server) loadArticleMetas(data *PageData) {
+	data.Categories = server.service.GetMetaList(model.TypeCategory, "a.mid asc", model.MaxPosts)
+	data.Tags = server.service.GetMetaList(model.TypeTag, "a.mid asc", model.MaxPosts)
 }
 
 func (server *Server) adminArticlePublish(context *gin.Context) {

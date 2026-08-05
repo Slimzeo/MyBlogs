@@ -328,6 +328,11 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`id="archive-file"`,
 		`id="archive-file-name"`,
 		`article-import-file-picker`,
+		`data-meta-target="article-tags"`,
+		`data-meta-target="article-categories"`,
+		`data-meta-value="Go"`,
+		`data-meta-value="默认分类"`,
+		`value="encrypted"`,
 		`/admin/article/import`,
 		`clipboardData`,
 		`data-action="image"`,
@@ -350,6 +355,10 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`class="article-import-file-picker"`,
 		`id="archive-file"`,
 		`id="archive-file-name"`,
+		`data-meta-target="import-tags"`,
+		`data-meta-target="import-categories"`,
+		`data-meta-value="Go"`,
+		`data-meta-value="默认分类"`,
 		`/admin/article/import`,
 	} {
 		if !strings.Contains(string(articleListHTML), marker) {
@@ -450,6 +459,49 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if !strings.Contains(string(categoryPageBody), "integration-category") ||
 		!strings.Contains(string(categoryPageBody), "integration-tag") {
 		t.Fatal("category/tag create did not persist")
+	}
+	for _, marker := range []string{
+		`id="tag-mid"`,
+		`class="btn btn-default btn-sm rename-meta"`,
+		`data-meta-type="tag"`,
+		`新增/重命名标签`,
+	} {
+		if !strings.Contains(string(categoryPageBody), marker) {
+			t.Fatalf("category/tag management missing marker %q", marker)
+		}
+	}
+
+	normalizedMetaContent := &model.Content{
+		Title:        "Normalized Meta Article",
+		Content:      "Metadata normalization.",
+		AuthorID:     1,
+		Type:         model.TypeArticle,
+		Status:       model.TypeDraft,
+		Categories:   "默认分类，integration-category，integration-category",
+		Tags:         "integration-tag，fresh-tag,integration-tag",
+		AllowComment: true,
+		AllowPing:    true,
+		AllowFeed:    true,
+	}
+	if err := services.Publish(normalizedMetaContent); err != nil {
+		t.Fatal(err)
+	}
+	if normalizedMetaContent.Categories != "默认分类,integration-category" ||
+		normalizedMetaContent.Tags != "integration-tag,fresh-tag" {
+		t.Fatalf(
+			"metadata not normalized: categories=%q tags=%q",
+			normalizedMetaContent.Categories,
+			normalizedMetaContent.Tags,
+		)
+	}
+	var normalizedRelationships int64
+	if err := database.Model(&model.Relationship{}).
+		Where("cid = ?", normalizedMetaContent.Cid).
+		Count(&normalizedRelationships).Error; err != nil {
+		t.Fatal(err)
+	}
+	if normalizedRelationships != 4 {
+		t.Fatalf("normalized relationships = %d, want 4", normalizedRelationships)
 	}
 
 	var contentsBeforeImport int64
