@@ -891,7 +891,12 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	expiredClient := newCookieClient(t)
 	expiredURL, _ := url.Parse(testServer.URL)
 	expiredClient.Jar.SetCookies(expiredURL, []*http.Cookie{
-		signedAccessCookie(runtimeConfig.SessionSecret, runtimeConfig.AccessKey, time.Now().Add(-time.Minute).Unix()),
+		signedAccessCookie(
+			runtimeConfig.SessionSecret,
+			runtimeConfig.AccessKey,
+			"127.0.0.1",
+			time.Now().Add(-time.Minute).Unix(),
+		),
 	})
 	expiredResponse, err := expiredClient.Get(testServer.URL + "/article/encrypted-article")
 	if err != nil {
@@ -903,7 +908,12 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	rotatedKeyClient := newCookieClient(t)
 	rotatedKeyClient.Jar.SetCookies(expiredURL, []*http.Cookie{
-		signedAccessCookie(runtimeConfig.SessionSecret, "previous-reader-key", time.Now().Add(time.Hour).Unix()),
+		signedAccessCookie(
+			runtimeConfig.SessionSecret,
+			"previous-reader-key",
+			"127.0.0.1",
+			time.Now().Add(time.Hour).Unix(),
+		),
 	})
 	rotatedKeyResponse, err := rotatedKeyClient.Get(testServer.URL + "/article/encrypted-article")
 	if err != nil {
@@ -917,6 +927,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	tamperedCookie := signedAccessCookie(
 		runtimeConfig.SessionSecret,
 		runtimeConfig.AccessKey,
+		"127.0.0.1",
 		time.Now().Add(time.Hour).Unix(),
 	)
 	tamperedCookie.Value += "tampered"
@@ -928,6 +939,55 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	_ = tamperedResponse.Body.Close()
 	if tamperedResponse.StatusCode != http.StatusNotFound {
 		t.Fatalf("tampered access cookie status = %d, want 404", tamperedResponse.StatusCode)
+	}
+	ipBoundCookie := signedAccessCookie(
+		runtimeConfig.SessionSecret,
+		runtimeConfig.AccessKey,
+		"203.0.113.10",
+		time.Now().Add(time.Hour).Unix(),
+	)
+	ipBoundRequest, err := http.NewRequest(
+		http.MethodGet,
+		testServer.URL+"/article/encrypted-article",
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ipBoundRequest.AddCookie(ipBoundCookie)
+	ipBoundRequest.Header.Set("X-Real-IP", "203.0.113.11")
+	ipBoundRequest.Header.Set("X-Forwarded-For", "203.0.113.10")
+	ipBoundResponse, err := http.DefaultClient.Do(ipBoundRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = ipBoundResponse.Body.Close()
+	if ipBoundResponse.StatusCode != http.StatusNotFound {
+		t.Fatalf("access cookie reused from another IP status = %d, want 404", ipBoundResponse.StatusCode)
+	}
+	sameIPRequest, err := http.NewRequest(
+		http.MethodGet,
+		testServer.URL+"/article/encrypted-article",
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sameIPRequest.AddCookie(ipBoundCookie)
+	sameIPRequest.Header.Set("X-Real-IP", "203.0.113.10")
+	sameIPRequest.Header.Set("X-Forwarded-For", "198.51.100.99")
+	sameIPResponse, err := http.DefaultClient.Do(sameIPRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sameIPBody, err := io.ReadAll(sameIPResponse.Body)
+	_ = sameIPResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sameIPResponse.StatusCode != http.StatusOK ||
+		!strings.Contains(string(sameIPBody), "Encrypted Article") {
+		t.Fatalf("access cookie rejected on its bound IP status = %d", sameIPResponse.StatusCode)
 	}
 	adminEncryptedResponse, err := client.Get(testServer.URL + "/article/encrypted-article")
 	if err != nil {
@@ -1270,7 +1330,10 @@ func findCookie(cookies []*http.Cookie, name string) *http.Cookie {
 	return nil
 }
 
-func signedAccessCookie(sessionSecret, accessKey string, expiry int64) *http.Cookie {
+func signedAccessCookie(
+	sessionSecret, accessKey, clientIP string,
+	expiry int64,
+) *http.Cookie {
 	sessionKey := sha256.Sum256([]byte(sessionSecret))
 	sign := func(payload string) string {
 		mac := hmac.New(sha256.New, sessionKey[:])
@@ -1278,7 +1341,8 @@ func signedAccessCookie(sessionSecret, accessKey string, expiry int64) *http.Coo
 		return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 	}
 	scope := sign("article-access|" + accessKey)
-	payload := "v2|" + scope + "|" + strconv.FormatInt(expiry, 10)
+	ipScope := sign("article-access-ip|" + clientIP)
+	payload := "v3|" + scope + "|" + ipScope + "|" + strconv.FormatInt(expiry, 10)
 	value := base64.RawURLEncoding.EncodeToString([]byte(payload + "|" + sign(payload)))
 	return &http.Cookie{
 		Name:  "BLOG_ARTICLE_ACCESS",

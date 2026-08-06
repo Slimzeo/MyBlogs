@@ -20,7 +20,7 @@ const (
 	sessionCookie       = "BLOG_SESSION"
 	articleAccessCookie = "BLOG_ARTICLE_ACCESS"
 	sessionTokenVersion = "v2"
-	accessTokenVersion  = "v2"
+	accessTokenVersion  = "v3"
 	userContextKey      = "login_user"
 	sessionMaxAge       = 12 * time.Hour
 	rememberMaxAge      = 30 * 24 * time.Hour
@@ -92,7 +92,9 @@ func (manager *SessionManager) Logout(context *gin.Context) {
 func (manager *SessionManager) GrantArticleAccess(context *gin.Context, accessKey string) int64 {
 	expiry := time.Now().Add(articleAccessMaxAge).Unix()
 	scope := manager.articleAccessScope(accessKey)
-	payload := accessTokenVersion + "|" + scope + "|" + strconv.FormatInt(expiry, 10)
+	ipScope := manager.articleAccessIPScope(util.ClientIP(context.Request))
+	payload := accessTokenVersion + "|" + scope + "|" + ipScope + "|" +
+		strconv.FormatInt(expiry, 10)
 	value := base64.RawURLEncoding.EncodeToString([]byte(payload + "|" + manager.sign(payload)))
 	manager.setCookie(context, articleAccessCookie, value, int(articleAccessMaxAge.Seconds()), true)
 	return expiry
@@ -111,15 +113,16 @@ func (manager *SessionManager) ArticleAccessExpiry(request *http.Request, access
 		return 0
 	}
 	parts := strings.Split(string(raw), "|")
-	if len(parts) != 4 || parts[0] != accessTokenVersion ||
-		parts[1] != manager.articleAccessScope(accessKey) {
+	if len(parts) != 5 || parts[0] != accessTokenVersion ||
+		parts[1] != manager.articleAccessScope(accessKey) ||
+		parts[2] != manager.articleAccessIPScope(util.ClientIP(request)) {
 		return 0
 	}
-	payload := strings.Join(parts[:3], "|")
-	if !hmac.Equal([]byte(parts[3]), []byte(manager.sign(payload))) {
+	payload := strings.Join(parts[:4], "|")
+	if !hmac.Equal([]byte(parts[4]), []byte(manager.sign(payload))) {
 		return 0
 	}
-	expiry, err := strconv.ParseInt(parts[2], 10, 64)
+	expiry, err := strconv.ParseInt(parts[3], 10, 64)
 	if err != nil || expiry <= time.Now().Unix() {
 		return 0
 	}
@@ -189,6 +192,10 @@ func (manager *SessionManager) sign(payload string) string {
 
 func (manager *SessionManager) articleAccessScope(accessKey string) string {
 	return manager.sign("article-access|" + accessKey)
+}
+
+func (manager *SessionManager) articleAccessIPScope(clientIP string) string {
+	return manager.sign("article-access-ip|" + clientIP)
 }
 
 func (manager *SessionManager) setCookie(context *gin.Context, name, value string, maxAge int, httpOnly bool) {

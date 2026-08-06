@@ -135,12 +135,12 @@
         <p class="fluid-access-copy">当前管理员身份始终可以查看加密文章，不受访客密钥有效期限制。</p>
         <a class="fluid-access-submit fluid-access-revoke" href="/logout">退出管理员并清除本机授权</a>
         {{else if .EncryptedAccess}}
-        <p class="fluid-access-copy">当前浏览器可以查看加密文章。授权自导入起有效 24 小时，到期后需要重新导入。</p>
+        <p class="fluid-access-copy">当前浏览器与访问 IP 可以查看加密文章。授权自导入起有效 24 小时；切换网络或到期后需要重新导入。</p>
         <form id="access-key-revoke-form">
             <button class="fluid-access-submit fluid-access-revoke" type="submit">撤销本机授权</button>
         </form>
         {{else}}
-        <p class="fluid-access-copy">密钥只用于本次验证，不会保存在页面或服务器数据库中。通过后将在此浏览器保存 24 小时签名授权。</p>
+        <p class="fluid-access-copy">密钥只用于本次验证，不会保存在页面或服务器数据库中。通过后会向此浏览器签发绑定当前访问 IP 的 24 小时授权。</p>
         <form id="access-key-form">
             <input id="access-key-input" name="accessKey" type="password" placeholder="输入访问密钥"
                    autocomplete="off" minlength="16" required/>
