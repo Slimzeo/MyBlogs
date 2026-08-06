@@ -3,6 +3,7 @@ package util
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"net"
 	"net/http"
 	"strings"
 )
@@ -28,19 +29,21 @@ func UU32() string {
 
 // ClientIP extracts the caller IP, mirroring IPKit.getIpAddrByRequest.
 func ClientIP(r *http.Request) string {
-	for _, h := range []string{"x-forwarded-for", "Proxy-Client-IP", "WL-Proxy-Client-IP"} {
-		v := r.Header.Get(h)
-		if v != "" && !strings.EqualFold(v, "unknown") {
-			// x-forwarded-for may be a list; take the first.
-			if i := strings.IndexByte(v, ','); i >= 0 {
-				return strings.TrimSpace(v[:i])
+	if value := strings.TrimSpace(r.Header.Get("X-Real-IP")); net.ParseIP(value) != nil {
+		return value
+	}
+	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
+		parts := strings.Split(forwarded, ",")
+		for index := len(parts) - 1; index >= 0; index-- {
+			value := strings.TrimSpace(parts[index])
+			if net.ParseIP(value) != nil {
+				return value
 			}
-			return v
 		}
 	}
-	// RemoteAddr is host:port.
-	if i := strings.LastIndexByte(r.RemoteAddr, ':'); i >= 0 {
-		return r.RemoteAddr[:i]
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err == nil {
+		return host
 	}
 	return r.RemoteAddr
 }
