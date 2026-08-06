@@ -70,16 +70,22 @@ func (server *Server) issueCSRFToken() gin.HandlerFunc {
 }
 
 func (server *Server) render(context *gin.Context, status int, name string, data PageData) {
+	loginUser := server.sessions.User(context)
 	if data.LoginUser == nil {
-		data.LoginUser = server.sessions.User(context)
+		data.LoginUser = loginUser
 	}
 	if data.CsrfToken == "" {
 		if token, ok := context.Get("csrf_token"); ok {
 			data.CsrfToken, _ = token.(string)
 		}
 	}
-	if data.EncryptedAccess {
+	accessExpiry := server.sessions.ArticleAccessExpiry(context.Request, server.config.AccessKey)
+	data.AccessKeyEnabled = server.config.AccessKey != ""
+	data.EncryptedAccess = loginUser != nil || accessExpiry > 0
+	data.AccessExpiresAt = accessExpiry
+	if data.AccessKeyEnabled {
 		context.Header("Cache-Control", "private, no-store")
+		context.Header("Vary", "Cookie")
 	}
 	context.Status(status)
 	context.Header("Content-Type", "text/html; charset=utf-8")

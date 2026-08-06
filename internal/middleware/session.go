@@ -19,6 +19,8 @@ import (
 const (
 	sessionCookie       = "BLOG_SESSION"
 	articleAccessCookie = "BLOG_ARTICLE_ACCESS"
+	sessionTokenVersion = "v2"
+	accessTokenVersion  = "v2"
 	userContextKey      = "login_user"
 	sessionMaxAge       = 12 * time.Hour
 	rememberMaxAge      = 30 * 24 * time.Hour
@@ -74,7 +76,8 @@ func (manager *SessionManager) Login(context *gin.Context, user *model.User, rem
 		maxAge = rememberMaxAge
 	}
 	expiry := time.Now().Add(maxAge)
-	payload := strconv.Itoa(user.Uid) + "|" + strconv.FormatInt(expiry.Unix(), 10)
+	payload := sessionTokenVersion + "|" + strconv.Itoa(user.Uid) + "|" +
+		strconv.FormatInt(expiry.Unix(), 10)
 	value := base64.RawURLEncoding.EncodeToString([]byte(payload + "|" + manager.sign(payload)))
 	manager.setCookie(context, sessionCookie, value, int(maxAge.Seconds()), true)
 	context.Set(userContextKey, user)
@@ -83,12 +86,13 @@ func (manager *SessionManager) Login(context *gin.Context, user *model.User, rem
 func (manager *SessionManager) Logout(context *gin.Context) {
 	manager.setCookie(context, sessionCookie, "", -1, true)
 	manager.setCookie(context, model.UserInCookie, "", -1, true)
+	manager.RevokeArticleAccess(context)
 }
 
 func (manager *SessionManager) GrantArticleAccess(context *gin.Context, accessKey string) int64 {
 	expiry := time.Now().Add(articleAccessMaxAge).Unix()
 	scope := manager.articleAccessScope(accessKey)
-	payload := scope + "|" + strconv.FormatInt(expiry, 10)
+	payload := accessTokenVersion + "|" + scope + "|" + strconv.FormatInt(expiry, 10)
 	value := base64.RawURLEncoding.EncodeToString([]byte(payload + "|" + manager.sign(payload)))
 	manager.setCookie(context, articleAccessCookie, value, int(articleAccessMaxAge.Seconds()), true)
 	return expiry
@@ -107,14 +111,15 @@ func (manager *SessionManager) ArticleAccessExpiry(request *http.Request, access
 		return 0
 	}
 	parts := strings.Split(string(raw), "|")
-	if len(parts) != 3 || parts[0] != manager.articleAccessScope(accessKey) {
+	if len(parts) != 4 || parts[0] != accessTokenVersion ||
+		parts[1] != manager.articleAccessScope(accessKey) {
 		return 0
 	}
-	payload := parts[0] + "|" + parts[1]
-	if !hmac.Equal([]byte(parts[2]), []byte(manager.sign(payload))) {
+	payload := strings.Join(parts[:3], "|")
+	if !hmac.Equal([]byte(parts[3]), []byte(manager.sign(payload))) {
 		return 0
 	}
-	expiry, err := strconv.ParseInt(parts[1], 10, 64)
+	expiry, err := strconv.ParseInt(parts[2], 10, 64)
 	if err != nil || expiry <= time.Now().Unix() {
 		return 0
 	}
@@ -158,18 +163,18 @@ func (manager *SessionManager) userFromSession(request *http.Request) *model.Use
 		return nil
 	}
 	parts := strings.Split(string(raw), "|")
-	if len(parts) != 3 {
+	if len(parts) != 4 || parts[0] != sessionTokenVersion {
 		return nil
 	}
-	payload := parts[0] + "|" + parts[1]
-	if !hmac.Equal([]byte(parts[2]), []byte(manager.sign(payload))) {
+	payload := strings.Join(parts[:3], "|")
+	if !hmac.Equal([]byte(parts[3]), []byte(manager.sign(payload))) {
 		return nil
 	}
-	expiry, err := strconv.ParseInt(parts[1], 10, 64)
+	expiry, err := strconv.ParseInt(parts[2], 10, 64)
 	if err != nil || expiry <= time.Now().Unix() {
 		return nil
 	}
-	uid, err := strconv.Atoi(parts[0])
+	uid, err := strconv.Atoi(parts[1])
 	if err != nil {
 		return nil
 	}

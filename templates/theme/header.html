@@ -38,6 +38,7 @@
     <link href="/user/css/fluid.css" rel="stylesheet"/>
 </head>
 <body class="fluid-theme fluid-font-{{siteOption "theme_font" "wenkai"}}"
+      data-access-key-enabled="{{if .AccessKeyEnabled}}1{{else}}0{{end}}"
       data-encrypted-access="{{if .EncryptedAccess}}1{{else}}0{{end}}"
       data-access-expires-at="{{.AccessExpiresAt}}">
 <div id="reading-progress" class="fluid-progress" aria-hidden="true"></div>
@@ -132,6 +133,7 @@
         <h2>{{if .EncryptedAccess}}加密文章已解锁{{else}}导入访问密钥{{end}}</h2>
         {{if .LoginUser}}
         <p class="fluid-access-copy">当前管理员身份始终可以查看加密文章，不受访客密钥有效期限制。</p>
+        <a class="fluid-access-submit fluid-access-revoke" href="/logout">退出管理员并清除本机授权</a>
         {{else if .EncryptedAccess}}
         <p class="fluid-access-copy">当前浏览器可以查看加密文章。授权自导入起有效 24 小时，到期后需要重新导入。</p>
         <form id="access-key-revoke-form">

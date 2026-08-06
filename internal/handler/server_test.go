@@ -119,6 +119,12 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if value := homeResponse.Header.Get("Content-Security-Policy"); value == "" {
 		t.Fatal("home page is missing Content-Security-Policy")
 	}
+	if value := homeResponse.Header.Get("Cache-Control"); value != "private, no-store" {
+		t.Fatalf("access-controlled home cache control = %q, want private, no-store", value)
+	}
+	if value := homeResponse.Header.Get("Vary"); !strings.Contains(value, "Cookie") {
+		t.Fatalf("access-controlled home vary = %q, want Cookie", value)
+	}
 	staticResponse, err := http.Get(testServer.URL + "/user/css/fluid.css")
 	if err != nil {
 		t.Fatal(err)
@@ -675,7 +681,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		Content:      "Encrypted content.",
 		AuthorID:     1,
 		Type:         model.TypeArticle,
-		Status:       model.TypeEncrypted,
+		Status:       model.TypePublish,
 		Categories:   "integration-encrypted-category",
 		Tags:         "integration-encrypted-tag",
 		AllowComment: true,
@@ -683,6 +689,22 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		AllowFeed:    true,
 	}
 	if err := services.Publish(encryptedContent); err != nil {
+		t.Fatal(err)
+	}
+	publicBeforeEncryption, err := http.Get(testServer.URL + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	publicBeforeEncryptionBody, err := io.ReadAll(publicBeforeEncryption.Body)
+	_ = publicBeforeEncryption.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(publicBeforeEncryptionBody), "Encrypted Article") {
+		t.Fatal("published article did not appear before encryption transition")
+	}
+	encryptedContent.Status = model.TypeEncrypted
+	if err := services.UpdateArticle(encryptedContent); err != nil {
 		t.Fatal(err)
 	}
 	homeAfterPrivate, err := http.Get(testServer.URL + "/")
@@ -740,6 +762,9 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	_ = encryptedDirectResponse.Body.Close()
 	if encryptedDirectResponse.StatusCode != http.StatusNotFound {
 		t.Fatalf("encrypted article status = %d, want 404 without access", encryptedDirectResponse.StatusCode)
+	}
+	if value := encryptedDirectResponse.Header.Get("Cache-Control"); value != "private, no-store" {
+		t.Fatalf("encrypted 404 cache control = %q, want private, no-store", value)
 	}
 	unauthorizedCommentClient := newCookieClient(t)
 	unauthorizedCommentToken := fetchCSRFToken(t, unauthorizedCommentClient, testServer.URL+"/")
@@ -833,6 +858,27 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		if value := authorizedResponse.Header.Get("Cache-Control"); value != "private, no-store" {
 			t.Fatalf("authorized response cache control = %q, want private, no-store", value)
 		}
+	}
+	anonymousAfterUnlock, err := http.Get(testServer.URL + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	anonymousAfterUnlockBody, err := io.ReadAll(anonymousAfterUnlock.Body)
+	_ = anonymousAfterUnlock.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(anonymousAfterUnlockBody), "Encrypted Article") {
+		t.Fatal("authorized visitor leaked encrypted article into anonymous response cache")
+	}
+	freshAnonymousClient := newCookieClient(t)
+	freshAnonymousResponse, err := freshAnonymousClient.Get(testServer.URL + "/article/encrypted-article")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = freshAnonymousResponse.Body.Close()
+	if freshAnonymousResponse.StatusCode != http.StatusNotFound {
+		t.Fatalf("fresh anonymous status after another visitor unlock = %d, want 404", freshAnonymousResponse.StatusCode)
 	}
 	keyVisitorPrivateResponse, err := accessClient.Get(testServer.URL + "/article/private-article")
 	if err != nil {
@@ -1232,7 +1278,7 @@ func signedAccessCookie(sessionSecret, accessKey string, expiry int64) *http.Coo
 		return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 	}
 	scope := sign("article-access|" + accessKey)
-	payload := scope + "|" + strconv.FormatInt(expiry, 10)
+	payload := "v2|" + scope + "|" + strconv.FormatInt(expiry, 10)
 	value := base64.RawURLEncoding.EncodeToString([]byte(payload + "|" + sign(payload)))
 	return &http.Cookie{
 		Name:  "BLOG_ARTICLE_ACCESS",
