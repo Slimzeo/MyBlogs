@@ -29,21 +29,31 @@ func UU32() string {
 
 // ClientIP extracts the caller IP, mirroring IPKit.getIpAddrByRequest.
 func ClientIP(r *http.Request) string {
-	if value := strings.TrimSpace(r.Header.Get("X-Real-IP")); net.ParseIP(value) != nil {
-		return value
-	}
-	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
-		parts := strings.Split(forwarded, ",")
-		for index := len(parts) - 1; index >= 0; index-- {
-			value := strings.TrimSpace(parts[index])
-			if net.ParseIP(value) != nil {
-				return value
+	remoteIP := parseRemoteIP(r.RemoteAddr)
+	if remoteIP != nil && remoteIP.IsLoopback() {
+		if value := strings.TrimSpace(r.Header.Get("X-Real-IP")); net.ParseIP(value) != nil {
+			return value
+		}
+		if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
+			parts := strings.Split(forwarded, ",")
+			for index := len(parts) - 1; index >= 0; index-- {
+				value := strings.TrimSpace(parts[index])
+				if net.ParseIP(value) != nil {
+					return value
+				}
 			}
 		}
 	}
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err == nil {
-		return host
+	if remoteIP != nil {
+		return remoteIP.String()
 	}
 	return r.RemoteAddr
+}
+
+func parseRemoteIP(remoteAddr string) net.IP {
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		host = remoteAddr
+	}
+	return net.ParseIP(strings.TrimSpace(host))
 }

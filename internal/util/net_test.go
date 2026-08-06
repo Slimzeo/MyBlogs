@@ -36,3 +36,17 @@ func TestClientIPFallsBackToForwardedAndRemote(t *testing.T) {
 		t.Fatalf("ClientIP = %q, want remote host", got)
 	}
 }
+
+func TestClientIPIgnoresSpoofedProxyHeadersFromPublicPeer(t *testing.T) {
+	request, err := http.NewRequest(http.MethodGet, "http://example.com", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.RemoteAddr = "198.51.100.20:4321"
+	request.Header.Set("X-Real-IP", "203.0.113.10")
+	request.Header.Set("X-Forwarded-For", "203.0.113.10")
+
+	if got := ClientIP(request); got != "198.51.100.20" {
+		t.Fatalf("ClientIP = %q, want direct peer IP", got)
+	}
+}
