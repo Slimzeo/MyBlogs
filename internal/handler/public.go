@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -79,7 +80,23 @@ func (server *Server) canViewArticle(context *gin.Context, content *model.Conten
 		return true
 	}
 	if content.Status == model.TypeEncrypted {
-		return server.canAccessEncrypted(context)
+		if server.sessions.User(context) != nil {
+			log.Printf(
+				"encrypted article access cid=%d mode=admin client_ip=%s",
+				content.Cid,
+				util.ClientIP(context.Request),
+			)
+			return true
+		}
+		if server.sessions.ArticleAccessExpiry(context.Request, server.config.AccessKey) > 0 {
+			log.Printf(
+				"encrypted article access cid=%d mode=access_key client_ip=%s",
+				content.Cid,
+				util.ClientIP(context.Request),
+			)
+			return true
+		}
+		return false
 	}
 	return content.Status == model.TypePrivate && server.sessions.User(context) != nil
 }
@@ -304,6 +321,7 @@ func (server *Server) importAccessKey(context *gin.Context) {
 	}
 	server.service.Cache().Del(failureKey)
 	expiry := server.sessions.GrantArticleAccess(context, server.config.AccessKey)
+	log.Printf("encrypted article access granted client_ip=%s", util.ClientIP(context.Request))
 	respondOK(context, gin.H{"expiresAt": expiry})
 }
 
