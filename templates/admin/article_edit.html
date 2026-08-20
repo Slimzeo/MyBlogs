@@ -413,10 +413,17 @@
                 method: 'POST',
                 headers: {'X-CSRF-Token': csrf},
                 body: new FormData(form)
-            }).then(function (response) { return response.json(); }).then(function (result) {
+            }).then(function (response) {
+                if (response.status === 413) throw new Error('文章内容过大');
+                var contentType = response.headers.get('content-type') || '';
+                if (!response.ok || contentType.indexOf('application/json') < 0) {
+                    throw new Error('保存请求被服务器拒绝');
+                }
+                return response.json();
+            }).then(function (result) {
                 if (result.success) location.href = '/admin/article';
                 else status.textContent = result.msg || '保存失败';
-            }).catch(function () { status.textContent = '网络异常，请稍后再试'; });
+            }).catch(function (error) { status.textContent = error.message || '网络异常，请稍后再试'; });
         });
         syncContentFormat();
     })();

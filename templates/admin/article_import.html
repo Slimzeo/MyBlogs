@@ -127,8 +127,8 @@
         importForm.addEventListener('submit', function (event) {
             event.preventDefault();
             var file = archiveFile.files && archiveFile.files[0];
-            if (file && /\.html?$/i.test(file.name) && file.size > 8 * 1024 * 1024) {
-                importStatus.textContent = 'HTML 文件不能超过 8MB';
+            if (file && file.size > 8 * 1024 * 1024) {
+                importStatus.textContent = '导入文件不能超过 8MB';
                 return;
             }
             importStatus.textContent = '正在解析并导入…';
@@ -139,6 +139,11 @@
                 headers: {'X-CSRF-Token': csrf},
                 body: data
             }).then(function (response) {
+                if (response.status === 413) throw new Error('导入文件过大');
+                var contentType = response.headers.get('content-type') || '';
+                if (!response.ok || contentType.indexOf('application/json') < 0) {
+                    throw new Error('导入请求被服务器拒绝');
+                }
                 return response.json();
             }).then(function (result) {
                 if (!result.success || !result.payload || !result.payload.cid) {
