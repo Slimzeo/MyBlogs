@@ -1,10 +1,19 @@
 package util
 
 import (
+	"errors"
 	"math/rand"
 	"sync"
 	"time"
 )
+
+var blogLocation = func() *time.Location {
+	location, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		return time.FixedZone("CST", 8*60*60)
+	}
+	return location
+}()
 
 // CurrentUnixTime mirrors DateKit.getCurrentUnixTime (seconds).
 func CurrentUnixTime() int {
@@ -56,13 +65,31 @@ func FormatUnix(unixTime int, pattern string) string {
 	if unixTime <= 0 || pattern == "" {
 		return ""
 	}
-	return time.Unix(int64(unixTime), 0).Format(goLayout(pattern))
+	return time.Unix(int64(unixTime), 0).In(blogLocation).Format(goLayout(pattern))
+}
+
+// ParseDateTimeLocal parses the value emitted by an HTML datetime-local input
+// in the blog's fixed display timezone. An empty value means use the default.
+func ParseDateTimeLocal(value string) (int, error) {
+	if value == "" {
+		return 0, nil
+	}
+	for _, layout := range []string{"2006-01-02T15:04", "2006-01-02T15:04:05"} {
+		parsed, err := time.ParseInLocation(layout, value, blogLocation)
+		if err == nil {
+			if parsed.Unix() <= 0 {
+				return 0, errors.New("datetime must be after unix epoch")
+			}
+			return int(parsed.Unix()), nil
+		}
+	}
+	return 0, errors.New("invalid datetime-local value")
 }
 
 // FormatUnixCN formats a unix timestamp as "2006年01月" style Chinese month.
 // Mirrors the FROM_UNIXTIME(created,'%Y年%m月') used for archives.
 func FormatUnixCN(unixTime int) string {
-	t := time.Unix(int64(unixTime), 0)
+	t := time.Unix(int64(unixTime), 0).In(blogLocation)
 	return t.Format("2006年01月")
 }
 

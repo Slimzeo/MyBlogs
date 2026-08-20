@@ -25,7 +25,7 @@ func (s *Service) RecentContents(limit int, includeEncrypted bool) []model.Conte
 	}
 	var list []model.Content
 	s.db.Where("status IN ? AND type = ?", publicArticleStatuses(includeEncrypted), model.TypeArticle).
-		Order("created desc").Limit(limit).Find(&list)
+		Order(articleDisplayOrder).Limit(limit).Find(&list)
 	return list
 }
 
@@ -64,12 +64,12 @@ func (s *Service) buildArchives(includeEncrypted bool) []model.ArchiveBo {
 	// SQLite and MySQL identically.
 	var articles []model.Content
 	s.db.Where("type = ? AND status IN ?", model.TypeArticle, publicArticleStatuses(includeEncrypted)).
-		Order("created desc").Find(&articles)
+		Order(articleDisplayOrder).Find(&articles)
 
 	buckets := map[string][]model.Content{}
 	var order []string
 	for _, a := range articles {
-		key := monthKey(a.Created)
+		key := monthKey(a.DisplayTime)
 		if _, ok := buckets[key]; !ok {
 			order = append(order, key)
 		}

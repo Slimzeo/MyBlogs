@@ -6,7 +6,7 @@
             <h1 class="fluid-seo-title">{{siteTitle}}</h1>
         {{if .Articles.List}}
             {{range $index, $article := .Articles.List}}
-            {{$cover := showThumbFirst $article.Content}}
+            {{$cover := contentThumb $article.Content $article.ContentFormat}}
             <article class="fluid-index-card{{if not $cover}} fluid-index-card-no-image{{end}}">
                 {{if $cover}}
                 <div class="fluid-index-image">
@@ -23,12 +23,12 @@
                         {{if eq $article.Status "encrypted"}}<span class="fluid-encrypted-badge">加密</span>{{end}}
                     </h2>
                     <a class="fluid-index-excerpt" href="{{permalink $article}}">
-                        {{intro $article.Content 200}}
+                        {{contentIntro $article.Content $article.ContentFormat 200}}
                     </a>
                     <div class="fluid-post-meta">
                         <span>
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13H4V6a1 1 0 0 1 1-1Z"></path></svg>
-                            {{fmtdate $article.Created}}
+                            {{fmtdate $article.DisplayTime}}
                         </span>
                         <span class="fluid-category-meta">
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2 3h9v10H3Z"></path></svg>

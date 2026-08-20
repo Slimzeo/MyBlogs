@@ -15,7 +15,7 @@
         <div class="fluid-archive-list">
             {{range $article := .Articles.List}}
             <a class="fluid-archive-item" href="{{permalink $article}}">
-                <time>{{fmtdate $article.Created}}</time>
+                <time>{{fmtdate $article.DisplayTime}}</time>
                 <span>{{$article.Title}}</span>
                 {{if eq $article.Status "encrypted"}}<span class="fluid-encrypted-badge">加密</span>{{end}}
             </a>

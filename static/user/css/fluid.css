@@ -563,6 +563,10 @@ html[data-color-scheme="dark"] .fluid-moon {
     gap: 24px;
 }
 
+.fluid-html-post-main .fluid-post-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1440px) minmax(0, 1fr);
+}
+
 .fluid-post-column {
     min-width: 0;
     grid-column: 2;
@@ -574,6 +578,21 @@ html[data-color-scheme="dark"] .fluid-moon {
 
 .fluid-post-content {
     padding: 0 clamp(26px, 10%, 88px);
+}
+
+.fluid-html-post-content {
+    padding-right: clamp(12px, 3vw, 36px);
+    padding-left: clamp(12px, 3vw, 36px);
+}
+
+.fluid-html-article-frame {
+    display: block;
+    width: 100%;
+    height: max(720px, calc(100vh - 100px));
+    margin-top: 24px;
+    border: 0;
+    border-radius: 8px;
+    background: #fff;
 }
 
 .fluid-post-sidebar {

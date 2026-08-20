@@ -28,17 +28,17 @@
 {{end}}
 
 {{define "admin/article_import_trigger"}}
-<button type="button" class="article-import-trigger" id="open-import" aria-expanded="false" aria-controls="import-box">导入 Markdown ZIP</button>
+<button type="button" class="article-import-trigger" id="open-import" aria-expanded="false" aria-controls="import-box">导入文章</button>
 {{end}}
 
 {{define "admin/article_import_box"}}
 <div id="import-box" class="article-import-box">
     <form id="import-form" enctype="multipart/form-data">
-        <label>Markdown 压缩包</label>
+        <label>Markdown / HTML 文件或 ZIP</label>
         <div class="article-import-file">
-            <input class="article-import-file-input" id="archive-file" type="file" name="archive" accept=".zip,application/zip" required/>
+            <input class="article-import-file-input" id="archive-file" type="file" name="archive" accept=".zip,.html,.htm,application/zip,text/html" required/>
             <label class="article-import-file-picker" for="archive-file">
-                <span class="article-import-file-action">选择 ZIP 文件</span>
+                <span class="article-import-file-action">选择文件</span>
                 <span class="article-import-file-name" id="archive-file-name">尚未选择文件</span>
             </label>
         </div>
@@ -62,7 +62,7 @@
                 {{else}}<p class="article-meta-empty">还没有分类，将使用“默认分类”。</p>{{end}}
             </div>
         </div>
-        <p class="help-block article-import-help">ZIP 内必须有且只有一个 Markdown 文件；同级图片和附件会自动上传，导入后默认保存为草稿。</p>
+        <p class="help-block article-import-help">可直接导入单文件内联 HTML；有相对图片时请打包为 ZIP，图片会安全内嵌，CSS/JavaScript 需写在 HTML 内。导入后默认保存为草稿。</p>
         <div class="article-import-actions">
             <button type="submit" class="btn btn-primary btn-sm">开始导入</button>
             <span id="import-status" class="help-block"></span>
@@ -126,6 +126,11 @@
         });
         importForm.addEventListener('submit', function (event) {
             event.preventDefault();
+            var file = archiveFile.files && archiveFile.files[0];
+            if (file && /\.html?$/i.test(file.name) && file.size > 8 * 1024 * 1024) {
+                importStatus.textContent = 'HTML 文件不能超过 8MB';
+                return;
+            }
             importStatus.textContent = '正在解析并导入…';
             var data = new FormData(importForm);
             var csrf = document.querySelector('meta[name=csrf-token]').getAttribute('content');

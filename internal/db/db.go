@@ -78,7 +78,7 @@ func index(value string, target byte) int {
 }
 
 func autoMigrate(gdb *gorm.DB) error {
-	return gdb.AutoMigrate(
+	if err := gdb.AutoMigrate(
 		&model.Content{},
 		&model.Comment{},
 		&model.Meta{},
@@ -87,7 +87,17 @@ func autoMigrate(gdb *gorm.DB) error {
 		&model.Relationship{},
 		&model.Attach{},
 		&model.Log{},
-	)
+	); err != nil {
+		return err
+	}
+	if err := gdb.Model(&model.Content{}).
+		Where("display_time IS NULL OR display_time = 0").
+		Update("display_time", gorm.Expr("created")).Error; err != nil {
+		return err
+	}
+	return gdb.Model(&model.Content{}).
+		Where("content_format IS NULL OR content_format = ''").
+		Update("content_format", model.ContentMarkdown).Error
 }
 
 // seed inserts a default admin user, site options and a welcome article on the
@@ -164,32 +174,36 @@ func seed(gdb *gorm.DB, cfg *config.Config) error {
 	if contentCount == 0 {
 		now := int(time.Now().Unix())
 		welcome := model.Content{
-			Title:        "欢迎使用 Go My-Blog",
-			Slug:         "welcome",
-			Created:      now,
-			Modified:     now,
-			Content:      welcomeMarkdown,
-			AuthorID:     1,
-			Type:         model.TypeArticle,
-			Status:       model.TypePublish,
-			Tags:         "Go,Blog",
-			Categories:   "默认分类",
-			AllowComment: true,
-			AllowPing:    true,
-			AllowFeed:    true,
+			Title:         "欢迎使用 Go My-Blog",
+			Slug:          "welcome",
+			Created:       now,
+			DisplayTime:   now,
+			Modified:      now,
+			Content:       welcomeMarkdown,
+			ContentFormat: model.ContentMarkdown,
+			AuthorID:      1,
+			Type:          model.TypeArticle,
+			Status:        model.TypePublish,
+			Tags:          "Go,Blog",
+			Categories:    "默认分类",
+			AllowComment:  true,
+			AllowPing:     true,
+			AllowFeed:     true,
 		}
 		about := model.Content{
-			Title:        "关于",
-			Slug:         "about",
-			Created:      now,
-			Modified:     now,
-			Content:      aboutMarkdown,
-			AuthorID:     1,
-			Type:         model.TypePage,
-			Status:       model.TypePublish,
-			AllowComment: true,
-			AllowPing:    true,
-			AllowFeed:    true,
+			Title:         "关于",
+			Slug:          "about",
+			Created:       now,
+			DisplayTime:   now,
+			Modified:      now,
+			Content:       aboutMarkdown,
+			ContentFormat: model.ContentMarkdown,
+			AuthorID:      1,
+			Type:          model.TypePage,
+			Status:        model.TypePublish,
+			AllowComment:  true,
+			AllowPing:     true,
+			AllowFeed:     true,
 		}
 		if err := gdb.Create(&welcome).Error; err != nil {
 			return err

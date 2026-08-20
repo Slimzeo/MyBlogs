@@ -121,6 +121,10 @@ func RequestBodyLimit() gin.HandlerFunc {
 		if strings.HasPrefix(context.Request.URL.Path, "/admin/article/import") {
 			limit = int64(16<<20) + (1 << 20)
 		}
+		if context.Request.URL.Path == "/admin/article/publish" ||
+			context.Request.URL.Path == "/admin/article/modify" {
+			limit = int64(model.MaxHTMLSize) + (2 << 20)
+		}
 		context.Request.Body = http.MaxBytesReader(context.Writer, context.Request.Body, limit)
 		context.Next()
 	}

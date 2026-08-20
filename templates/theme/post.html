@@ -1,14 +1,21 @@
 {{define "post"}}
 {{template "header" .}}
-<main id="fluid-page-main" class="fluid-main fluid-post-main">
+<main id="fluid-page-main" class="fluid-main fluid-post-main{{if eq .Article.ContentFormat "html"}} fluid-html-post-main{{end}}">
     <div class="fluid-post-layout">
         <div class="fluid-post-column">
             <section id="board" class="fluid-board fluid-post-board">
-                <article class="fluid-post-content" itemscope="" itemtype="https://schema.org/Article">
+                <article class="fluid-post-content{{if eq .Article.ContentFormat "html"}} fluid-html-post-content{{end}}" itemscope="" itemtype="https://schema.org/Article">
                     <h1 class="fluid-seo-title" itemprop="name headline">{{.Article.Title}}</h1>
+                    {{if eq .Article.ContentFormat "html"}}
+                    <iframe id="html-article-frame" class="fluid-html-article-frame"
+                            src="{{permalink .Article}}/document{{if eq .Article.Status "draft"}}?preview=1{{end}}"
+                            title="{{.Article.Title}}" sandbox="allow-scripts" allow="clipboard-write"
+                            referrerpolicy="no-referrer" loading="eager"></iframe>
+                    {{else}}
                     <div id="post-content" class="fluid-markdown" itemprop="articleBody">
                     {{article .Article.Content}}
                     </div>
+                    {{end}}
                     <hr class="fluid-post-divider"/>
                     <div class="fluid-post-bottom-meta">
                         <div class="fluid-post-categories">{{showCategories .Article.Categories}}</div>
@@ -23,6 +30,7 @@
                 {{template "comments" .}}
             </section>
         </div>
+        {{if ne .Article.ContentFormat "html"}}
         <aside class="fluid-post-sidebar">
             <div id="toc-card" class="fluid-toc">
                 <div class="fluid-toc-title">
@@ -32,6 +40,7 @@
                 <ul id="article-toc"></ul>
             </div>
         </aside>
+        {{end}}
     </div>
 </main>
 {{template "footer" .}}

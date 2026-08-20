@@ -11,6 +11,7 @@ func registerPublicRoutes(engine *gin.Engine, routes handler.PublicRouteHandlers
 	engine.GET("/page/:page", routes.IndexPage)
 	engine.GET("/article/:id", routes.Article)
 	engine.GET("/article/:id/preview", routes.ArticlePreview)
+	engine.GET("/article/:id/document", routes.ArticleDocument)
 	engine.POST("/comment", routes.Comment)
 	engine.GET("/category/:keyword", routes.Category)
 	engine.GET("/category/:keyword/:page", routes.Category)

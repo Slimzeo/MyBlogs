@@ -12,7 +12,7 @@
     <table>
         <tbody>
         {{range $a := .RecentArticles}}
-        <tr><td><a href="/article/{{$a.Cid}}" target="_blank">{{$a.Title}}</a></td><td style="width:160px;color:#999;">{{fmtdate $a.Created}}</td></tr>
+        <tr><td><a href="/article/{{$a.Cid}}" target="_blank">{{$a.Title}}</a></td><td style="width:160px;color:#999;">{{fmtdate $a.DisplayTime}}</td></tr>
         {{else}}<tr><td>暂无文章</td></tr>{{end}}
         </tbody>
     </table>

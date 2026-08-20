@@ -10,7 +10,7 @@
     </h3>
     {{template "admin/article_import_box" .}}
     <table>
-        <thead><tr><th>标题</th><th>分类</th><th style="width:100px;">可见性</th><th style="width:80px;">点击</th><th style="width:80px;">评论</th><th style="width:160px;">时间</th><th style="width:140px;">操作</th></tr></thead>
+        <thead><tr><th>标题</th><th>分类</th><th style="width:100px;">可见性</th><th style="width:80px;">点击</th><th style="width:80px;">评论</th><th style="width:160px;">显示时间</th><th style="width:140px;">操作</th></tr></thead>
         <tbody>
         {{range $a := .Articles.List}}
         <tr>
@@ -19,7 +19,7 @@
             <td>{{statusText $a.Status}}</td>
             <td>{{$a.Hits}}</td>
             <td>{{$a.CommentsNum}}</td>
-            <td style="color:#999;">{{fmtdate $a.Created}}</td>
+            <td style="color:#999;">{{fmtdatef $a.DisplayTime "yyyy-MM-dd HH:mm"}}</td>
             <td>
                 <a class="btn btn-default btn-sm" href="/admin/article/{{$a.Cid}}">编辑</a>
                 <a class="btn btn-danger btn-sm" href="javascript:;" onclick="delArticle({{$a.Cid}})">删除</a>

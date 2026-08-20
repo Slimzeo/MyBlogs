@@ -28,11 +28,17 @@ func (s *Service) Publish(c *model.Content) error {
 	if len([]rune(c.Title)) > model.MaxTitleCount {
 		return Tip("文章标题过长")
 	}
-	if len([]rune(c.Content)) > model.MaxTextCount {
-		return Tip("文章内容过长")
+	if c.ContentFormat == "" {
+		c.ContentFormat = model.ContentMarkdown
+	}
+	if err := validateContentSize(c.Content, c.ContentFormat); err != nil {
+		return err
 	}
 	if c.AuthorID == 0 {
 		return Tip("请登录后发布文章")
+	}
+	if !validContentFormat(c.ContentFormat) {
+		return Tip("文章格式不合法")
 	}
 	if strings.TrimSpace(c.Slug) != "" {
 		if len(c.Slug) < 5 {
@@ -52,6 +58,9 @@ func (s *Service) Publish(c *model.Content) error {
 
 	now := util.CurrentUnixTime()
 	c.Created = now
+	if c.DisplayTime == 0 {
+		c.DisplayTime = now
+	}
 	c.Modified = now
 	c.Hits = 0
 	c.CommentsNum = 0
@@ -101,7 +110,7 @@ func (s *Service) GetContents(page, limit int, includeEncrypted bool) *PageInfo[
 		}
 		var data []model.Content
 		err := s.db.Where("type = ? AND status IN ?", model.TypeArticle, statuses).
-			Order("created desc").Offset((page - 1) * limit).Limit(limit).Find(&data).Error
+			Order(articleDisplayOrder).Offset((page - 1) * limit).Limit(limit).Find(&data).Error
 		result := NewPageInfo(data, page, limit, total)
 		if err == nil {
 			s.cache.Set(key, result, 10)
@@ -165,7 +174,7 @@ func (s *Service) GetArticlesByMeta(mid, page, limit int, includeEncrypted bool)
 		Select("a.*").
 		Joins("left join t_relationships b on a.cid = b.cid").
 		Where("b.mid = ? AND a.status IN ? AND a.type = ?", mid, statuses, model.TypeArticle).
-		Order("a.created desc").
+		Order("a.display_time desc, a.created desc, a.cid desc").
 		Offset((page - 1) * limit).Limit(limit).
 		Scan(&list)
 	return NewPageInfo(list, page, limit, int64(total))
@@ -182,7 +191,7 @@ func (s *Service) SearchArticles(keyword string, page, limit int, includeEncrypt
 		Count(&total)
 	var list []model.Content
 	s.db.Where("type = ? AND status IN ? AND title LIKE ?", model.TypeArticle, statuses, like).
-		Order("created desc").Offset((page - 1) * limit).Limit(limit).Find(&list)
+		Order(articleDisplayOrder).Offset((page - 1) * limit).Limit(limit).Find(&list)
 	return NewPageInfo(list, page, limit, total)
 }
 
@@ -192,7 +201,11 @@ func (s *Service) ArticlesByTypePaged(typ string, page, limit int) *PageInfo[mod
 	var total int64
 	s.db.Model(&model.Content{}).Where("type = ?", typ).Count(&total)
 	var list []model.Content
-	s.db.Where("type = ?", typ).Order("created desc").
+	order := "created desc, cid desc"
+	if typ == model.TypeArticle {
+		order = articleDisplayOrder
+	}
+	s.db.Where("type = ?", typ).Order(order).
 		Offset((page - 1) * limit).Limit(limit).Find(&list)
 	return NewPageInfo(list, page, limit, total)
 }
@@ -237,11 +250,17 @@ func (s *Service) UpdateArticle(c *model.Content) error {
 	if len([]rune(c.Title)) > 200 {
 		return Tip("文章标题过长")
 	}
-	if len([]rune(c.Content)) > 65000 {
-		return Tip("文章内容过长")
+	if c.ContentFormat == "" {
+		c.ContentFormat = model.ContentMarkdown
+	}
+	if err := validateContentSize(c.Content, c.ContentFormat); err != nil {
+		return err
 	}
 	if c.AuthorID == 0 {
 		return Tip("请登录后发布文章")
+	}
+	if !validContentFormat(c.ContentFormat) {
+		return Tip("文章格式不合法")
 	}
 	if strings.TrimSpace(c.Slug) == "" {
 		c.Slug = ""
@@ -256,25 +275,37 @@ func (s *Service) UpdateArticle(c *model.Content) error {
 	categories = c.Categories
 
 	var original model.Content
-	_ = s.db.First(&original, cid).Error
+	if err := s.db.First(&original, cid).Error; err != nil {
+		return err
+	}
+	if original.Type == model.TypeArticle && c.DisplayTime == 0 {
+		c.DisplayTime = original.DisplayTime
+	}
+	if c.DisplayTime == 0 {
+		c.DisplayTime = original.Created
+	}
 	err := s.db.Transaction(func(tx txLike) error {
 		slug := any(c.Slug)
 		if c.Slug == "" {
 			slug = nil
 		}
 		updates := map[string]interface{}{
-			"title":         c.Title,
-			"slug":          slug,
-			"modified":      c.Modified,
-			"author_id":     c.AuthorID,
-			"type":          c.Type,
-			"status":        c.Status,
-			"tags":          c.Tags,
-			"categories":    c.Categories,
-			"allow_comment": c.AllowComment,
-			"allow_ping":    c.AllowPing,
-			"allow_feed":    c.AllowFeed,
-			"content":       c.Content,
+			"title":          c.Title,
+			"slug":           slug,
+			"modified":       c.Modified,
+			"author_id":      c.AuthorID,
+			"type":           c.Type,
+			"status":         c.Status,
+			"tags":           c.Tags,
+			"categories":     c.Categories,
+			"allow_comment":  c.AllowComment,
+			"allow_ping":     c.AllowPing,
+			"allow_feed":     c.AllowFeed,
+			"content":        c.Content,
+			"content_format": c.ContentFormat,
+		}
+		if c.Type == model.TypeArticle {
+			updates["display_time"] = c.DisplayTime
 		}
 		if err := tx.Model(&model.Content{}).Where("cid = ?", cid).Updates(updates).Error; err != nil {
 			return err
@@ -293,6 +324,25 @@ func (s *Service) UpdateArticle(c *model.Content) error {
 	}
 	return err
 }
+
+func validContentFormat(format string) bool {
+	return format == model.ContentMarkdown || format == model.ContentHTML
+}
+
+func validateContentSize(content, format string) error {
+	if format == model.ContentHTML {
+		if len(content) > model.MaxHTMLSize {
+			return Tip("HTML 文件不能超过8MB")
+		}
+		return nil
+	}
+	if len([]rune(content)) > model.MaxTextCount {
+		return Tip("Markdown 内容不能超过20万字")
+	}
+	return nil
+}
+
+const articleDisplayOrder = "display_time desc, created desc, cid desc"
 
 func validContentStatus(contentType, status string) bool {
 	switch status {

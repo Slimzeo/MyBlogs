@@ -3,7 +3,9 @@ package service
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/base64"
 	"errors"
+	stdhtml "html"
 	"io"
 	"net/http"
 	"os"
@@ -20,10 +22,15 @@ import (
 const (
 	maxImportArchiveSize  = 16 << 20
 	maxImportExpandedSize = 32 << 20
+	maxImportAssetSize    = 4 << 20
 	maxImportEntries      = 100
 )
 
 var markdownAssetReference = regexp.MustCompile(`(\]\(\s*<?)([^>\s)]+)(>?[^)]*\))`)
+var htmlAssetReference = regexp.MustCompile(`(?i)((?:src|href|poster)\s*=\s*)(["'])([^"']+)(["'])`)
+var htmlSrcsetReference = regexp.MustCompile(`(?i)(srcset\s*=\s*)(["'])([^"']+)(["'])`)
+var htmlCSSAssetReference = regexp.MustCompile(`(?i)(url\(\s*["']?)([^"')]+)(["']?\s*\))`)
+var htmlTitle = regexp.MustCompile(`(?is)<title[^>]*>(.*?)</title>`)
 
 type ImportOptions struct {
 	AuthorID   int
@@ -37,9 +44,10 @@ type importEntry struct {
 	data []byte
 }
 
-// ImportMarkdownArchive imports one Markdown file and its sibling assets as a
-// draft article. Asset references are rewritten to the generated upload URLs.
-func (s *Service) ImportMarkdownArchive(archiveData []byte, options ImportOptions) (*model.Content, error) {
+// ImportArticleArchive imports one Markdown or HTML document and its sibling
+// assets as a draft article. Relative asset references are rewritten to the
+// generated upload URLs.
+func (s *Service) ImportArticleArchive(archiveData []byte, options ImportOptions) (*model.Content, error) {
 	if len(archiveData) == 0 || len(archiveData) > maxImportArchiveSize {
 		return nil, Tip("压缩包不能超过16MB")
 	}
@@ -52,11 +60,11 @@ func (s *Service) ImportMarkdownArchive(archiveData []byte, options ImportOption
 	if !validContentStatus(model.TypeArticle, options.Status) {
 		return nil, Tip("文章状态不合法")
 	}
-	entries, markdownPath, err := readImportEntries(archiveData)
+	entries, documentPath, contentFormat, err := readImportEntries(archiveData)
 	if err != nil {
 		return nil, err
 	}
-	markdownEntry := entries[markdownPath]
+	documentEntry := entries[documentPath]
 	assetURLs := make(map[string]string, len(entries)-1)
 	var storedFiles []string
 	var storedAssetPaths []string
@@ -70,7 +78,15 @@ func (s *Service) ImportMarkdownArchive(archiveData []byte, options ImportOption
 	}
 
 	for entryPath, entry := range entries {
-		if entryPath == markdownPath {
+		if entryPath == documentPath {
+			continue
+		}
+		if contentFormat == model.ContentHTML {
+			dataURL, encodeErr := htmlAssetDataURL(entryPath, entry.data)
+			if encodeErr != nil {
+				return nil, encodeErr
+			}
+			assetURLs[entryPath] = dataURL
 			continue
 		}
 		fileKey, fileType, filePath, saveErr := s.saveImportedAsset(entryPath, entry.data)
@@ -88,17 +104,24 @@ func (s *Service) ImportMarkdownArchive(archiveData []byte, options ImportOption
 		assetURLs[entryPath] = fileKey
 	}
 
+	body := string(documentEntry.data)
+	if contentFormat == model.ContentHTML {
+		body = rewriteHTMLAssets(body, documentPath, assetURLs)
+	} else {
+		body = rewriteMarkdownAssets(body, documentPath, assetURLs)
+	}
 	content := &model.Content{
-		Title:        importTitle(markdownPath),
-		Content:      rewriteMarkdownAssets(string(markdownEntry.data), markdownPath, assetURLs),
-		Tags:         strings.TrimSpace(options.Tags),
-		Categories:   strings.TrimSpace(options.Categories),
-		Status:       options.Status,
-		Type:         model.TypeArticle,
-		AuthorID:     options.AuthorID,
-		AllowComment: true,
-		AllowPing:    true,
-		AllowFeed:    true,
+		Title:         importTitle(documentPath, contentFormat, documentEntry.data),
+		Content:       body,
+		ContentFormat: contentFormat,
+		Tags:          strings.TrimSpace(options.Tags),
+		Categories:    strings.TrimSpace(options.Categories),
+		Status:        options.Status,
+		Type:          model.TypeArticle,
+		AuthorID:      options.AuthorID,
+		AllowComment:  true,
+		AllowPing:     true,
+		AllowFeed:     true,
 	}
 	if content.Categories == "" {
 		content.Categories = "默认分类"
@@ -110,67 +133,130 @@ func (s *Service) ImportMarkdownArchive(archiveData []byte, options ImportOption
 	return content, nil
 }
 
-func readImportEntries(archiveData []byte) (map[string]importEntry, string, error) {
+func htmlAssetDataURL(name string, data []byte) (string, error) {
+	contentType := http.DetectContentType(data)
+	if !strings.HasPrefix(contentType, "image/") ||
+		!allowedImportFile(strings.ToLower(filepath.Ext(name)), model.TypeImage) {
+		return "", Tip("HTML ZIP 只支持图片资源，CSS 和 JavaScript 请内联到 HTML")
+	}
+	return "data:" + contentType + ";base64," + base64.StdEncoding.EncodeToString(data), nil
+}
+
+// ImportHTMLDocument imports a standalone HTML file. Files with relative asset
+// references should be uploaded as a ZIP through ImportArticleArchive instead.
+func (s *Service) ImportHTMLDocument(data []byte, filename string, options ImportOptions) (*model.Content, error) {
+	if len(data) == 0 || len(data) > model.MaxHTMLSize {
+		return nil, Tip("HTML 文件不能超过8MB")
+	}
+	if options.AuthorID == 0 {
+		return nil, Tip("请登录后导入文章")
+	}
+	if options.Status == "" {
+		options.Status = model.TypeDraft
+	}
+	if !validContentStatus(model.TypeArticle, options.Status) {
+		return nil, Tip("文章状态不合法")
+	}
+	content := &model.Content{
+		Title:         importTitle(filename, model.ContentHTML, data),
+		Content:       string(data),
+		ContentFormat: model.ContentHTML,
+		Tags:          strings.TrimSpace(options.Tags),
+		Categories:    strings.TrimSpace(options.Categories),
+		Status:        options.Status,
+		Type:          model.TypeArticle,
+		AuthorID:      options.AuthorID,
+		AllowComment:  true,
+		AllowPing:     true,
+		AllowFeed:     true,
+	}
+	if content.Categories == "" {
+		content.Categories = "默认分类"
+	}
+	if err := s.Publish(content); err != nil {
+		return nil, err
+	}
+	return content, nil
+}
+
+func readImportEntries(archiveData []byte) (map[string]importEntry, string, string, error) {
 	reader, err := zip.NewReader(bytes.NewReader(archiveData), int64(len(archiveData)))
 	if err != nil {
-		return nil, "", Tip("压缩包格式无法读取")
+		return nil, "", "", Tip("压缩包格式无法读取")
 	}
 	if len(reader.File) > maxImportEntries {
-		return nil, "", Tip("压缩包文件数量不能超过100个")
+		return nil, "", "", Tip("压缩包文件数量不能超过100个")
 	}
 	entries := make(map[string]importEntry, len(reader.File))
-	var markdownPath string
+	var documentPath string
+	var contentFormat string
 	var expandedSize uint64
 	for _, file := range reader.File {
 		normalized, normalizeErr := normalizeImportPath(file.Name)
 		if normalizeErr != nil {
-			return nil, "", Tip("压缩包包含不安全的文件路径")
+			return nil, "", "", Tip("压缩包包含不安全的文件路径")
 		}
 		if file.FileInfo().Mode()&os.ModeSymlink != 0 {
-			return nil, "", Tip("压缩包不能包含符号链接")
+			return nil, "", "", Tip("压缩包不能包含符号链接")
 		}
 		if file.FileInfo().IsDir() || strings.HasSuffix(file.Name, "/") {
 			continue
 		}
 		expandedSize += file.UncompressedSize64
 		if expandedSize > maxImportExpandedSize {
-			return nil, "", Tip("压缩包解压内容不能超过32MB")
+			return nil, "", "", Tip("压缩包解压内容不能超过32MB")
 		}
-		if file.UncompressedSize64 > uint64(model.MaxTextCount) && strings.EqualFold(filepath.Ext(normalized), ".md") {
-			return nil, "", Tip("Markdown 文件不能超过200KB")
+		entryFormat := importContentFormat(filepath.Ext(normalized))
+		if entryFormat == model.ContentMarkdown && file.UncompressedSize64 > uint64(model.MaxTextCount) {
+			return nil, "", "", Tip("Markdown 文件不能超过200KB")
 		}
-		if file.UncompressedSize64 > uint64(model.MaxFileSize) {
-			return nil, "", Tip("单个图片或附件不能超过1MB")
+		if entryFormat == model.ContentHTML && file.UncompressedSize64 > uint64(model.MaxHTMLSize) {
+			return nil, "", "", Tip("HTML 文件不能超过8MB")
+		}
+		if entryFormat == "" && file.UncompressedSize64 > uint64(maxImportAssetSize) {
+			return nil, "", "", Tip("单个图片或附件不能超过4MB")
 		}
 		source, openErr := file.Open()
 		if openErr != nil {
-			return nil, "", openErr
+			return nil, "", "", openErr
 		}
 		data, readErr := io.ReadAll(io.LimitReader(source, maxImportExpandedSize+1))
 		_ = source.Close()
 		if readErr != nil {
-			return nil, "", readErr
+			return nil, "", "", readErr
 		}
 		if uint64(len(data)) != file.UncompressedSize64 {
-			return nil, "", Tip("压缩包文件读取不完整")
+			return nil, "", "", Tip("压缩包文件读取不完整")
 		}
-		if strings.EqualFold(filepath.Ext(normalized), ".md") {
-			if markdownPath != "" {
-				return nil, "", Tip("一个压缩包只能包含一个 Markdown 文件")
+		if entryFormat != "" {
+			if documentPath != "" {
+				return nil, "", "", Tip("一个压缩包只能包含一个 Markdown 或 HTML 文件")
 			}
-			markdownPath = normalized
+			documentPath = normalized
+			contentFormat = entryFormat
 		} else if !allowedImportFile(filepath.Ext(normalized), detectImportFileType(data)) {
-			return nil, "", Tip("压缩包内存在不支持的附件格式")
+			return nil, "", "", Tip("压缩包内存在不支持的附件格式")
 		}
 		if _, exists := entries[normalized]; exists {
-			return nil, "", Tip("压缩包内存在重复文件路径")
+			return nil, "", "", Tip("压缩包内存在重复文件路径")
 		}
 		entries[normalized] = importEntry{name: normalized, data: data}
 	}
-	if markdownPath == "" {
-		return nil, "", Tip("压缩包内没有 Markdown 文件")
+	if documentPath == "" {
+		return nil, "", "", Tip("压缩包内没有 Markdown 或 HTML 文件")
 	}
-	return entries, markdownPath, nil
+	return entries, documentPath, contentFormat, nil
+}
+
+func importContentFormat(extension string) string {
+	switch strings.ToLower(extension) {
+	case ".md":
+		return model.ContentMarkdown
+	case ".html", ".htm":
+		return model.ContentHTML
+	default:
+		return ""
+	}
 }
 
 func (s *Service) saveImportedAsset(name string, data []byte) (string, string, string, error) {
@@ -247,6 +333,64 @@ func rewriteMarkdownAssets(markdown, markdownPath string, assetURLs map[string]s
 	})
 }
 
+func rewriteHTMLAssets(document, documentPath string, assetURLs map[string]string) string {
+	baseDirectory := path.Dir(documentPath)
+	rewrite := func(reference string, pattern *regexp.Regexp) string {
+		matches := pattern.FindStringSubmatch(reference)
+		if len(matches) != 5 || matches[2] != matches[4] {
+			return reference
+		}
+		if rewritten := rewriteImportReference(baseDirectory, matches[3], assetURLs); rewritten != "" {
+			return matches[1] + matches[2] + rewritten + matches[4]
+		}
+		return reference
+	}
+	document = htmlAssetReference.ReplaceAllStringFunc(document, func(reference string) string {
+		return rewrite(reference, htmlAssetReference)
+	})
+	document = htmlSrcsetReference.ReplaceAllStringFunc(document, func(reference string) string {
+		matches := htmlSrcsetReference.FindStringSubmatch(reference)
+		if len(matches) != 5 || matches[2] != matches[4] || strings.Contains(matches[3], "data:") {
+			return reference
+		}
+		candidates := strings.Split(matches[3], ",")
+		for index, candidate := range candidates {
+			parts := strings.Fields(candidate)
+			if len(parts) == 0 {
+				continue
+			}
+			if rewritten := rewriteImportReference(baseDirectory, parts[0], assetURLs); rewritten != "" {
+				parts[0] = rewritten
+				candidates[index] = strings.Join(parts, " ")
+			}
+		}
+		return matches[1] + matches[2] + strings.Join(candidates, ", ") + matches[4]
+	})
+	return htmlCSSAssetReference.ReplaceAllStringFunc(document, func(reference string) string {
+		matches := htmlCSSAssetReference.FindStringSubmatch(reference)
+		if len(matches) != 4 {
+			return reference
+		}
+		if rewritten := rewriteImportReference(baseDirectory, matches[2], assetURLs); rewritten != "" {
+			return matches[1] + rewritten + matches[3]
+		}
+		return reference
+	})
+}
+
+func rewriteImportReference(baseDirectory, reference string, assetURLs map[string]string) string {
+	suffix := ""
+	if separator := strings.IndexAny(reference, "?#"); separator >= 0 {
+		suffix = reference[separator:]
+		reference = reference[:separator]
+	}
+	assetPath := resolveImportAssetPath(baseDirectory, reference)
+	if url, ok := assetURLs[assetPath]; ok {
+		return url + suffix
+	}
+	return ""
+}
+
 func resolveImportAssetPath(baseDirectory, reference string) string {
 	if strings.Contains(reference, "://") || strings.HasPrefix(reference, "/") ||
 		strings.HasPrefix(reference, "#") || strings.HasPrefix(reference, "data:") {
@@ -255,7 +399,15 @@ func resolveImportAssetPath(baseDirectory, reference string) string {
 	return path.Clean(path.Join(baseDirectory, reference))
 }
 
-func importTitle(markdownPath string) string {
-	base := filepath.Base(markdownPath)
+func importTitle(documentPath, contentFormat string, data []byte) string {
+	if contentFormat == model.ContentHTML {
+		if matches := htmlTitle.FindSubmatch(data); len(matches) == 2 {
+			title := strings.TrimSpace(stdhtml.UnescapeString(util.HTMLToText(string(matches[1]))))
+			if title != "" {
+				return title
+			}
+		}
+	}
+	base := filepath.Base(documentPath)
 	return strings.TrimSuffix(base, filepath.Ext(base))
 }

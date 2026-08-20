@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	stdhtml "html"
 	"regexp"
 	"strings"
 
@@ -50,12 +51,32 @@ func MdToHTML(markdown string) string {
 }
 
 var firstImg = regexp.MustCompile(`(?i)<img[^>]*?src\s*=\s*['"]?([^'">\s]+)`)
+var nonVisibleHTML = regexp.MustCompile(`(?is)<(?:head|script|style|noscript|template|svg)[^>]*>.*?</(?:head|script|style|noscript|template|svg)\s*>`)
 
 // FirstImage returns the first image URL from rendered markdown (Commons.show_thumb).
 func FirstImage(content string) string {
 	htmlStr := MdToHTML(content)
 	m := firstImg.FindStringSubmatch(htmlStr)
 	if len(m) == 2 {
+		if strings.HasPrefix(strings.ToLower(m[1]), "data:") {
+			return ""
+		}
+		return m[1]
+	}
+	return ""
+}
+
+// ContentFirstImage returns the first image for either supported article format.
+func ContentFirstImage(content, format string) string {
+	htmlStr := content
+	if format != "html" {
+		htmlStr = MdToHTML(content)
+	}
+	m := firstImg.FindStringSubmatch(htmlStr)
+	if len(m) == 2 {
+		if strings.HasPrefix(strings.ToLower(m[1]), "data:") {
+			return ""
+		}
 		return m[1]
 	}
 	return ""
@@ -71,6 +92,23 @@ func Intro(value string, length int) string {
 	r := []rune(text)
 	if len(r) > length {
 		return string(r[:length])
+	}
+	return text
+}
+
+// ContentIntro extracts plain-text summary from Markdown or a complete HTML document.
+func ContentIntro(value, format string, length int) string {
+	if format != "html" {
+		return Intro(value, length)
+	}
+	if pos := strings.Index(value, "<!--more-->"); pos != -1 {
+		value = value[:pos]
+	}
+	value = nonVisibleHTML.ReplaceAllString(value, " ")
+	text := strings.Join(strings.Fields(stdhtml.UnescapeString(HTMLToText(value))), " ")
+	runes := []rune(text)
+	if len(runes) > length {
+		return string(runes[:length])
 	}
 	return text
 }

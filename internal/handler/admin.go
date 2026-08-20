@@ -166,7 +166,11 @@ func (server *Server) loadArticleMetas(data *PageData) {
 }
 
 func (server *Server) adminArticlePublish(context *gin.Context) {
-	content := server.articleFromForm(context)
+	content, err := server.articleFromForm(context)
+	if err != nil {
+		respondFail(context, err.Error())
+		return
+	}
 	if content.Categories == "" {
 		content.Categories = "默认分类"
 	}
@@ -178,7 +182,11 @@ func (server *Server) adminArticlePublish(context *gin.Context) {
 }
 
 func (server *Server) adminArticleModify(context *gin.Context) {
-	content := server.articleFromForm(context)
+	content, err := server.articleFromForm(context)
+	if err != nil {
+		respondFail(context, err.Error())
+		return
+	}
 	content.Cid, _ = strconv.Atoi(context.PostForm("cid"))
 	if err := server.service.UpdateArticle(content); err != nil {
 		respondServiceError(context, err, "文章编辑失败")
@@ -249,7 +257,7 @@ func (server *Server) adminArticleImport(context *gin.Context) {
 		return
 	}
 	if header.Size > 16<<20 {
-		respondFail(context, "压缩包不能超过16MB")
+		respondFail(context, "导入文件不能超过16MB")
 		return
 	}
 	file, err := header.Open()
@@ -264,12 +272,19 @@ func (server *Server) adminArticleImport(context *gin.Context) {
 		return
 	}
 	user := server.sessions.User(context)
-	content, err := server.service.ImportMarkdownArchive(archiveData, service.ImportOptions{
+	options := service.ImportOptions{
 		AuthorID:   user.Uid,
 		Tags:       context.PostForm("tags"),
 		Categories: context.PostForm("categories"),
 		Status:     model.TypeDraft,
-	})
+	}
+	var content *model.Content
+	extension := strings.ToLower(filepath.Ext(header.Filename))
+	if extension == ".html" || extension == ".htm" {
+		content, err = server.service.ImportHTMLDocument(archiveData, header.Filename, options)
+	} else {
+		content, err = server.service.ImportArticleArchive(archiveData, options)
+	}
 	if err != nil {
 		if message, ok := service.AsTip(err); ok {
 			respondFail(context, message)
@@ -296,20 +311,26 @@ func firstMultipartFile(context *gin.Context, field string) *multipart.FileHeade
 	return headers[0]
 }
 
-func (server *Server) articleFromForm(context *gin.Context) *model.Content {
-	return &model.Content{
-		Title:        strings.TrimSpace(context.PostForm("title")),
-		Content:      context.PostForm("content"),
-		Slug:         strings.TrimSpace(context.PostForm("slug")),
-		Tags:         strings.TrimSpace(context.PostForm("tags")),
-		Categories:   strings.TrimSpace(context.PostForm("categories")),
-		Status:       defaultString(context.PostForm("status"), model.TypePublish),
-		Type:         model.TypeArticle,
-		AuthorID:     server.sessions.User(context).Uid,
-		AllowComment: true,
-		AllowPing:    true,
-		AllowFeed:    true,
+func (server *Server) articleFromForm(context *gin.Context) (*model.Content, error) {
+	displayTime, err := util.ParseDateTimeLocal(strings.TrimSpace(context.PostForm("display_time")))
+	if err != nil {
+		return nil, errors.New("显示时间格式不正确")
 	}
+	return &model.Content{
+		Title:         strings.TrimSpace(context.PostForm("title")),
+		Content:       context.PostForm("content"),
+		ContentFormat: defaultString(context.PostForm("content_format"), model.ContentMarkdown),
+		DisplayTime:   displayTime,
+		Slug:          strings.TrimSpace(context.PostForm("slug")),
+		Tags:          strings.TrimSpace(context.PostForm("tags")),
+		Categories:    strings.TrimSpace(context.PostForm("categories")),
+		Status:        defaultString(context.PostForm("status"), model.TypePublish),
+		Type:          model.TypeArticle,
+		AuthorID:      server.sessions.User(context).Uid,
+		AllowComment:  true,
+		AllowPing:     true,
+		AllowFeed:     true,
+	}, nil
 }
 
 func (server *Server) adminPageList(context *gin.Context) {
@@ -354,15 +375,16 @@ func (server *Server) adminPageModify(context *gin.Context) {
 
 func (server *Server) pageFromForm(context *gin.Context) *model.Content {
 	return &model.Content{
-		Title:        strings.TrimSpace(context.PostForm("title")),
-		Content:      context.PostForm("content"),
-		Slug:         strings.TrimSpace(context.PostForm("slug")),
-		Status:       defaultString(context.PostForm("status"), model.TypePublish),
-		Type:         model.TypePage,
-		AuthorID:     server.sessions.User(context).Uid,
-		AllowComment: context.PostForm("allowComment") == "1",
-		AllowPing:    context.PostForm("allowPing") == "1",
-		AllowFeed:    true,
+		Title:         strings.TrimSpace(context.PostForm("title")),
+		Content:       context.PostForm("content"),
+		ContentFormat: model.ContentMarkdown,
+		Slug:          strings.TrimSpace(context.PostForm("slug")),
+		Status:        defaultString(context.PostForm("status"), model.TypePublish),
+		Type:          model.TypePage,
+		AuthorID:      server.sessions.User(context).Uid,
+		AllowComment:  context.PostForm("allowComment") == "1",
+		AllowPing:     context.PostForm("allowPing") == "1",
+		AllowFeed:     true,
 	}
 }
 

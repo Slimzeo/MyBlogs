@@ -51,6 +51,27 @@ func (server *Server) articlePreview(context *gin.Context) {
 	server.renderArticle(context, true)
 }
 
+// articleDocument serves complete HTML articles inside the sandboxed iframe
+// used by the article page. It repeats the normal article authorization check
+// so encrypted and private content cannot be fetched through this endpoint.
+func (server *Server) articleDocument(context *gin.Context) {
+	content, err := server.service.GetContentByID(strings.TrimSuffix(context.Param("id"), ".html"))
+	preview := context.Query("preview") == "1"
+	if err != nil || content == nil || content.Type != model.TypeArticle ||
+		content.ContentFormat != model.ContentHTML || !server.canViewArticle(context, content, preview) {
+		context.Status(http.StatusNotFound)
+		return
+	}
+	context.Header("Cache-Control", "private, no-store")
+	context.Header("Vary", "Cookie")
+	context.Header("Referrer-Policy", "no-referrer")
+	context.Header("Content-Security-Policy",
+		"sandbox allow-scripts; default-src 'none'; base-uri 'none'; object-src 'none'; form-action 'none'; "+
+			"frame-ancestors 'self'; img-src 'self' data: https:; media-src 'self' data: https:; "+
+			"font-src data: https:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'")
+	context.Data(http.StatusOK, "text/html; charset=utf-8", []byte(content.Content))
+}
+
 func (server *Server) renderArticle(context *gin.Context, preview bool) {
 	contentID := strings.TrimSuffix(context.Param("id"), ".html")
 	content, err := server.service.GetContentByID(contentID)

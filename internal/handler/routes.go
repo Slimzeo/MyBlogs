@@ -11,6 +11,7 @@ type PublicRouteHandlers struct {
 	IndexPage       gin.HandlerFunc
 	Article         gin.HandlerFunc
 	ArticlePreview  gin.HandlerFunc
+	ArticleDocument gin.HandlerFunc
 	Comment         gin.HandlerFunc
 	Category        gin.HandlerFunc
 	Tag             gin.HandlerFunc
@@ -90,6 +91,7 @@ func (server *Server) RouteHandlers() RouteHandlers {
 			IndexPage:       server.indexPage,
 			Article:         server.article,
 			ArticlePreview:  server.articlePreview,
+			ArticleDocument: server.articleDocument,
 			Comment:         server.comment,
 			Category:        server.category,
 			Tag:             server.tag,

@@ -32,6 +32,7 @@ import (
 	"myblog/internal/model"
 	"myblog/internal/router"
 	"myblog/internal/service"
+	"myblog/internal/util"
 
 	"github.com/gin-gonic/gin"
 )
@@ -327,6 +328,10 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`shiftKey`,
 		`Enter 换段，Shift+Enter 半换行`,
 		`id="markdown-toolbar"`,
+		`id="content-format"`,
+		`value="html"`,
+		`id="html-file-input"`,
+		`id="display-time"`,
 		`/admin/article/preview`,
 		`/admin/article/image`,
 		`id="open-import"`,
@@ -594,8 +599,70 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	if importedArticle == nil || importedArticle.Title != "商单灵感工具复盘" ||
 		importedArticle.Status != model.TypeDraft ||
+		importedArticle.ContentFormat != model.ContentMarkdown ||
 		!strings.Contains(importedArticle.Content, "/upload/") {
 		t.Fatalf("article import result invalid: %#v", importedArticle)
+	}
+
+	htmlImportArchive := buildTestImportArchive(t, map[string]string{
+		"design-demos/article.html": `<!doctype html><html><head><title>HTML Design Article</title><style>body{background:url('../assets/paper.png')}</style></head><body><img src="../assets/cover.png?size=large#hero"><script>document.body.dataset.ready='1'</script></body></html>`,
+		"assets/cover.png":          string([]byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a}),
+		"assets/paper.png":          string([]byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a}),
+	})
+	htmlImportResponse := postAdminMultipart(t, client, testServer.URL, "/admin/article/import", "/admin/article", "archive", "design.zip", htmlImportArchive)
+	if !htmlImportResponse.Success {
+		t.Fatalf("HTML article import failed: %s", htmlImportResponse.Msg)
+	}
+	htmlImportedCID, ok := htmlImportResponse.Payload.(map[string]interface{})["cid"].(float64)
+	if !ok || htmlImportedCID <= 0 {
+		t.Fatalf("HTML article import returned invalid cid: %#v", htmlImportResponse.Payload)
+	}
+	htmlArticle, err := services.GetContentByID(strconv.Itoa(int(htmlImportedCID)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if htmlArticle == nil || htmlArticle.Title != "HTML Design Article" ||
+		htmlArticle.ContentFormat != model.ContentHTML || htmlArticle.DisplayTime != htmlArticle.Created ||
+		!strings.Contains(htmlArticle.Content, `data:image/png;base64,`) ||
+		strings.Contains(htmlArticle.Content, `/upload/`) || strings.Contains(htmlArticle.Content, `../assets/`) {
+		t.Fatalf("HTML article import result invalid: %#v", htmlArticle)
+	}
+	htmlArticle.Status = model.TypePublish
+	if err := services.UpdateArticle(htmlArticle); err != nil {
+		t.Fatal(err)
+	}
+	htmlShellResponse, err := http.Get(testServer.URL + "/article/" + strconv.Itoa(htmlArticle.Cid))
+	if err != nil {
+		t.Fatal(err)
+	}
+	htmlShellBody, err := io.ReadAll(htmlShellResponse.Body)
+	_ = htmlShellResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(htmlShellBody), `class="fluid-html-article-frame"`) ||
+		!strings.Contains(string(htmlShellBody), `sandbox="allow-scripts"`) {
+		t.Fatal("HTML article shell is missing the sandboxed iframe")
+	}
+	htmlDocumentResponse, err := http.Get(testServer.URL + "/article/" + strconv.Itoa(htmlArticle.Cid) + "/document")
+	if err != nil {
+		t.Fatal(err)
+	}
+	htmlDocumentBody, err := io.ReadAll(htmlDocumentResponse.Body)
+	_ = htmlDocumentResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if htmlDocumentResponse.StatusCode != http.StatusOK || !strings.Contains(string(htmlDocumentBody), "HTML Design Article") {
+		t.Fatalf("HTML document status/body invalid: %d", htmlDocumentResponse.StatusCode)
+	}
+	for _, expected := range []string{"sandbox allow-scripts", "default-src 'none'", "connect-src 'none'"} {
+		if !strings.Contains(htmlDocumentResponse.Header.Get("Content-Security-Policy"), expected) {
+			t.Fatalf("HTML document CSP missing %q: %s", expected, htmlDocumentResponse.Header.Get("Content-Security-Policy"))
+		}
+	}
+	if htmlDocumentResponse.Header.Get("Cache-Control") != "private, no-store" {
+		t.Fatalf("HTML document cache control = %q", htmlDocumentResponse.Header.Get("Cache-Control"))
 	}
 
 	content := &model.Content{
@@ -613,6 +680,61 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	if err := services.Publish(content); err != nil {
 		t.Fatal(err)
+	}
+	originalCreated := content.Created
+	customDisplayTime := content.Created - 40*24*60*60
+	content.DisplayTime = customDisplayTime
+	if err := services.UpdateArticle(content); err != nil {
+		t.Fatal(err)
+	}
+	var updatedTimeline model.Content
+	if err := database.First(&updatedTimeline, content.Cid).Error; err != nil {
+		t.Fatal(err)
+	}
+	if updatedTimeline.Created != originalCreated || updatedTimeline.DisplayTime != customDisplayTime {
+		t.Fatalf("timeline update changed immutable creation time: created=%d want=%d display=%d want=%d", updatedTimeline.Created, originalCreated, updatedTimeline.DisplayTime, customDisplayTime)
+	}
+	newerDisplayArticle := &model.Content{
+		Title:        "Display Time Ordered Article",
+		Content:      "Display-time ordering.",
+		DisplayTime:  content.Created + 24*60*60,
+		AuthorID:     1,
+		Type:         model.TypeArticle,
+		Status:       model.TypePublish,
+		Categories:   "默认分类",
+		AllowComment: true,
+		AllowPing:    true,
+		AllowFeed:    true,
+	}
+	if err := services.Publish(newerDisplayArticle); err != nil {
+		t.Fatal(err)
+	}
+	ordered := services.GetContents(1, 20, false)
+	position := func(cid int) int {
+		for index, article := range ordered.List {
+			if article.Cid == cid {
+				return index
+			}
+		}
+		return -1
+	}
+	if newerPosition, olderPosition := position(newerDisplayArticle.Cid), position(content.Cid); newerPosition < 0 || olderPosition < 0 || newerPosition >= olderPosition {
+		t.Fatalf("articles are not ordered by display time: newer=%d older=%d", newerPosition, olderPosition)
+	}
+	archiveMonth := util.FormatUnixCN(customDisplayTime)
+	archiveFound := false
+	for _, archive := range services.GetArchives(false) {
+		if archive.Date != archiveMonth {
+			continue
+		}
+		for _, article := range archive.Articles {
+			if article.Cid == content.Cid {
+				archiveFound = true
+			}
+		}
+	}
+	if !archiveFound {
+		t.Fatalf("article was not archived under display month %s", archiveMonth)
 	}
 	expandedTopicsResponse, err := http.Get(testServer.URL + "/topics")
 	if err != nil {

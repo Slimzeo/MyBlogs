@@ -16,6 +16,8 @@ const (
 	TypeCommentsFreq = "comments:frequency"
 	TypeAttachURL    = "attach_url"
 	TypeBlockIPs     = "site_block_ips"
+	ContentMarkdown  = "markdown"
+	ContentHTML      = "html"
 )
 
 // Log action labels mirror the Java `LogActions` enum.
@@ -37,6 +39,7 @@ const (
 	MaxPosts        = 9999
 	MaxPage         = 100
 	MaxTextCount    = 200000
+	MaxHTMLSize     = 8 << 20
 	MaxTitleCount   = 200
 	HitExceed       = 10
 	MaxFileSize     = 1048576 // 1MB

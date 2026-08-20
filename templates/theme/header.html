@@ -91,7 +91,7 @@
                 {{if .IsPost}}
                 <div class="fluid-banner-meta">
                     {{if eq .Article.Status "encrypted"}}<span class="fluid-encrypted-badge fluid-encrypted-badge-light">加密</span><span>·</span>{{end}}
-                    <span>{{fmtdate .Article.Created}}</span>
+                    <span>{{fmtdate .Article.DisplayTime}}</span>
                     <span>·</span>
                     <span>{{.Hits}} 次阅读</span>
                     <span>·</span>

@@ -49,7 +49,7 @@ func (s *Service) GetPublishedTopicGroups(metaLimit, articleLimit int, includeEn
 	if err := s.db.Where(
 		"cid IN ? AND type = ? AND status IN ?",
 		articleIDs, model.TypeArticle, publicArticleStatuses(includeEncrypted),
-	).Order("created desc").Find(&articles).Error; err != nil {
+	).Order(articleDisplayOrder).Find(&articles).Error; err != nil {
 		return nil
 	}
 	for _, article := range articles {

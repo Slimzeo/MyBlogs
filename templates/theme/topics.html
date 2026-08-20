@@ -34,7 +34,7 @@
                             <span class="fluid-topic-article-index">{{printf "%02d" (add $index 1)}}</span>
                             <span class="fluid-topic-article-copy">
                                 <strong>{{$article.Title}} {{if eq $article.Status "encrypted"}}<span class="fluid-encrypted-badge">加密</span>{{end}}</strong>
-                                <small>{{fmtdate $article.Created}} · {{intro $article.Content 100}}</small>
+                                <small>{{fmtdate $article.DisplayTime}} · {{contentIntro $article.Content $article.ContentFormat 100}}</small>
                             </span>
                             <span class="fluid-topic-article-arrow">↗</span>
                         </a>

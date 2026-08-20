@@ -21,13 +21,19 @@
     .article-editor-preview{height:auto;min-height:0;padding:18px 22px;overflow:auto;flex:1;overscroll-behavior:contain}
     .article-editor-preview:empty:before{color:#a0aec0;content:"右侧会实时显示文章预览"}
     .article-editor-help{margin:10px 0 0;color:var(--admin-muted);font-size:12px}
+    .article-editor-format{display:flex;align-items:flex-end;gap:12px}
+    .article-editor-format select{margin-bottom:0}
+    .article-html-file{display:none;min-width:220px;flex:1}
+    .article-editor-card.is-html .article-html-file{display:block}
+    .article-editor-card.is-html #markdown-toolbar,.article-editor-card.is-html .article-editor-pane:last-child{display:none}
+    .article-editor-card.is-html .article-editor-grid{grid-template-columns:1fr}
     .article-editor-fields{display:grid;margin-top:20px;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px}
     .article-editor-fields label:first-child,.article-editor-fields textarea,.article-editor-fields .help-block{grid-column:1/-1}
     .article-editor-actions{display:flex;margin-top:18px;align-items:center;gap:8px}
     @media (max-width:900px){.article-editor-card{padding:18px}.article-editor-grid{height:auto;min-height:0;grid-template-columns:1fr}.article-editor-pane{min-height:360px}.article-editor-preview{min-height:360px}.article-editor-textarea{min-height:360px;flex:none}}
     @media (max-width:560px){.article-editor-fields{display:block}.article-editor-heading{display:block}.article-editor-status{display:block;margin-top:6px}}
 </style>
-<div class="card article-editor-card">
+<div id="article-editor-card" class="card article-editor-card">
     <div class="article-editor-heading">
         <h3>{{if $c}}编辑文章{{else}}发表文章{{end}}</h3>
         <div class="article-editor-heading-actions">
@@ -40,7 +46,20 @@
         {{if $c}}<input type="hidden" name="cid" value="{{$c.Cid}}"/>{{end}}
         <label>标题</label>
         <input type="text" name="title" value="{{if $c}}{{$c.Title}}{{end}}" placeholder="文章标题"/>
-        <label>内容 (Markdown)</label>
+        <div class="article-editor-format">
+            <div>
+                <label for="content-format">内容格式</label>
+                <select id="content-format" name="content_format">
+                    <option value="markdown" {{if or (not $c) (eq $c.ContentFormat "markdown")}}selected{{end}}>Markdown</option>
+                    <option value="html" {{if and $c (eq $c.ContentFormat "html")}}selected{{end}}>完整 HTML</option>
+                </select>
+            </div>
+            <div class="article-html-file">
+                <label for="html-file-input">载入 HTML 文件</label>
+                <input id="html-file-input" type="file" accept=".html,.htm,text/html"/>
+            </div>
+        </div>
+        <label id="article-content-label" for="article-content">内容 (Markdown)</label>
         <div class="article-editor-grid">
             <section class="article-editor-pane">
                 <div class="article-editor-pane-heading">
@@ -67,6 +86,15 @@
         <p class="article-editor-help">可以直接把截图或图片粘贴到左侧，也可以拖进左侧编辑区；上传完成后会自动插入图片 Markdown。Enter 换段，Shift+Enter 半换行。</p>
         <input id="image-file-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp" hidden/>
         <div class="article-editor-fields">
+        <div>
+            <label for="display-time">显示时间</label>
+            <input id="display-time" type="datetime-local" name="display_time" value="{{if $c}}{{fmtdatef $c.DisplayTime "yyyy-MM-ddTHH:mm"}}{{end}}"/>
+            <p class="help-block">用于前台日期、排序和归档；留空时等于实际创建时间，不影响文章是否立即发布。</p>
+        </div>
+        <div>
+            <label>实际创建时间</label>
+            <input type="text" value="{{if $c}}{{fmtdatef $c.Created "yyyy-MM-dd HH:mm"}}{{else}}保存时自动生成{{end}}" disabled/>
+        </div>
         <div class="article-meta-field">
             <label for="article-tags">标签（逗号分隔，可新建）</label>
             <input id="article-tags" type="text" name="tags" value="{{if $c}}{{$c.Tags}}{{end}}" placeholder="Go,Blog"/>
@@ -107,7 +135,11 @@
 <script>
     (function () {
         var form = document.getElementById('article-form');
+        var editorCard = document.getElementById('article-editor-card');
         var textarea = document.getElementById('article-content');
+        var contentLabel = document.getElementById('article-content-label');
+        var contentFormat = document.getElementById('content-format');
+        var htmlFileInput = document.getElementById('html-file-input');
         var preview = document.getElementById('article-preview');
         var status = document.getElementById('editor-status');
         var previewStatus = document.getElementById('preview-status');
@@ -120,6 +152,22 @@
         var sourceMap;
         var sourceMapLines = [];
         var previewBlockLines = [];
+
+        function syncContentFormat() {
+            var isHTML = contentFormat.value === 'html';
+            editorCard.classList.toggle('is-html', isHTML);
+            contentLabel.textContent = isHTML ? '内容 (完整 HTML)' : '内容 (Markdown)';
+            textarea.placeholder = isHTML ? '粘贴完整 HTML，或选择上方文件载入…' : '从这里开始写 Markdown…';
+            status.textContent = isHTML
+                ? 'HTML 将在独立沙箱页面中渲染；CSS/JavaScript 需内联，相对图片请使用 ZIP 导入'
+                : '支持 Markdown、粘贴图片和拖拽图片';
+            if (isHTML) {
+                preview.innerHTML = '';
+                previewStatus.textContent = 'HTML 保存后可预览';
+            } else {
+                renderPreview();
+            }
+        }
 
         function buildSourceMap() {
             if (!sourceMap) {
@@ -201,7 +249,7 @@
         }
 
         function insertEditorLineBreak(event) {
-            if (event.isComposing || isInsideFencedCode(textarea.selectionStart)) return;
+            if (contentFormat.value === 'html' || event.isComposing || isInsideFencedCode(textarea.selectionStart)) return;
             event.preventDefault();
             var start = textarea.selectionStart;
             var end = textarea.selectionEnd;
@@ -212,6 +260,7 @@
         }
 
         function renderPreview() {
+            if (contentFormat.value === 'html') return;
             var requestID = ++previewRequest;
             clearTimeout(previewTimer);
             if (previewController) previewController.abort();
@@ -310,6 +359,7 @@
         });
         textarea.addEventListener('scroll', syncPreviewScroll, {passive: true});
         textarea.addEventListener('paste', function (event) {
+            if (contentFormat.value === 'html') return;
             var items = event.clipboardData && event.clipboardData.items;
             if (!items) return;
             for (var index = 0; index < items.length; index++) {
@@ -321,6 +371,7 @@
             }
         });
         textarea.addEventListener('dragover', function (event) {
+            if (contentFormat.value === 'html') return;
             event.preventDefault();
             textarea.classList.add('is-dragging');
         });
@@ -328,6 +379,7 @@
             textarea.classList.remove('is-dragging');
         });
         textarea.addEventListener('drop', function (event) {
+            if (contentFormat.value === 'html') return;
             event.preventDefault();
             textarea.classList.remove('is-dragging');
             if (event.dataTransfer.files.length) uploadImage(event.dataTransfer.files[0]);
@@ -336,22 +388,37 @@
             if (fileInput.files.length) uploadImage(fileInput.files[0]);
             fileInput.value = '';
         });
+        contentFormat.addEventListener('change', syncContentFormat);
+        htmlFileInput.addEventListener('change', function () {
+            var file = htmlFileInput.files && htmlFileInput.files[0];
+            if (!file) return;
+            if (file.size > 8 * 1024 * 1024) {
+                status.textContent = 'HTML 文件不能超过 8MB';
+                htmlFileInput.value = '';
+                return;
+            }
+            file.text().then(function (source) {
+                textarea.value = source;
+                contentFormat.value = 'html';
+                syncContentFormat();
+                status.textContent = '已载入 ' + file.name;
+            }).catch(function () {
+                status.textContent = 'HTML 文件读取失败';
+            });
+        });
         form.addEventListener('submit', function (event) {
             event.preventDefault();
             var url = {{if $c}}'/admin/article/modify'{{else}}'/admin/article/publish'{{end}};
             fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                    'X-CSRF-Token': csrf
-                },
-                body: new URLSearchParams(new FormData(form))
+                headers: {'X-CSRF-Token': csrf},
+                body: new FormData(form)
             }).then(function (response) { return response.json(); }).then(function (result) {
                 if (result.success) location.href = '/admin/article';
                 else status.textContent = result.msg || '保存失败';
             }).catch(function () { status.textContent = '网络异常，请稍后再试'; });
         });
-        renderPreview();
+        syncContentFormat();
     })();
 </script>
 {{template "admin/article_import_script" .}}

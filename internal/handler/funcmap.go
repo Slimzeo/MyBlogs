@@ -35,8 +35,8 @@ func buildFuncMap(sc *SiteConfig) template.FuncMap {
 		// ---- article/meta rendering (Commons.*) ----
 		"permalink":      permalink,
 		"article":        renderArticle,
-		"intro":          util.Intro,
-		"showThumbFirst": func(s string) string { return util.FirstImage(s) },
+		"contentIntro":   util.ContentIntro,
+		"contentThumb":   util.ContentFirstImage,
 		"showIcon":       showIcon,
 		"showCategories": func(s string) template.HTML { return template.HTML(showCategories(s)) },
 		"showTags":       func(s string) template.HTML { return template.HTML(showTags(s)) },
