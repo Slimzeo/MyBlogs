@@ -443,6 +443,340 @@ html[data-color-scheme="dark"] .fluid-moon {
     clip: rect(0, 0, 0, 0);
 }
 
+/* About is a personal field note, not another generic content card. The dark
+ * GitHub surface is intentionally contained so the rest of the page keeps the
+ * blog's quiet reading rhythm. */
+.fluid-about-page-board {
+    padding-top: clamp(28px, 5vw, 54px);
+}
+
+.fluid-about-profile {
+    --about-bg: #0d1117;
+    --about-panel: #161b22;
+    --about-line: #30363d;
+    --about-ink: #f0f6fc;
+    --about-muted: #8b949e;
+    --about-blue: #58a6ff;
+    --about-green: #39d353;
+    position: relative;
+    isolation: isolate;
+    margin-bottom: clamp(46px, 7vw, 76px);
+    overflow: hidden;
+    border: 1px solid var(--about-line);
+    border-radius: 18px;
+    color: var(--about-ink);
+    background: var(--about-bg);
+    box-shadow: 0 24px 55px rgba(13, 17, 23, .28);
+    font-family: var(--fluid-font-ui);
+}
+
+.fluid-about-profile::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    content: "";
+    opacity: .2;
+    background-image:
+        linear-gradient(var(--about-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--about-line) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: linear-gradient(to bottom, #000, transparent 56%);
+}
+
+.fluid-about-rail {
+    display: flex;
+    min-height: 42px;
+    padding: 0 clamp(20px, 4vw, 42px);
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--about-line);
+    color: var(--about-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .18em;
+}
+
+.fluid-about-rail span:last-child::before {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 8px;
+    border-radius: 50%;
+    content: "";
+    background: var(--about-green);
+    box-shadow: 0 0 0 5px rgba(57, 211, 83, .1);
+    animation: fluid-about-status 2.8s ease-in-out infinite;
+}
+
+.fluid-about-hero {
+    display: grid;
+    padding: clamp(30px, 6vw, 68px) clamp(20px, 5vw, 56px);
+    grid-template-columns: minmax(230px, .82fr) minmax(280px, 1.18fr);
+    align-items: center;
+    gap: clamp(32px, 6vw, 76px);
+}
+
+.fluid-about-identity {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 22px;
+}
+
+.fluid-about-avatar {
+    position: relative;
+    display: block;
+    flex: 0 0 auto;
+    width: clamp(104px, 13vw, 144px);
+    height: clamp(104px, 13vw, 144px);
+    padding: 4px;
+    border: 1px solid var(--about-line);
+    border-radius: 50%;
+    background: var(--about-bg);
+}
+
+.fluid-about-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+}
+
+.fluid-about-avatar > span {
+    position: absolute;
+    right: 7px;
+    bottom: 10px;
+    width: 19px;
+    height: 19px;
+    border: 4px solid var(--about-bg);
+    border-radius: 50%;
+    background: var(--about-green);
+}
+
+.fluid-about-avatar:focus-visible,
+.fluid-about-name a:focus-visible,
+.fluid-about-github:focus-visible {
+    outline: 2px solid var(--about-blue);
+    outline-offset: 4px;
+}
+
+.fluid-about-name {
+    min-width: 0;
+}
+
+.fluid-about-name p {
+    margin: 0 0 2px;
+    color: var(--about-muted);
+    font-size: 13px;
+}
+
+.fluid-about-name h2 {
+    margin: 0;
+    color: var(--about-ink);
+    font-size: clamp(34px, 5vw, 54px);
+    font-weight: 700;
+    letter-spacing: -.06em;
+    line-height: 1;
+}
+
+.fluid-about-name h2 span {
+    color: var(--about-green);
+}
+
+.fluid-about-name a {
+    display: inline-block;
+    max-width: 100%;
+    margin-top: 12px;
+    overflow: hidden;
+    color: var(--about-blue) !important;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fluid-about-motto {
+    max-width: 620px;
+    margin: 0;
+    color: var(--about-ink);
+    font-family: var(--fluid-font-reading);
+    font-size: clamp(30px, 4.3vw, 52px);
+    font-weight: 700;
+    letter-spacing: -.035em;
+    line-height: 1.27;
+}
+
+.fluid-about-motto::before {
+    display: block;
+    width: 44px;
+    height: 3px;
+    margin-bottom: 19px;
+    content: "";
+    background: var(--about-green);
+}
+
+.fluid-about-route {
+    border-top: 1px solid var(--about-line);
+    border-bottom: 1px solid var(--about-line);
+    background: rgba(22, 27, 34, .78);
+}
+
+.fluid-about-route ol {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    list-style: none;
+}
+
+.fluid-about-route li {
+    position: relative;
+    min-width: 0;
+    padding: 24px clamp(20px, 4vw, 42px) 25px;
+}
+
+.fluid-about-route li + li {
+    border-left: 1px solid var(--about-line);
+}
+
+.fluid-about-route li + li::before {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 21px;
+    height: 21px;
+    border: 1px solid var(--about-line);
+    border-radius: 50%;
+    color: var(--about-muted);
+    content: "→";
+    background: var(--about-bg);
+    font-size: 11px;
+    line-height: 19px;
+    text-align: center;
+    transform: translate(-50%, -50%);
+}
+
+.fluid-about-route span,
+.fluid-about-route strong,
+.fluid-about-route small {
+    display: block;
+}
+
+.fluid-about-route span {
+    margin-bottom: 7px;
+    color: var(--about-green);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .16em;
+}
+
+.fluid-about-route strong {
+    color: var(--about-ink);
+    font-size: 18px;
+    font-weight: 650;
+}
+
+.fluid-about-route small {
+    margin-top: 3px;
+    color: var(--about-muted);
+    font-size: 11px;
+}
+
+.fluid-about-footer {
+    display: grid;
+    padding: 27px clamp(20px, 4vw, 42px);
+    grid-template-columns: minmax(220px, 1fr) auto;
+    align-items: center;
+    gap: 32px;
+}
+
+.fluid-about-activity {
+    display: grid;
+    width: min(100%, 420px);
+    grid-template-columns: repeat(14, minmax(6px, 1fr));
+    gap: 5px;
+}
+
+.fluid-about-activity i {
+    display: block;
+    aspect-ratio: 1;
+    border: 1px solid rgba(240, 246, 252, .025);
+    border-radius: 2px;
+    background: #161b22;
+}
+
+.fluid-about-activity i:nth-child(11n + 2),
+.fluid-about-activity i:nth-child(13n + 5),
+.fluid-about-activity i:nth-child(17n + 8) {
+    background: #0e4429;
+}
+
+.fluid-about-activity i:nth-child(19n + 4),
+.fluid-about-activity i:nth-child(23n + 7) {
+    background: #006d32;
+}
+
+.fluid-about-activity i:nth-child(29n + 9),
+.fluid-about-activity i:nth-child(31n + 12) {
+    background: #26a641;
+}
+
+.fluid-about-github {
+    display: flex;
+    min-width: min(100%, 250px);
+    padding: 13px 15px 13px 17px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    border: 1px solid var(--about-line);
+    border-radius: 8px;
+    color: var(--about-ink) !important;
+    background: var(--about-panel);
+}
+
+.fluid-about-github:hover {
+    border-color: var(--about-muted);
+    background: #1c2128;
+}
+
+.fluid-about-github span,
+.fluid-about-github small {
+    display: block;
+}
+
+.fluid-about-github span {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fluid-about-github small {
+    margin-bottom: 2px;
+    color: var(--about-muted);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: .16em;
+}
+
+.fluid-about-github strong {
+    color: var(--about-green);
+    font-size: 21px;
+    font-weight: 400;
+}
+
+.fluid-about-page-board #post-content {
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+@keyframes fluid-about-status {
+    50% {
+        opacity: .6;
+        box-shadow: 0 0 0 8px rgba(57, 211, 83, .04);
+    }
+}
+
 .fluid-index-card {
     display: grid;
     margin-bottom: 40px;
@@ -1955,6 +2289,37 @@ html[data-color-scheme="dark"] .fluid-moon {
 }
 
 @media (max-width: 767px) {
+    .fluid-about-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .fluid-about-motto {
+        max-width: 560px;
+    }
+
+    .fluid-about-route ol {
+        grid-template-columns: 1fr;
+    }
+
+    .fluid-about-route li + li {
+        border-top: 1px solid var(--about-line);
+        border-left: 0;
+    }
+
+    .fluid-about-route li + li::before {
+        top: 0;
+        left: 42px;
+        content: "↓";
+    }
+
+    .fluid-about-footer {
+        grid-template-columns: 1fr;
+    }
+
+    .fluid-about-github {
+        width: 100%;
+    }
+
     .fluid-notes-layout {
         display: block;
         width: min(calc(100% - 16px), 960px);
@@ -2094,6 +2459,44 @@ html[data-color-scheme="dark"] .fluid-moon {
     .fluid-page-board {
         padding-right: 18px;
         padding-left: 18px;
+    }
+
+    .fluid-about-page-board {
+        padding-right: 10px;
+        padding-left: 10px;
+    }
+
+    .fluid-about-profile {
+        border-radius: 12px;
+    }
+
+    .fluid-about-rail span:last-child {
+        font-size: 0;
+    }
+
+    .fluid-about-rail span:last-child::after {
+        content: "LEARNING";
+        font-size: 9px;
+    }
+
+    .fluid-about-hero {
+        gap: 34px;
+    }
+
+    .fluid-about-identity {
+        gap: 16px;
+    }
+
+    .fluid-about-name h2 {
+        font-size: 36px;
+    }
+
+    .fluid-about-motto {
+        font-size: 29px;
+    }
+
+    .fluid-about-footer {
+        gap: 23px;
     }
 
     .fluid-post-content {

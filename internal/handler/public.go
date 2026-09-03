@@ -271,6 +271,10 @@ func (server *Server) topics(context *gin.Context) {
 }
 
 func (server *Server) notesPage(context *gin.Context) {
+	if !server.siteConfig.ModuleEnabled("notes") {
+		server.render(context, http.StatusNotFound, "error_404", PageData{})
+		return
+	}
 	path := strings.TrimPrefix(context.Param("path"), "/")
 	data := server.baseData(context, "Notes", "")
 	data.NotesPath = path
@@ -308,6 +312,10 @@ func (server *Server) notesPage(context *gin.Context) {
 }
 
 func (server *Server) archives(context *gin.Context) {
+	if !server.siteConfig.ModuleEnabled("archives") {
+		server.render(context, http.StatusNotFound, "error_404", PageData{})
+		return
+	}
 	data := server.baseData(context, "文章归档", "")
 	data.Archives = server.service.GetArchives(server.canAccessEncrypted(context))
 	for _, archive := range data.Archives {
@@ -317,6 +325,10 @@ func (server *Server) archives(context *gin.Context) {
 }
 
 func (server *Server) links(context *gin.Context) {
+	if !server.siteConfig.ModuleEnabled("links") {
+		server.render(context, http.StatusNotFound, "error_404", PageData{})
+		return
+	}
 	data := server.baseData(context, "友情链接", "")
 	data.Links = server.service.GetMetas(model.TypeLink)
 	server.render(context, http.StatusOK, "links", data)
@@ -370,6 +382,10 @@ func (server *Server) customPageOrNotFound(context *gin.Context) {
 	}
 	path := strings.TrimPrefix(context.Request.URL.Path, "/")
 	if path == "" || strings.Contains(path, "/") {
+		server.render(context, http.StatusNotFound, "error_404", PageData{})
+		return
+	}
+	if path == "about" && !server.siteConfig.ModuleEnabled("about") {
 		server.render(context, http.StatusNotFound, "error_404", PageData{})
 		return
 	}

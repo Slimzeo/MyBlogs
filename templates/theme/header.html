@@ -36,7 +36,7 @@
     <link rel="preload" as="style" href="https://cdn.bootcdn.net/ajax/libs/highlight.js/9.9.0/styles/xcode.min.css" onload="this.onload=null;this.rel='stylesheet'"/>
     <noscript><link href="https://cdn.bootcdn.net/ajax/libs/highlight.js/9.9.0/styles/xcode.min.css" rel="stylesheet"/></noscript>
     {{end}}
-    <link href="/user/css/fluid.css?v=2" rel="stylesheet"/>
+    <link href="/user/css/fluid.css?v=3" rel="stylesheet"/>
     <script src="/user/js/html-article.js?v=3" defer></script>
 </head>
 <body class="fluid-theme fluid-font-{{siteOption "theme_font" "wenkai"}}"
@@ -53,10 +53,18 @@
             </button>
             <div id="navbar-menu" class="fluid-navbar-menu">
                 <a href="{{siteUrl ""}}/">Blogs</a>
+                {{if moduleEnabled "notes"}}
                 <a href="{{siteUrl "/notes"}}">Notes</a>
+                {{end}}
+                {{if moduleEnabled "archives"}}
                 <a href="{{siteUrl "/archives"}}">归档</a>
+                {{end}}
+                {{if moduleEnabled "links"}}
                 <a href="{{siteUrl "/links"}}">友链</a>
+                {{end}}
+                {{if moduleEnabled "about"}}
                 <a href="{{siteUrl "/about"}}">关于</a>
+                {{end}}
                 <button id="search-toggle" class="fluid-nav-button" type="button" aria-label="搜索">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
                 </button>

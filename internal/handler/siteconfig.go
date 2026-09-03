@@ -50,6 +50,13 @@ func (sc *SiteConfig) Option(key, def string) string {
 	return def
 }
 
+// ModuleEnabled reports whether a public-facing module is available. Missing
+// options default to visible so existing installations keep their navigation
+// and routes until an administrator explicitly hides a module.
+func (sc *SiteConfig) ModuleEnabled(name string) bool {
+	return sc.Option("module_"+name+"_enabled", "1") != "0"
+}
+
 // Title returns the site title with a sensible fallback.
 func (sc *SiteConfig) Title() string { return sc.Option("site_title", "HypN0s-Cloud") }
 

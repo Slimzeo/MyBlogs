@@ -135,7 +135,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		t.Fatal("public static asset is missing Cache-Control")
 	}
 	for _, marker := range []string{
-		`href="/user/css/fluid.css?v=2"`,
+		`href="/user/css/fluid.css?v=3"`,
 		`href="/user/css/markdown.css"`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css`,
@@ -214,8 +214,19 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(aboutHTML), "Hi, 这里是Hypnos") {
-		t.Fatal("about page is missing the personal introduction")
+	for _, marker := range []string{
+		"Hi, 这里是Hypnos",
+		`class="fluid-about-profile"`,
+		`https://github.com/Slimzeo`,
+		`https://github.com/Slimzeo.png?size=320`,
+		"努力看论文，学习看源码，成为 Agent 大王",
+		"01 / PAPER",
+		"02 / SOURCE",
+		"03 / AGENT",
+	} {
+		if !strings.Contains(string(aboutHTML), marker) {
+			t.Fatalf("about page is missing profile marker %q", marker)
+		}
 	}
 	invalidLoginResponse := postLogin(t, testServer.URL, "wrong-user", "wrong-password")
 	if invalidLoginResponse.Msg != "用户名或密码错误" {
@@ -289,6 +300,72 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 
 	client := authenticatedClient(t, testServer.URL, testUsername, testPassword)
+	settingResponse, err := client.Get(testServer.URL + "/admin/setting")
+	if err != nil {
+		t.Fatal(err)
+	}
+	settingHTML, err := io.ReadAll(settingResponse.Body)
+	_ = settingResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, marker := range []string{
+		"前台模块",
+		`name="module_notes_enabled"`,
+		`name="module_archives_enabled"`,
+		`name="module_links_enabled"`,
+		`name="module_about_enabled"`,
+		`name="about_github_username"`,
+		`name="about_motto"`,
+	} {
+		if !strings.Contains(string(settingHTML), marker) {
+			t.Fatalf("setting page is missing module marker %q", marker)
+		}
+	}
+	settingsHidden := postAdminForm(t, client, testServer.URL, "/admin/setting", "/admin/setting", url.Values{
+		"module_notes_enabled":    {"0"},
+		"module_archives_enabled": {"0"},
+		"module_links_enabled":    {"0"},
+		"module_about_enabled":    {"0"},
+		"about_github_username":   {"Slimzeo"},
+		"about_motto":             {"努力看论文，学习看源码，成为 Agent 大王"},
+	})
+	if !settingsHidden.Success {
+		t.Fatalf("hiding public modules failed: %s", settingsHidden.Msg)
+	}
+	for _, path := range []string{"/notes", "/archives", "/links", "/about"} {
+		hiddenResponse, requestErr := http.Get(testServer.URL + path)
+		if requestErr != nil {
+			t.Fatalf("GET hidden module %s: %v", path, requestErr)
+		}
+		_ = hiddenResponse.Body.Close()
+		if hiddenResponse.StatusCode != http.StatusNotFound {
+			t.Fatalf("hidden module %s status = %d, want 404", path, hiddenResponse.StatusCode)
+		}
+	}
+	hiddenHomeResponse, err := http.Get(testServer.URL + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hiddenHomeHTML, err := io.ReadAll(hiddenHomeResponse.Body)
+	_ = hiddenHomeResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, hiddenLink := range []string{`href="/notes"`, `href="/archives"`, `href="/links"`, `href="/about"`} {
+		if strings.Contains(string(hiddenHomeHTML), hiddenLink) {
+			t.Fatalf("hidden module link remains in navigation: %s", hiddenLink)
+		}
+	}
+	settingsRestored := postAdminForm(t, client, testServer.URL, "/admin/setting", "/admin/setting", url.Values{
+		"module_notes_enabled":    {"1"},
+		"module_archives_enabled": {"1"},
+		"module_links_enabled":    {"1"},
+		"module_about_enabled":    {"1"},
+	})
+	if !settingsRestored.Success {
+		t.Fatalf("restoring public modules failed: %s", settingsRestored.Msg)
+	}
 	response, err := client.Get(testServer.URL + "/admin/index")
 	if err != nil {
 		t.Fatal(err)

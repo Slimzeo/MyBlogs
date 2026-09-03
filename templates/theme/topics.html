@@ -12,7 +12,7 @@
             <nav class="fluid-topic-tabs" aria-label="学习目录类型">
                 <a class="{{if eq .TopicView "categories"}}is-active{{end}}" href="/topics?view=categories">专栏 <span>{{len .Categories}}</span></a>
                 <a class="{{if eq .TopicView "tags"}}is-active{{end}}" href="/topics?view=tags">标签 <span>{{len .Tags}}</span></a>
-                <a href="/archives">时间归档 <span>→</span></a>
+                {{if moduleEnabled "archives"}}<a href="/archives">时间归档 <span>→</span></a>{{end}}
             </nav>
 
             {{if eq .TopicView "categories"}}

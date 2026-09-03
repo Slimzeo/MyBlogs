@@ -2,9 +2,49 @@
 {{template "header" .}}
 <main id="fluid-page-main" class="fluid-main">
     <div class="fluid-container">
-        <section id="board" class="fluid-board fluid-page-board">
+        <section id="board" class="fluid-board fluid-page-board{{if eq .Article.Slug "about"}} fluid-about-page-board{{end}}">
             <article class="fluid-post-content">
                 <h1 class="fluid-seo-title">{{.Article.Title}}</h1>
+                {{if eq .Article.Slug "about"}}
+                {{$github := siteOption "about_github_username" "Slimzeo"}}
+                {{$motto := siteOption "about_motto" "努力看论文，学习看源码，成为 Agent 大王"}}
+                <section class="fluid-about-profile" aria-labelledby="about-profile-title">
+                    <div class="fluid-about-rail">
+                        <span>ABOUT / FIELD NOTES</span>
+                        <span>STATUS · LEARNING</span>
+                    </div>
+                    <div class="fluid-about-hero">
+                        <div class="fluid-about-identity">
+                            <a class="fluid-about-avatar" href="https://github.com/{{$github}}" target="_blank" rel="noopener noreferrer" aria-label="在 GitHub 查看 {{$github}} 的主页">
+                                <img src="https://github.com/{{$github}}.png?size=320" alt="{{$github}} 的 GitHub 头像" width="160" height="160" decoding="async"/>
+                                <span aria-hidden="true"></span>
+                            </a>
+                            <div class="fluid-about-name">
+                                <p>Hi, 这里是</p>
+                                <h2 id="about-profile-title">Hypnos<span>.</span></h2>
+                                <a href="https://github.com/{{$github}}" target="_blank" rel="noopener noreferrer">@{{$github}} <span aria-hidden="true">↗</span></a>
+                            </div>
+                        </div>
+                        <p class="fluid-about-motto">{{$motto}}</p>
+                    </div>
+                    <div class="fluid-about-route" aria-label="学习路径：论文、源码、智能体">
+                        <ol>
+                            <li><span>01 / PAPER</span><strong>读论文</strong><small>从问题走到证据</small></li>
+                            <li><span>02 / SOURCE</span><strong>看源码</strong><small>把方法拆成实现</small></li>
+                            <li><span>03 / AGENT</span><strong>造 Agent</strong><small>让理解持续生长</small></li>
+                        </ol>
+                    </div>
+                    <div class="fluid-about-footer">
+                        <div class="fluid-about-activity" aria-hidden="true">
+                            {{range seq 70}}<i></i>{{end}}
+                        </div>
+                        <a class="fluid-about-github" href="https://github.com/{{$github}}" target="_blank" rel="noopener noreferrer">
+                            <span><small>OPEN PROFILE</small>github.com/{{$github}}</span>
+                            <strong aria-hidden="true">↗</strong>
+                        </a>
+                    </div>
+                </section>
+                {{end}}
                 <div id="post-content" class="fluid-markdown">{{article .Article.Content}}</div>
             </article>
             {{template "comments" .}}

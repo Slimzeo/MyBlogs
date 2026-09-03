@@ -25,8 +25,9 @@ func buildFuncMap(sc *SiteConfig) template.FuncMap {
 	}
 	return template.FuncMap{
 		// ---- site config (Commons.site_*) ----
-		"siteOption": sc.Option,
-		"siteTitle":  sc.Title,
+		"siteOption":    sc.Option,
+		"siteTitle":     sc.Title,
+		"moduleEnabled": sc.ModuleEnabled,
 		"siteUrl": func(sub string) string {
 			return sc.Option("site_url", "") + sub
 		},
