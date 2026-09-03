@@ -9,9 +9,8 @@
     .setting-module-card strong{display:block;margin-bottom:3px;color:var(--admin-ink);font-size:13px}
     .setting-module-card span{display:block;min-height:34px;color:var(--admin-muted);font-size:11px;line-height:1.5}
     .setting-module-card select{margin:12px 0 0;background:#fff}
-    .setting-about-grid{display:grid;grid-template-columns:minmax(180px,.7fr) minmax(0,1.3fr);gap:14px}
     @media (max-width:900px){.setting-module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media (max-width:520px){.setting-section-heading{display:block}.setting-section-heading p{margin-top:5px}.setting-module-grid,.setting-about-grid{grid-template-columns:1fr}}
+    @media (max-width:520px){.setting-section-heading{display:block}.setting-section-heading p{margin-top:5px}.setting-module-grid{grid-template-columns:1fr}}
 </style>
 <div class="card">
     <h3>系统设置</h3>
@@ -84,18 +83,10 @@
         <hr/>
         <div class="setting-section-heading">
             <h4>关于页个性化</h4>
-            <p>内容正文仍在“页面”中编辑，这里只管理个人名片。</p>
+            <p>内容正文仍在“页面”中编辑。</p>
         </div>
-        <div class="setting-about-grid">
-            <div>
-                <label>GitHub 用户名</label>
-                <input type="text" name="about_github_username" value="{{default "Slimzeo" (index .Options "about_github_username")}}" placeholder="Slimzeo"/>
-            </div>
-            <div>
-                <label>个人签名</label>
-                <input type="text" name="about_motto" value="{{default "努力看论文，学习看源码，成为 Agent 大王" (index .Options "about_motto")}}" placeholder="努力看论文，学习看源码，成为 Agent 大王"/>
-            </div>
-        </div>
+        <label>个人签名</label>
+        <input type="text" name="about_motto" value="{{default "努力看论文，学习看源码，成为 Agent 大王" (index .Options "about_motto")}}" placeholder="努力看论文，学习看源码，成为 Agent 大王"/>
         <hr/>
         <h4>社交链接</h4>
         <label>微博</label><input type="text" name="social_weibo" value="{{index .Options "social_weibo"}}"/>

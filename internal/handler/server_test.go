@@ -135,7 +135,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		t.Fatal("public static asset is missing Cache-Control")
 	}
 	for _, marker := range []string{
-		`href="/user/css/fluid.css?v=3"`,
+		`href="/user/css/fluid.css?v=4"`,
 		`href="/user/css/markdown.css"`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css`,
@@ -216,13 +216,11 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	for _, marker := range []string{
 		"Hi, 这里是Hypnos",
-		`class="fluid-about-profile"`,
+		`class="fluid-about-snapshot"`,
+		`class="fluid-about-screenshot"`,
 		`https://github.com/Slimzeo`,
-		`https://github.com/Slimzeo.png?size=320`,
+		`src="/upload/about/github-profile.png"`,
 		"努力看论文，学习看源码，成为 Agent 大王",
-		"01 / PAPER",
-		"02 / SOURCE",
-		"03 / AGENT",
 	} {
 		if !strings.Contains(string(aboutHTML), marker) {
 			t.Fatalf("about page is missing profile marker %q", marker)
@@ -315,7 +313,6 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`name="module_archives_enabled"`,
 		`name="module_links_enabled"`,
 		`name="module_about_enabled"`,
-		`name="about_github_username"`,
 		`name="about_motto"`,
 	} {
 		if !strings.Contains(string(settingHTML), marker) {
@@ -327,7 +324,6 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		"module_archives_enabled": {"0"},
 		"module_links_enabled":    {"0"},
 		"module_about_enabled":    {"0"},
-		"about_github_username":   {"Slimzeo"},
 		"about_motto":             {"努力看论文，学习看源码，成为 Agent 大王"},
 	})
 	if !settingsHidden.Success {
