@@ -564,7 +564,12 @@ html[data-color-scheme="dark"] .fluid-moon {
 }
 
 .fluid-html-post-main .fluid-post-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1440px) minmax(0, 1fr);
+    display: block;
+    width: 100%;
+}
+
+.fluid-html-post-main .fluid-post-column {
+    width: 100%;
 }
 
 .fluid-post-column {
@@ -580,19 +585,167 @@ html[data-color-scheme="dark"] .fluid-moon {
     padding: 0 clamp(26px, 10%, 88px);
 }
 
-.fluid-html-post-content {
-    padding-right: clamp(12px, 3vw, 36px);
-    padding-left: clamp(12px, 3vw, 36px);
+.fluid-html-post-board {
+    margin-top: 0;
+    padding: 0;
+    border-radius: 0;
+    background: var(--fluid-board-bg);
+    box-shadow: none;
+}
+
+.fluid-html-post-main .fluid-html-post-content {
+    padding: 0;
+}
+
+.fluid-html-frame-shell {
+    --html-theme-color: var(--fluid-board-bg);
+    background: var(--html-theme-color);
+    transition: background-color .65s ease;
+}
+
+.fluid-html-frame-viewport {
+    position: relative;
+    width: min(calc(100% - 30px), 960px);
+    height: max(640px, 100vh);
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.fluid-html-frame-loader {
+    display: none;
+}
+
+.js .fluid-html-frame-loader {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    left: 0;
+    display: flex;
+    height: min(100%, max(640px, 100svh));
+    align-items: center;
+    justify-content: center;
+    color: var(--fluid-post-text);
+    background: var(--fluid-board-bg);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .32s ease, visibility .32s ease;
+    visibility: hidden;
+}
+
+.js .fluid-html-frame-shell.is-loading .fluid-html-frame-loader {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+}
+
+.fluid-html-frame-loader-copy {
+    display: grid;
+    width: min(calc(100% - 48px), 360px);
+    justify-items: center;
+    gap: 5px;
+    text-align: center;
+}
+
+.fluid-html-frame-loader-kicker {
+    margin-bottom: 7px;
+    color: var(--fluid-secondary);
+    font-family: var(--fluid-font-ui);
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: .2em;
+}
+
+.fluid-html-frame-loader-copy strong {
+    font-family: var(--fluid-font-reading);
+    font-size: clamp(20px, 2.4vw, 27px);
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+
+.fluid-html-frame-loader-copy > span:not(.fluid-html-frame-loader-kicker):not(.fluid-html-frame-loader-line) {
+    color: var(--fluid-secondary);
+    font-size: 13px;
+}
+
+.fluid-html-frame-loader-line {
+    position: relative;
+    width: min(180px, 54vw);
+    height: 1px;
+    margin-top: 18px;
+    overflow: hidden;
+    background: var(--fluid-line);
+}
+
+.fluid-html-frame-loader-line::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background: var(--fluid-text);
+    transform: translateX(-105%);
+    animation: fluid-html-loading-line 1.5s cubic-bezier(.65, 0, .35, 1) infinite;
+}
+
+@keyframes fluid-html-loading-line {
+    55%, 100% {
+        transform: translateX(105%);
+    }
+}
+
+.fluid-html-frame-shell::before,
+.fluid-html-frame-shell::after {
+    display: block;
+    height: clamp(56px, 7vw, 104px);
+    content: "";
+}
+
+.fluid-html-frame-shell::before {
+    background: linear-gradient(to bottom, var(--fluid-board-bg), var(--html-theme-color));
+}
+
+.fluid-html-frame-shell::after {
+    background: linear-gradient(to bottom, var(--html-theme-color), var(--fluid-board-bg));
 }
 
 .fluid-html-article-frame {
+    position: absolute;
+    top: 0;
+    left: 0;
     display: block;
     width: 100%;
-    height: max(720px, calc(100vh - 100px));
-    margin-top: 24px;
+    height: 100vh;
+    min-height: 640px;
+    margin: 0;
     border: 0;
-    border-radius: 8px;
-    background: #fff;
+    border-radius: 0;
+    overflow: hidden;
+    background: transparent;
+    transform: scale(1);
+    transform-origin: top left;
+    will-change: transform;
+    opacity: 1;
+    transition: opacity .36s ease;
+}
+
+.js .fluid-html-frame-shell.is-loading .fluid-html-article-frame {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.fluid-html-article-frame.is-sized {
+    min-height: 0;
+}
+
+.fluid-html-post-details {
+    width: min(calc(100% - 36px), 960px);
+    margin: 0 auto;
+    padding-top: 8px;
+}
+
+.fluid-html-post-board .fluid-comments-wrap {
+    width: min(calc(100% - 36px), 960px);
+    padding-right: 0;
+    padding-left: 0;
 }
 
 .fluid-post-sidebar {
@@ -1864,6 +2017,11 @@ html[data-color-scheme="dark"] .fluid-moon {
 
     .fluid-banner-title {
         font-size: 1.5rem;
+        overflow-wrap: anywhere;
+    }
+
+    .fluid-banner-text {
+        width: calc(100% - 32px);
     }
 
     .fluid-home-quote {
@@ -1941,6 +2099,30 @@ html[data-color-scheme="dark"] .fluid-moon {
     .fluid-post-content {
         padding-right: 18px;
         padding-left: 18px;
+    }
+
+    .fluid-html-post-main .fluid-html-post-content {
+        padding-right: 0;
+        padding-left: 0;
+    }
+
+    .fluid-html-article-frame {
+        height: 100svh;
+        min-height: 480px;
+    }
+
+    .fluid-html-frame-viewport {
+        width: 100%;
+        min-height: 480px;
+    }
+
+    .js .fluid-html-frame-loader {
+        height: min(100%, max(480px, 100svh));
+    }
+
+    .fluid-html-frame-shell::before,
+    .fluid-html-frame-shell::after {
+        height: 44px;
     }
 
     .fluid-index-image img {

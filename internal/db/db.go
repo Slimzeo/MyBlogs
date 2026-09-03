@@ -10,6 +10,7 @@ import (
 
 	"myblog/config"
 	"myblog/internal/model"
+	"myblog/internal/util"
 
 	"github.com/glebarez/sqlite" // pure-Go sqlite driver (no cgo)
 	"golang.org/x/crypto/bcrypt"
@@ -95,9 +96,39 @@ func autoMigrate(gdb *gorm.DB) error {
 		Update("display_time", gorm.Expr("created")).Error; err != nil {
 		return err
 	}
-	return gdb.Model(&model.Content{}).
+	if err := gdb.Model(&model.Content{}).
 		Where("content_format IS NULL OR content_format = ''").
-		Update("content_format", model.ContentMarkdown).Error
+		Update("content_format", model.ContentMarkdown).Error; err != nil {
+		return err
+	}
+	return migrateHTMLThemeColors(gdb)
+}
+
+func migrateHTMLThemeColors(gdb *gorm.DB) error {
+	if err := gdb.Model(&model.Content{}).
+		Where("content_format <> ? AND html_theme_color_version < ?", model.ContentHTML, util.HTMLThemeColorVersion).
+		Updates(map[string]any{
+			"html_theme_color":         "",
+			"html_theme_color_version": util.HTMLThemeColorVersion,
+		}).Error; err != nil {
+		return err
+	}
+	var articles []model.Content
+	if err := gdb.Where(
+		"content_format = ? AND html_theme_color_version < ?",
+		model.ContentHTML, util.HTMLThemeColorVersion,
+	).Order("cid asc").Find(&articles).Error; err != nil {
+		return err
+	}
+	for _, article := range articles {
+		if err := gdb.Model(&model.Content{}).Where("cid = ?", article.Cid).Updates(map[string]any{
+			"html_theme_color":         util.ExtractHTMLThemeColor(article.Content),
+			"html_theme_color_version": util.HTMLThemeColorVersion,
+		}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // seed inserts a default admin user, site options and a welcome article on the
@@ -174,36 +205,38 @@ func seed(gdb *gorm.DB, cfg *config.Config) error {
 	if contentCount == 0 {
 		now := int(time.Now().Unix())
 		welcome := model.Content{
-			Title:         "欢迎使用 Go My-Blog",
-			Slug:          "welcome",
-			Created:       now,
-			DisplayTime:   now,
-			Modified:      now,
-			Content:       welcomeMarkdown,
-			ContentFormat: model.ContentMarkdown,
-			AuthorID:      1,
-			Type:          model.TypeArticle,
-			Status:        model.TypePublish,
-			Tags:          "Go,Blog",
-			Categories:    "默认分类",
-			AllowComment:  true,
-			AllowPing:     true,
-			AllowFeed:     true,
+			Title:                 "欢迎使用 Go My-Blog",
+			Slug:                  "welcome",
+			Created:               now,
+			DisplayTime:           now,
+			Modified:              now,
+			Content:               welcomeMarkdown,
+			ContentFormat:         model.ContentMarkdown,
+			HTMLThemeColorVersion: util.HTMLThemeColorVersion,
+			AuthorID:              1,
+			Type:                  model.TypeArticle,
+			Status:                model.TypePublish,
+			Tags:                  "Go,Blog",
+			Categories:            "默认分类",
+			AllowComment:          true,
+			AllowPing:             true,
+			AllowFeed:             true,
 		}
 		about := model.Content{
-			Title:         "关于",
-			Slug:          "about",
-			Created:       now,
-			DisplayTime:   now,
-			Modified:      now,
-			Content:       aboutMarkdown,
-			ContentFormat: model.ContentMarkdown,
-			AuthorID:      1,
-			Type:          model.TypePage,
-			Status:        model.TypePublish,
-			AllowComment:  true,
-			AllowPing:     true,
-			AllowFeed:     true,
+			Title:                 "关于",
+			Slug:                  "about",
+			Created:               now,
+			DisplayTime:           now,
+			Modified:              now,
+			Content:               aboutMarkdown,
+			ContentFormat:         model.ContentMarkdown,
+			HTMLThemeColorVersion: util.HTMLThemeColorVersion,
+			AuthorID:              1,
+			Type:                  model.TypePage,
+			Status:                model.TypePublish,
+			AllowComment:          true,
+			AllowPing:             true,
+			AllowFeed:             true,
 		}
 		if err := gdb.Create(&welcome).Error; err != nil {
 			return err

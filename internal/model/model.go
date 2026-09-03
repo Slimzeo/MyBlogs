@@ -6,24 +6,26 @@ package model
 
 // Content is the t_contents table (articles and pages). Maps ContentVo.
 type Content struct {
-	Cid           int    `gorm:"column:cid;primaryKey;autoIncrement" json:"cid"`
-	Title         string `gorm:"column:title" json:"title"`
-	Slug          string `gorm:"column:slug;uniqueIndex;default:null" json:"slug"`
-	Created       int    `gorm:"column:created;index" json:"created"`
-	DisplayTime   int    `gorm:"column:display_time;index" json:"displayTime"`
-	Modified      int    `gorm:"column:modified" json:"modified"`
-	Content       string `gorm:"column:content;type:mediumtext" json:"content"`
-	ContentFormat string `gorm:"column:content_format;size:16;not null;default:markdown" json:"contentFormat"`
-	AuthorID      int    `gorm:"column:author_id" json:"authorId"`
-	Type          string `gorm:"column:type" json:"type"`
-	Status        string `gorm:"column:status" json:"status"`
-	Tags          string `gorm:"column:tags" json:"tags"`
-	Categories    string `gorm:"column:categories" json:"categories"`
-	Hits          int    `gorm:"column:hits" json:"hits"`
-	CommentsNum   int    `gorm:"column:comments_num" json:"commentsNum"`
-	AllowComment  bool   `gorm:"column:allow_comment" json:"allowComment"`
-	AllowPing     bool   `gorm:"column:allow_ping" json:"allowPing"`
-	AllowFeed     bool   `gorm:"column:allow_feed" json:"allowFeed"`
+	Cid                   int    `gorm:"column:cid;primaryKey;autoIncrement" json:"cid"`
+	Title                 string `gorm:"column:title" json:"title"`
+	Slug                  string `gorm:"column:slug;uniqueIndex;default:null" json:"slug"`
+	Created               int    `gorm:"column:created;index" json:"created"`
+	DisplayTime           int    `gorm:"column:display_time;index" json:"displayTime"`
+	Modified              int    `gorm:"column:modified" json:"modified"`
+	Content               string `gorm:"column:content;type:mediumtext" json:"content"`
+	ContentFormat         string `gorm:"column:content_format;size:16;not null;default:markdown" json:"contentFormat"`
+	HTMLThemeColor        string `gorm:"column:html_theme_color;size:7" json:"htmlThemeColor"`
+	HTMLThemeColorVersion int    `gorm:"column:html_theme_color_version;not null;default:0" json:"htmlThemeColorVersion"`
+	AuthorID              int    `gorm:"column:author_id" json:"authorId"`
+	Type                  string `gorm:"column:type" json:"type"`
+	Status                string `gorm:"column:status" json:"status"`
+	Tags                  string `gorm:"column:tags" json:"tags"`
+	Categories            string `gorm:"column:categories" json:"categories"`
+	Hits                  int    `gorm:"column:hits" json:"hits"`
+	CommentsNum           int    `gorm:"column:comments_num" json:"commentsNum"`
+	AllowComment          bool   `gorm:"column:allow_comment" json:"allowComment"`
+	AllowPing             bool   `gorm:"column:allow_ping" json:"allowPing"`
+	AllowFeed             bool   `gorm:"column:allow_feed" json:"allowFeed"`
 }
 
 func (Content) TableName() string { return "t_contents" }

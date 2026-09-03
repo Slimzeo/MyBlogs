@@ -544,6 +544,7 @@
             updateScrollUI();
             mountComments();
             mountArticleTOC();
+            if (window.HTMLArticleFrame) window.HTMLArticleFrame.mount();
             mountLeafAnimation();
             bindNavigation();
             if (!accessControlEnabled() && !pageCache.has(window.location.href)) {

@@ -1,21 +1,35 @@
 {{define "post"}}
 {{template "header" .}}
-<main id="fluid-page-main" class="fluid-main fluid-post-main{{if eq .Article.ContentFormat "html"}} fluid-html-post-main{{end}}">
+<main id="fluid-page-main" class="fluid-main fluid-post-main{{if eq .Article.ContentFormat "html"}} fluid-html-post-main{{end}}"
+      {{if .Article.HTMLThemeColor}}data-html-theme-color="{{.Article.HTMLThemeColor}}"{{end}}>
     <div class="fluid-post-layout">
         <div class="fluid-post-column">
-            <section id="board" class="fluid-board fluid-post-board">
+            <section id="board" class="fluid-board fluid-post-board{{if eq .Article.ContentFormat "html"}} fluid-html-post-board{{end}}">
                 <article class="fluid-post-content{{if eq .Article.ContentFormat "html"}} fluid-html-post-content{{end}}" itemscope="" itemtype="https://schema.org/Article">
                     <h1 class="fluid-seo-title" itemprop="name headline">{{.Article.Title}}</h1>
                     {{if eq .Article.ContentFormat "html"}}
+                    <div class="fluid-html-frame-shell is-loading" aria-busy="true">
+                    <div class="fluid-html-frame-viewport">
+                    <div class="fluid-html-frame-loader" role="status" aria-live="polite" aria-atomic="true">
+                        <div class="fluid-html-frame-loader-copy">
+                            <span class="fluid-html-frame-loader-kicker">HTML ARTICLE</span>
+                            <strong>正在准备文章画面</strong>
+                            <span>排版与图片稳定后会自动显示</span>
+                            <span class="fluid-html-frame-loader-line" aria-hidden="true"></span>
+                        </div>
+                    </div>
                     <iframe id="html-article-frame" class="fluid-html-article-frame"
                             src="{{permalink .Article}}/document{{if eq .Article.Status "draft"}}?preview=1{{end}}"
                             title="{{.Article.Title}}" sandbox="allow-scripts" allow="clipboard-write"
-                            referrerpolicy="no-referrer" loading="eager"></iframe>
+                            referrerpolicy="no-referrer" loading="eager" scrolling="no"></iframe>
+                    </div>
+                    </div>
                     {{else}}
                     <div id="post-content" class="fluid-markdown" itemprop="articleBody">
                     {{article .Article.Content}}
                     </div>
                     {{end}}
+                    <div class="fluid-post-details{{if eq .Article.ContentFormat "html"}} fluid-html-post-details{{end}}">
                     <hr class="fluid-post-divider"/>
                     <div class="fluid-post-bottom-meta">
                         <div class="fluid-post-categories">{{showCategories .Article.Categories}}</div>
@@ -25,6 +39,7 @@
                         <strong>{{.Article.Title}}</strong>
                         <span>最后更新于 {{fmtdatef .Article.Modified "yyyy-MM-dd HH:mm"}}</span>
                         <p>本文除注明转载外均为本站原创，转载请保留出处。</p>
+                    </div>
                     </div>
                 </article>
                 {{template "comments" .}}

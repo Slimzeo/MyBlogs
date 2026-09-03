@@ -40,6 +40,7 @@ func (s *Service) Publish(c *model.Content) error {
 	if !validContentFormat(c.ContentFormat) {
 		return Tip("文章格式不合法")
 	}
+	setContentTheme(c)
 	if strings.TrimSpace(c.Slug) != "" {
 		if len(c.Slug) < 5 {
 			return Tip("路径太短了")
@@ -278,6 +279,13 @@ func (s *Service) UpdateArticle(c *model.Content) error {
 	if err := s.db.First(&original, cid).Error; err != nil {
 		return err
 	}
+	if c.Content == original.Content && c.ContentFormat == original.ContentFormat &&
+		original.HTMLThemeColorVersion == util.HTMLThemeColorVersion {
+		c.HTMLThemeColor = original.HTMLThemeColor
+		c.HTMLThemeColorVersion = original.HTMLThemeColorVersion
+	} else {
+		setContentTheme(c)
+	}
 	if original.Type == model.TypeArticle && c.DisplayTime == 0 {
 		c.DisplayTime = original.DisplayTime
 	}
@@ -290,19 +298,21 @@ func (s *Service) UpdateArticle(c *model.Content) error {
 			slug = nil
 		}
 		updates := map[string]interface{}{
-			"title":          c.Title,
-			"slug":           slug,
-			"modified":       c.Modified,
-			"author_id":      c.AuthorID,
-			"type":           c.Type,
-			"status":         c.Status,
-			"tags":           c.Tags,
-			"categories":     c.Categories,
-			"allow_comment":  c.AllowComment,
-			"allow_ping":     c.AllowPing,
-			"allow_feed":     c.AllowFeed,
-			"content":        c.Content,
-			"content_format": c.ContentFormat,
+			"title":                    c.Title,
+			"slug":                     slug,
+			"modified":                 c.Modified,
+			"author_id":                c.AuthorID,
+			"type":                     c.Type,
+			"status":                   c.Status,
+			"tags":                     c.Tags,
+			"categories":               c.Categories,
+			"allow_comment":            c.AllowComment,
+			"allow_ping":               c.AllowPing,
+			"allow_feed":               c.AllowFeed,
+			"content":                  c.Content,
+			"content_format":           c.ContentFormat,
+			"html_theme_color":         c.HTMLThemeColor,
+			"html_theme_color_version": c.HTMLThemeColorVersion,
 		}
 		if c.Type == model.TypeArticle {
 			updates["display_time"] = c.DisplayTime
@@ -327,6 +337,14 @@ func (s *Service) UpdateArticle(c *model.Content) error {
 
 func validContentFormat(format string) bool {
 	return format == model.ContentMarkdown || format == model.ContentHTML
+}
+
+func setContentTheme(content *model.Content) {
+	content.HTMLThemeColor = ""
+	content.HTMLThemeColorVersion = util.HTMLThemeColorVersion
+	if content.ContentFormat == model.ContentHTML {
+		content.HTMLThemeColor = util.ExtractHTMLThemeColor(content.Content)
+	}
 }
 
 func validateContentSize(content, format string) error {

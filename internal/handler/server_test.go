@@ -135,7 +135,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		t.Fatal("public static asset is missing Cache-Control")
 	}
 	for _, marker := range []string{
-		`href="/user/css/fluid.css"`,
+		`href="/user/css/fluid.css?v=2"`,
 		`href="/user/css/markdown.css"`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css`,
@@ -605,7 +605,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 
 	htmlImportArchive := buildTestImportArchive(t, map[string]string{
-		"design-demos/article.html": `<!doctype html><html><head><title>HTML Design Article</title><style>body{background:url('../assets/paper.png')}</style></head><body><img src="../assets/cover.png?size=large#hero"><script>document.body.dataset.ready='1'</script></body></html>`,
+		"design-demos/article.html": `<!doctype html><html><head><title>HTML Design Article</title><style>:root{--paper:#f2ede4}body{background-color:var(--paper);background-image:url('../assets/paper.png')}</style></head><body><img src="../assets/cover.png?size=large#hero"><script>document.body.dataset.ready='1'</script></body></html>`,
 		"assets/cover.png":          string([]byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a}),
 		"assets/paper.png":          string([]byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a}),
 	})
@@ -623,6 +623,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	if htmlArticle == nil || htmlArticle.Title != "HTML Design Article" ||
 		htmlArticle.ContentFormat != model.ContentHTML || htmlArticle.DisplayTime != htmlArticle.Created ||
+		htmlArticle.HTMLThemeColor != "#e9e4d6" || htmlArticle.HTMLThemeColorVersion != util.HTMLThemeColorVersion ||
 		!strings.Contains(htmlArticle.Content, `data:image/png;base64,`) ||
 		strings.Contains(htmlArticle.Content, `/upload/`) || strings.Contains(htmlArticle.Content, `../assets/`) {
 		t.Fatalf("HTML article import result invalid: %#v", htmlArticle)
@@ -641,8 +642,17 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(htmlShellBody), `class="fluid-html-article-frame"`) ||
-		!strings.Contains(string(htmlShellBody), `sandbox="allow-scripts"`) {
+		!strings.Contains(string(htmlShellBody), `class="fluid-html-frame-shell is-loading"`) ||
+		!strings.Contains(string(htmlShellBody), `class="fluid-html-frame-viewport"`) ||
+		!strings.Contains(string(htmlShellBody), `class="fluid-html-frame-loader"`) ||
+		!strings.Contains(string(htmlShellBody), `role="status"`) ||
+		!strings.Contains(string(htmlShellBody), `data-html-theme-color="#e9e4d6"`) ||
+		!strings.Contains(string(htmlShellBody), `sandbox="allow-scripts"`) ||
+		!strings.Contains(string(htmlShellBody), `scrolling="no"`) {
 		t.Fatal("HTML article shell is missing the sandboxed iframe")
+	}
+	if !strings.Contains(string(htmlShellBody), `/user/js/html-article.js`) {
+		t.Fatal("HTML article shell is missing the frame controller")
 	}
 	htmlDocumentResponse, err := http.Get(testServer.URL + "/article/" + strconv.Itoa(htmlArticle.Cid) + "/document")
 	if err != nil {
@@ -656,10 +666,18 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if htmlDocumentResponse.StatusCode != http.StatusOK || !strings.Contains(string(htmlDocumentBody), "HTML Design Article") {
 		t.Fatalf("HTML document status/body invalid: %d", htmlDocumentResponse.StatusCode)
 	}
+	for _, marker := range []string{`name="viewport"`, `myblog:html-size`, `myblog:html-ready`, `ResizeObserver`} {
+		if !strings.Contains(string(htmlDocumentBody), marker) {
+			t.Fatalf("HTML document missing frame bridge marker %q", marker)
+		}
+	}
 	for _, expected := range []string{"sandbox allow-scripts", "default-src 'none'", "connect-src 'none'"} {
 		if !strings.Contains(htmlDocumentResponse.Header.Get("Content-Security-Policy"), expected) {
 			t.Fatalf("HTML document CSP missing %q: %s", expected, htmlDocumentResponse.Header.Get("Content-Security-Policy"))
 		}
+	}
+	if strings.Contains(htmlDocumentResponse.Header.Get("Content-Security-Policy"), "allow-same-origin") {
+		t.Fatal("HTML document CSP unexpectedly allows same-origin access")
 	}
 	if htmlDocumentResponse.Header.Get("Cache-Control") != "private, no-store" {
 		t.Fatalf("HTML document cache control = %q", htmlDocumentResponse.Header.Get("Cache-Control"))

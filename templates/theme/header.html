@@ -17,6 +17,7 @@
     <title>{{if .Title}}{{.Title}}{{else}}首页{{end}} - {{siteOption "site_title" "HypN0s-Cloud"}}</title>
     <script>
         (function () {
+            document.documentElement.classList.add('js');
             var saved = localStorage.getItem('fluid-color-scheme');
             var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
             document.documentElement.dataset.colorScheme = saved || (dark ? 'dark' : 'light');
@@ -35,7 +36,8 @@
     <link rel="preload" as="style" href="https://cdn.bootcdn.net/ajax/libs/highlight.js/9.9.0/styles/xcode.min.css" onload="this.onload=null;this.rel='stylesheet'"/>
     <noscript><link href="https://cdn.bootcdn.net/ajax/libs/highlight.js/9.9.0/styles/xcode.min.css" rel="stylesheet"/></noscript>
     {{end}}
-    <link href="/user/css/fluid.css" rel="stylesheet"/>
+    <link href="/user/css/fluid.css?v=2" rel="stylesheet"/>
+    <script src="/user/js/html-article.js?v=2" defer></script>
 </head>
 <body class="fluid-theme fluid-font-{{siteOption "theme_font" "wenkai"}}"
       data-access-key-enabled="{{if .AccessKeyEnabled}}1{{else}}0{{end}}"

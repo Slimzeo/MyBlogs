@@ -69,7 +69,13 @@ func (server *Server) articleDocument(context *gin.Context) {
 		"sandbox allow-scripts; default-src 'none'; base-uri 'none'; object-src 'none'; form-action 'none'; "+
 			"frame-ancestors 'self'; img-src 'self' data: https:; media-src 'self' data: https:; "+
 			"font-src data: https:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'")
-	context.Data(http.StatusOK, "text/html; charset=utf-8", []byte(content.Content))
+	cacheKey := "html-document:v" + util.HTMLFrameDocumentVersion + ":" + util.MD5encode(content.Content)
+	document, exists := server.service.Cache().GetString(cacheKey)
+	if !exists {
+		document = util.PrepareHTMLForFrame(content.Content)
+		server.service.Cache().Set(cacheKey, document, 30*60)
+	}
+	context.Data(http.StatusOK, "text/html; charset=utf-8", []byte(document))
 }
 
 func (server *Server) renderArticle(context *gin.Context, preview bool) {
