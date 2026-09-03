@@ -10,13 +10,14 @@ const htmlFrameViewport = `<meta name="viewport" content="width=device-width, in
 
 // HTMLFrameDocumentVersion invalidates prepared-document caches whenever the
 // bridge protocol changes.
-const HTMLFrameDocumentVersion = "2"
+const HTMLFrameDocumentVersion = "3"
 
 const htmlFrameBridge = `<script>(function(){
 var protocolVersion=` + HTMLFrameDocumentVersion + `;
 var sizeMessageType="myblog:html-size";
 var readyMessageType="myblog:html-ready";
 var measureMessageType="myblog:measure-html";
+var viewportMessageType="myblog:html-viewport";
 var readyImageRatio=.75;
 var minimumReadyDelay=360;
 var readyQuietWindow=320;
@@ -28,6 +29,7 @@ var readyTimer=0;
 var hardTimer=0;
 var readySent=false;
 var domReady=document.readyState!=="loading";
+var pageLoaded=document.readyState==="complete";
 var fontsReady=!document.fonts||!document.fonts.ready;
 function pageSize(){
   var root=document.documentElement;
@@ -63,11 +65,32 @@ function scheduleMeasure(){
 function imageProgress(){
   var images=document.images;
   if(!images||!images.length)return 1;
+  var viewportHeight=Math.max(document.documentElement?document.documentElement.clientHeight:0,window.innerHeight||0);
+  var relevant=0;
   var completed=0;
   for(var index=0;index<images.length;index++){
-    if(images[index].complete)completed++;
+    var image=images[index];
+    var rect=image.getBoundingClientRect();
+    var nearViewport=rect.bottom>=-viewportHeight*.5&&rect.top<=viewportHeight*1.5;
+    if(image.loading==="lazy"&&!nearViewport)continue;
+    relevant++;
+    if(image.complete)completed++;
   }
-  return completed/images.length;
+  return relevant?completed/relevant:1;
+}
+function revealViewportTargets(payload){
+  var top=Number(payload.top);
+  var height=Number(payload.height);
+  if(!Number.isFinite(top)||!Number.isFinite(height)||height<1)return;
+  var margin=Math.max(48,height*.08);
+  var bottom=top+height;
+  var targets=document.querySelectorAll("[data-reveal]");
+  for(var index=0;index<targets.length;index++){
+    var rect=targets[index].getBoundingClientRect();
+    if(rect.bottom>=top-margin&&rect.top<=bottom+margin){
+      targets[index].classList.add("is-visible");
+    }
+  }
 }
 function reportReady(reason){
   var size=postSize(true);
@@ -90,7 +113,7 @@ function reveal(reason){
   });
 }
 function canReveal(){
-  return domReady&&fontsReady&&imageProgress()>=readyImageRatio;
+  return domReady&&pageLoaded&&fontsReady&&imageProgress()>=readyImageRatio;
 }
 function scheduleReady(){
   if(readySent)return;
@@ -106,15 +129,19 @@ function documentChanged(){
   scheduleReady();
 }
 addEventListener("message",function(event){
-  if(event.source===parent&&event.data&&event.data.type===measureMessageType&&
-    event.data.version===protocolVersion){
+  if(event.source!==parent||!event.data||event.data.version!==protocolVersion)return;
+  if(event.data.type===viewportMessageType){
+    revealViewportTargets(event.data);
+    return;
+  }
+  if(event.data.type===measureMessageType){
     lastHeight=0;
     scheduleMeasure();
     if(readySent)reportReady("resume");
   }
 });
 if(!domReady)addEventListener("DOMContentLoaded",function(){domReady=true;documentChanged();},{once:true});
-addEventListener("load",documentChanged,true);
+if(!pageLoaded)addEventListener("load",function(){pageLoaded=true;documentChanged();},{once:true});
 if(window.ResizeObserver){
   var observer=new ResizeObserver(documentChanged);
   observer.observe(document.documentElement);

@@ -12,10 +12,16 @@ func TestPrepareHTMLForFrame(t *testing.T) {
 		`name="viewport"`,
 		`myblog:html-size`,
 		`myblog:html-ready`,
+		`myblog:html-viewport`,
 		`root?root.scrollWidth:0`,
 		`ResizeObserver`,
 		`MutationObserver`,
 		`readyImageRatio=.75`,
+		`pageLoaded=document.readyState==="complete"`,
+		`image.loading==="lazy"&&!nearViewport`,
+		`return relevant?completed/relevant:1`,
+		`document.querySelectorAll("[data-reveal]")`,
+		`classList.add("is-visible")`,
 		`lastHeight=0`,
 		`<main>content</main>`,
 	} {
@@ -23,8 +29,8 @@ func TestPrepareHTMLForFrame(t *testing.T) {
 			t.Fatalf("prepared HTML missing %q", marker)
 		}
 	}
-	if HTMLFrameDocumentVersion != "2" || !strings.Contains(prepared, `version:protocolVersion`) {
-		t.Fatal("prepared HTML is missing frame protocol version 2")
+	if HTMLFrameDocumentVersion != "3" || !strings.Contains(prepared, `version:protocolVersion`) {
+		t.Fatal("prepared HTML is missing frame protocol version 3")
 	}
 	if strings.Count(prepared, `name="viewport"`) != 1 {
 		t.Fatalf("viewport count = %d, want 1", strings.Count(prepared, `name="viewport"`))

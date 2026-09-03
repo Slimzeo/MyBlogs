@@ -4,14 +4,17 @@
     var sizeMessageType = 'myblog:html-size';
     var readyMessageType = 'myblog:html-ready';
     var measureType = 'myblog:measure-html';
-    var protocolVersion = 2;
+    var viewportMessageType = 'myblog:html-viewport';
+    var protocolVersion = 3;
     var desktopBreakpoint = 1024;
     var desktopCanvasWidth = 1280;
     var maximumCanvasWidth = 2560;
     var maximumContentHeight = 1000000;
     var listenerBound = false;
     var resizeBound = false;
+    var scrollBound = false;
     var resizeFrame = 0;
+    var viewportFrame = 0;
 
     function currentElements() {
         var frame = document.getElementById('html-article-frame');
@@ -52,6 +55,27 @@
             }
             elements.frame.classList.add('is-sized');
         }
+        scheduleViewportReport();
+    }
+
+    function reportViewport(elements) {
+        if (!elements.frame || !elements.frame.contentWindow) return;
+        var scale = Number(elements.frame.dataset.scale || 1);
+        if (!Number.isFinite(scale) || scale <= 0) scale = 1;
+        var frameRect = elements.frame.getBoundingClientRect();
+        elements.frame.contentWindow.postMessage({
+            type: viewportMessageType,
+            version: protocolVersion,
+            top: Math.max(0, -frameRect.top / scale),
+            height: window.innerHeight / scale
+        }, '*');
+    }
+
+    function scheduleViewportReport() {
+        cancelAnimationFrame(viewportFrame);
+        viewportFrame = requestAnimationFrame(function () {
+            reportViewport(currentElements());
+        });
     }
 
     function applyReportedSize(elements, payload) {
@@ -83,6 +107,7 @@
     function requestMeasurement(elements) {
         if (elements.frame && elements.frame.contentWindow) {
             elements.frame.contentWindow.postMessage({type: measureType, version: protocolVersion}, '*');
+            scheduleViewportReport();
         }
     }
 
@@ -109,6 +134,10 @@
                     requestMeasurement(elements);
                 });
             }, {passive: true});
+        }
+        if (!scrollBound) {
+            scrollBound = true;
+            window.addEventListener('scroll', scheduleViewportReport, {passive: true});
         }
     }
 
