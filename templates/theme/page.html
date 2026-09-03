@@ -16,8 +16,9 @@
                     <div class="fluid-about-hero">
                         <div class="fluid-about-identity">
                             <a class="fluid-about-avatar" href="https://github.com/{{$github}}" target="_blank" rel="noopener noreferrer" aria-label="在 GitHub 查看 {{$github}} 的主页">
-                                <img src="https://github.com/{{$github}}.png?size=320" alt="{{$github}} 的 GitHub 头像" width="160" height="160" decoding="async"/>
-                                <span aria-hidden="true"></span>
+                                <span class="fluid-about-avatar-fallback" aria-hidden="true">H</span>
+                                <img src="https://github.com/{{$github}}.png?size=320" alt="{{$github}} 的 GitHub 头像" width="160" height="160" decoding="async" onerror="this.hidden=true"/>
+                                <span class="fluid-about-avatar-status" aria-hidden="true"></span>
                             </a>
                             <div class="fluid-about-name">
                                 <p>Hi, 这里是</p>
