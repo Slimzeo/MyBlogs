@@ -454,8 +454,8 @@ html[data-color-scheme="dark"] .fluid-moon {
 }
 
 .fluid-about-motto {
-    max-width: 18ch;
-    margin: 0 0 clamp(26px, 4vw, 42px);
+    max-width: 760px;
+    margin: clamp(46px, 7vw, 76px) auto 0;
     color: var(--fluid-post-text);
     font-family: var(--fluid-font-reading);
     font-size: clamp(30px, 4.5vw, 52px);
@@ -465,7 +465,10 @@ html[data-color-scheme="dark"] .fluid-moon {
 }
 
 .fluid-about-screenshot {
+    position: relative;
     display: block;
+    width: 100%;
+    aspect-ratio: 1754 / 897;
     overflow: hidden;
     border: 1px solid var(--fluid-line);
     border-radius: 12px;
@@ -479,10 +482,13 @@ html[data-color-scheme="dark"] .fluid-moon {
 }
 
 .fluid-about-screenshot img {
+    position: absolute;
+    inset: 0;
     display: block;
-    width: 100%;
-    height: auto;
+    width: 100% !important;
+    height: 100% !important;
     margin: 0;
+    object-fit: contain;
 }
 
 .fluid-about-page-board #post-content {

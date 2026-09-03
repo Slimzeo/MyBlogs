@@ -135,7 +135,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		t.Fatal("public static asset is missing Cache-Control")
 	}
 	for _, marker := range []string{
-		`href="/user/css/fluid.css?v=4"`,
+		`href="/user/css/fluid.css?v=5"`,
 		`href="/user/css/markdown.css"`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css`,
@@ -225,6 +225,13 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		if !strings.Contains(string(aboutHTML), marker) {
 			t.Fatalf("about page is missing profile marker %q", marker)
 		}
+	}
+	aboutDocument := string(aboutHTML)
+	screenshotPosition := strings.Index(aboutDocument, `class="fluid-about-screenshot"`)
+	introPosition := strings.Index(aboutDocument, "Hi, 这里是Hypnos")
+	mottoPosition := strings.Index(aboutDocument, "努力看论文，学习看源码，成为 Agent 大王")
+	if screenshotPosition < 0 || introPosition < screenshotPosition || mottoPosition < introPosition {
+		t.Fatal("about page order must be GitHub screenshot, introduction, then motto")
 	}
 	invalidLoginResponse := postLogin(t, testServer.URL, "wrong-user", "wrong-password")
 	if invalidLoginResponse.Msg != "用户名或密码错误" {

@@ -7,15 +7,16 @@
                 <h1 class="fluid-seo-title">{{.Article.Title}}</h1>
                 {{if eq .Article.Slug "about"}}
                 {{$github := siteOption "social_github" "https://github.com/Slimzeo"}}
-                {{$motto := siteOption "about_motto" "努力看论文，学习看源码，成为 Agent 大王"}}
                 <section class="fluid-about-snapshot" aria-label="GitHub 主页截图">
-                    <p class="fluid-about-motto">{{$motto}}</p>
                     <a class="fluid-about-screenshot" href="{{$github}}" target="_blank" rel="noopener noreferrer" aria-label="在 GitHub 查看 Slimzeo 的主页">
                         <img src="/upload/about/github-profile.png" alt="Slimzeo 的 GitHub 主页截图" width="1754" height="897" decoding="async"/>
                     </a>
                 </section>
                 {{end}}
                 <div id="post-content" class="fluid-markdown">{{article .Article.Content}}</div>
+                {{if eq .Article.Slug "about"}}
+                <p class="fluid-about-motto">{{siteOption "about_motto" "努力看论文，学习看源码，成为 Agent 大王"}}</p>
+                {{end}}
             </article>
             {{template "comments" .}}
         </section>
