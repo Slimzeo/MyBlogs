@@ -8,6 +8,7 @@ SQLite，也可直接连接 MySQL `tale` 数据库。
 
 - 前台：首页分页、Blogs 文章/分类/标签/搜索/归档、Notes 目录 Wiki、友链、评论。
 - 后台：登录、文章、页面、评论、分类/标签、附件、友链、系统设置、个人资料。
+- CLI：本地校验并导入 Markdown/HTML，自动打包引用资源，使用可撤销的最小权限 Agent Token。
 - 运维：数据库/附件备份、健康检查、优雅退出、Docker 部署。
 - 安全：bcrypt 密码、旧 Java MD5 自动升级、签名 Cookie、无状态 CSRF、登录防爆破、按 IP 限流、上传白名单。
 - 并发：连接池、SQLite WAL、分片 TTL 缓存、singleflight 防击穿、读缓存、异步点击落库。
@@ -113,6 +114,23 @@ fmt.Println("hello blog")
 完整 HTML 会在独立沙箱中渲染，支持内联 CSS 和 JavaScript。单文件 HTML 可直接导入；
 若页面包含相对图片，请将一个 HTML 主文件和图片按原目录结构打成 ZIP 后从“导入文章”上传。
 ZIP 图片会内嵌到文章中，CSS 和 JavaScript 需要直接写在 HTML 文件里。
+
+### 通过 blogctl 或本地 Agent 导入
+
+仓库同时提供服务端 API 和 `cmd/blogctl` 客户端。管理员先在后台的 `Agent 密钥` 页面
+创建一个临时密钥，再在本机运行：
+
+```bash
+make install-cli
+blogctl auth login --server https://www.hypn0s.cloud
+blogctl article validate --json ./article.md
+blogctl article import --json ./article.md
+```
+
+CLI 会读取 Markdown 的 YAML front matter，收集正文引用的本地图片/附件并安全打包；
+服务端无论收到什么状态都只会创建草稿，发布仍需管理员在后台确认。密钥明文只在创建时
+显示一次，数据库只保存摘要，可以随时从后台撤销。详细格式、自动化环境变量、限制和
+安全边界见 [`docs/blogctl.md`](./docs/blogctl.md)。
 
 ### 3. 上传并插入图片
 
@@ -335,6 +353,7 @@ go test -race ./internal/cache ./internal/handler ./internal/middleware
 
 ```text
 cmd/blog/          启动入口
+cmd/blogctl/       本地 Agent / 文章导入 CLI
 config/            环境配置
 internal/cache/    分片 TTL 缓存
 internal/db/       SQLite/MySQL、迁移与种子数据
@@ -344,5 +363,5 @@ internal/handler/  HTTP Handler、路由、页面渲染和响应
 internal/middleware/ HTTP 中间件、Session、CSRF 和限流
 templates/         Go html/template 页面
 static/            前后台静态资源
+.github/workflows/ blogctl 多平台 Release 构建
 ```
-

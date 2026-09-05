@@ -51,4 +51,5 @@ type PageData struct {
 	NotesIsFolder  bool
 	Statistics     model.StatisticsBo
 	Options        map[string]string
+	APITokens      []model.APIToken
 }

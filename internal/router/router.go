@@ -25,6 +25,7 @@ func New(applicationHandler *handler.Server, staticRoot string) *gin.Engine {
 	engine.Use(routes.IssueCSRF)
 
 	registerPublicRoutes(engine, routes.Public, routes.AdminCSRF)
+	registerAPIRoutes(engine, routes.API, routes.AgentAuth)
 	registerAdminRoutes(engine, routes.Admin, routes.AdminAuth, routes.AdminCSRF)
 	engine.NoRoute(routes.NotFound)
 	return engine

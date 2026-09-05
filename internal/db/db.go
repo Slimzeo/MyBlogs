@@ -88,6 +88,7 @@ func autoMigrate(gdb *gorm.DB) error {
 		&model.Relationship{},
 		&model.Attach{},
 		&model.Log{},
+		&model.APIToken{},
 	); err != nil {
 		return err
 	}

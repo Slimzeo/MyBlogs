@@ -2,6 +2,7 @@ package handler
 
 import (
 	"myblog/internal/middleware"
+	"myblog/internal/model"
 
 	"github.com/gin-gonic/gin"
 )
@@ -65,6 +66,14 @@ type AdminRouteHandlers struct {
 	Setting            gin.HandlerFunc
 	SaveSetting        gin.HandlerFunc
 	Backup             gin.HandlerFunc
+	APITokens          gin.HandlerFunc
+	CreateAPIToken     gin.HandlerFunc
+	RevokeAPIToken     gin.HandlerFunc
+}
+
+type APIRouteHandlers struct {
+	Auth          gin.HandlerFunc
+	ImportArticle gin.HandlerFunc
 }
 
 type RouteHandlers struct {
@@ -74,8 +83,10 @@ type RouteHandlers struct {
 	IssueCSRF gin.HandlerFunc
 	AdminAuth gin.HandlerFunc
 	AdminCSRF gin.HandlerFunc
+	AgentAuth gin.HandlerFunc
 	Public    PublicRouteHandlers
 	Admin     AdminRouteHandlers
+	API       APIRouteHandlers
 }
 
 func (server *Server) RouteHandlers() RouteHandlers {
@@ -86,6 +97,7 @@ func (server *Server) RouteHandlers() RouteHandlers {
 		IssueCSRF: server.issueCSRFToken(),
 		AdminAuth: server.sessions.RequireAdmin(),
 		AdminCSRF: middleware.ValidateCSRF(server.sessions),
+		AgentAuth: middleware.RequireAPIToken(server.service, model.ScopeArticleImport),
 		Public: PublicRouteHandlers{
 			Index:           server.index,
 			IndexPage:       server.indexPage,
@@ -144,6 +156,13 @@ func (server *Server) RouteHandlers() RouteHandlers {
 			Setting:            server.adminSetting,
 			SaveSetting:        server.adminSettingSave,
 			Backup:             server.adminBackup,
+			APITokens:          server.adminAPITokens,
+			CreateAPIToken:     server.adminCreateAPIToken,
+			RevokeAPIToken:     server.adminRevokeAPIToken,
+		},
+		API: APIRouteHandlers{
+			Auth:          server.apiAuth,
+			ImportArticle: server.apiImportArticle,
 		},
 	}
 }

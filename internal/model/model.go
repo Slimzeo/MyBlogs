@@ -119,3 +119,20 @@ type Log struct {
 }
 
 func (Log) TableName() string { return "t_logs" }
+
+// APIToken grants a deliberately narrow machine-to-machine capability. The
+// plaintext secret is never persisted; SecretHash stores its SHA-256 digest.
+type APIToken struct {
+	ID         int    `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	TokenID    string `gorm:"column:token_id;uniqueIndex;size:32;not null" json:"tokenId"`
+	Name       string `gorm:"column:name;size:80;not null" json:"name"`
+	SecretHash string `gorm:"column:secret_hash;size:64;not null" json:"-"`
+	Scope      string `gorm:"column:scope;size:128;not null" json:"scope"`
+	AuthorID   int    `gorm:"column:author_id;index;not null" json:"authorId"`
+	Created    int    `gorm:"column:created;index;not null" json:"created"`
+	Expires    int    `gorm:"column:expires;index;not null" json:"expires"`
+	LastUsed   int    `gorm:"column:last_used;not null;default:0" json:"lastUsed"`
+	Revoked    int    `gorm:"column:revoked;index;not null;default:0" json:"revoked"`
+}
+
+func (APIToken) TableName() string { return "t_api_tokens" }

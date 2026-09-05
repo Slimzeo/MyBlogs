@@ -1,0 +1,125 @@
+{{define "admin/tokens"}}
+{{template "admin/header" .}}
+<style>
+    .token-layout{display:grid;grid-template-columns:minmax(280px,.72fr) minmax(0,1.28fr);gap:20px;align-items:start}
+    .token-intro{margin:-8px 0 22px;color:var(--admin-muted);font-size:13px;line-height:1.7}
+    .token-scope{display:inline-flex;padding:4px 8px;border:1px solid #dce4f3;border-radius:999px;color:#49617f;background:#f6f8fc;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
+    .token-once{display:none;margin-bottom:20px;padding:18px;border:1px solid #bbd5c9;border-radius:12px;background:#f2faf6}
+    .token-once.is-visible{display:block}
+    .token-once strong{display:block;margin-bottom:7px;color:#245a42}
+    .token-once p{margin:0 0 12px;color:#527263;font-size:12px;line-height:1.6}
+    .token-copy-row{display:flex;gap:9px}
+    .token-copy-row input{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+    .token-copy-row .btn{white-space:nowrap}
+    .token-state{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:600}
+    .token-state-active{color:#287452;background:#eaf7f0}
+    .token-state-muted{color:#7d8796;background:#f0f2f5}
+    .token-empty{padding:34px 16px;color:var(--admin-muted);text-align:center}
+    .token-warning{margin-top:18px;padding:13px 15px;border-left:3px solid #d49b42;color:#725b36;background:#fff9ed;font-size:12px;line-height:1.7}
+    @media(max-width:900px){.token-layout{grid-template-columns:1fr}}
+</style>
+
+<div id="token-once" class="token-once" role="status" aria-live="polite">
+    <strong>密钥已创建，只会显示这一次</strong>
+    <p>立即复制到本机密码管理器或执行 <code>blogctl auth login</code>。关闭或刷新页面后无法再次查看。</p>
+    <div class="token-copy-row">
+        <input id="token-value" type="text" readonly aria-label="新建的 Agent 密钥"/>
+        <button id="copy-token" class="btn btn-primary" type="button">复制密钥</button>
+    </div>
+</div>
+
+<div class="token-layout">
+    <section class="card">
+        <h3>创建 Agent 密钥</h3>
+        <p class="token-intro">供本地 <code>blogctl</code> 或编码 Agent 导入文章。目前只开放导入草稿，不允许发布、删除或修改站点设置。</p>
+        <form id="token-create-form">
+            <label for="token-name">密钥名称</label>
+            <input id="token-name" name="name" type="text" maxlength="80" required placeholder="例如 MacBook · Codex"/>
+            <label for="token-days">有效期</label>
+            <select id="token-days" name="valid_days">
+                <option value="30">30 天</option>
+                <option value="90" selected>90 天</option>
+                <option value="180">180 天</option>
+                <option value="365">365 天</option>
+            </select>
+            <label>权限</label>
+            <p><span class="token-scope">article:import</span></p>
+            <button class="btn btn-primary" type="submit">创建密钥</button>
+            <span id="token-create-status" class="help-block" aria-live="polite"></span>
+        </form>
+        <div class="token-warning">密钥等同于导入权限。不要写进 Markdown、脚本、Git 仓库、聊天记录或 CI 日志；遗失后请立即撤销并重新创建。</div>
+    </section>
+
+    <section class="card">
+        <h3>现有密钥</h3>
+        {{if .Message}}<p class="help-block">{{.Message}}</p>{{end}}
+        {{if .APITokens}}
+        <table>
+            <thead><tr><th>名称</th><th>权限</th><th>创建 / 到期</th><th>状态</th><th></th></tr></thead>
+            <tbody>
+            {{range .APITokens}}
+            <tr id="token-row-{{.ID}}">
+                <td><strong>{{.Name}}</strong><br/><small class="help-block">{{.TokenID}} · {{if gt .LastUsed 0}}最近使用 {{fmtdatef .LastUsed "yyyy-MM-dd HH:mm"}}{{else}}尚未使用{{end}}</small></td>
+                <td><span class="token-scope">{{.Scope}}</span></td>
+                <td>{{fmtdatef .Created "yyyy-MM-dd HH:mm"}}<br/><small class="help-block">{{if gt .LastUsed 0}}最近使用 {{fmtdatef .LastUsed "yyyy-MM-dd HH:mm"}}{{else}}尚未使用{{end}} · 至 {{fmtdatef .Expires "yyyy-MM-dd HH:mm"}}</small></td>
+                <td>
+                    {{if gt .Revoked 0}}<span class="token-state token-state-muted">已撤销</span>
+                    {{else if isFuture .Expires}}<span class="token-state token-state-active">有效</span>
+                    {{else}}<span class="token-state token-state-muted">已过期</span>{{end}}
+                </td>
+                <td>{{if and (eq .Revoked 0) (isFuture .Expires)}}<button class="btn btn-default btn-sm token-revoke" type="button" data-id="{{.ID}}">撤销</button>{{end}}</td>
+            </tr>
+            {{end}}
+            </tbody>
+        </table>
+        {{else}}<div class="token-empty">还没有 Agent 密钥。</div>{{end}}
+    </section>
+</div>
+
+<script>
+(function () {
+    var csrf = document.querySelector('meta[name="csrf-token"]').content;
+    var form = document.getElementById('token-create-form');
+    var status = document.getElementById('token-create-status');
+    var once = document.getElementById('token-once');
+    var value = document.getElementById('token-value');
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        status.textContent = '正在创建…';
+        fetch('/admin/tokens', {method:'POST', headers:{'X-CSRF-Token':csrf}, body:new FormData(form)})
+            .then(function (response) { return response.json(); })
+            .then(function (result) {
+                if (!result.success) throw new Error(result.msg || '密钥创建失败');
+                value.value = result.payload.token;
+                once.classList.add('is-visible');
+                status.textContent = '创建成功；刷新页面可查看更新后的列表。';
+                value.focus(); value.select();
+            })
+            .catch(function (error) { status.textContent = error.message || '密钥创建失败'; });
+    });
+    document.getElementById('copy-token').addEventListener('click', function () {
+        var button = this;
+        var copied = function () { button.textContent = '已复制'; setTimeout(function () { button.textContent = '复制密钥'; }, 1600); };
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(value.value).then(copied);
+        } else {
+            value.focus(); value.select(); document.execCommand('copy'); copied();
+        }
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.token-revoke'), function (button) {
+        button.addEventListener('click', function () {
+            if (!window.confirm('撤销后，使用这个密钥的 Agent 会立即失去导入权限。确认撤销？')) return;
+            var body = new URLSearchParams(); body.set('id', button.dataset.id);
+            fetch('/admin/tokens/revoke', {method:'POST', headers:{'X-CSRF-Token':csrf,'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString()})
+                .then(function (response) { return response.json(); })
+                .then(function (result) {
+                    if (!result.success) throw new Error(result.msg || '撤销失败');
+                    window.location.reload();
+                })
+                .catch(function (error) { window.alert(error.message || '撤销失败'); });
+        });
+    });
+})();
+</script>
+{{template "admin/footer" .}}
+{{end}}

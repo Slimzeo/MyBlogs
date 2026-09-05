@@ -56,4 +56,8 @@ func registerAdminRoutes(engine *gin.Engine, routes handler.AdminRouteHandlers, 
 	admin.GET("/setting", routes.Setting)
 	admin.POST("/setting", routes.SaveSetting)
 	admin.POST("/setting/backup", routes.Backup)
+
+	admin.GET("/tokens", routes.APITokens)
+	admin.POST("/tokens", routes.CreateAPIToken)
+	admin.POST("/tokens/revoke", routes.RevokeAPIToken)
 }

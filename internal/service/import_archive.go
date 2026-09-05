@@ -33,10 +33,13 @@ var htmlCSSAssetReference = regexp.MustCompile(`(?i)(url\(\s*["']?)([^"')]+)(["'
 var htmlTitle = regexp.MustCompile(`(?is)<title[^>]*>(.*?)</title>`)
 
 type ImportOptions struct {
-	AuthorID   int
-	Tags       string
-	Categories string
-	Status     string
+	AuthorID    int
+	Title       string
+	Slug        string
+	Tags        string
+	Categories  string
+	Status      string
+	DisplayTime int
 }
 
 type importEntry struct {
@@ -111,7 +114,9 @@ func (s *Service) ImportArticleArchive(archiveData []byte, options ImportOptions
 		body = rewriteMarkdownAssets(body, documentPath, assetURLs)
 	}
 	content := &model.Content{
-		Title:         importTitle(documentPath, contentFormat, documentEntry.data),
+		Title:         importedTitle(options.Title, documentPath, contentFormat, documentEntry.data),
+		Slug:          strings.TrimSpace(options.Slug),
+		DisplayTime:   options.DisplayTime,
 		Content:       body,
 		ContentFormat: contentFormat,
 		Tags:          strings.TrimSpace(options.Tags),
@@ -158,7 +163,9 @@ func (s *Service) ImportHTMLDocument(data []byte, filename string, options Impor
 		return nil, Tip("文章状态不合法")
 	}
 	content := &model.Content{
-		Title:         importTitle(filename, model.ContentHTML, data),
+		Title:         importedTitle(options.Title, filename, model.ContentHTML, data),
+		Slug:          strings.TrimSpace(options.Slug),
+		DisplayTime:   options.DisplayTime,
 		Content:       string(data),
 		ContentFormat: model.ContentHTML,
 		Tags:          strings.TrimSpace(options.Tags),
@@ -410,4 +417,11 @@ func importTitle(documentPath, contentFormat string, data []byte) string {
 	}
 	base := filepath.Base(documentPath)
 	return strings.TrimSuffix(base, filepath.Ext(base))
+}
+
+func importedTitle(override, documentPath, contentFormat string, data []byte) string {
+	if title := strings.TrimSpace(override); title != "" {
+		return title
+	}
+	return importTitle(documentPath, contentFormat, data)
 }

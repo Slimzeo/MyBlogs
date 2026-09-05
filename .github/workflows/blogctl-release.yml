@@ -1,0 +1,65 @@
+name: Release blogctl
+
+on:
+  push:
+    tags:
+      - "blogctl-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [darwin, linux, windows]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Build archive
+        env:
+          TARGET_OS: ${{ matrix.goos }}
+          TARGET_ARCH: ${{ matrix.goarch }}
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#blogctl-v}"
+          archive="blogctl_${version}_${TARGET_OS}_${TARGET_ARCH}"
+          mkdir -p "dist/${archive}"
+          binary="blogctl"
+          if [ "${TARGET_OS}" = "windows" ]; then binary="blogctl.exe"; fi
+          CGO_ENABLED=0 GOOS="${TARGET_OS}" GOARCH="${TARGET_ARCH}" \
+            go build -trimpath -ldflags "-s -w -X main.cliVersion=${version}" \
+            -o "dist/${archive}/${binary}" ./cmd/blogctl
+          cd dist
+          tar -czf "${archive}.tar.gz" "${archive}"
+          sha256sum "${archive}.tar.gz" > "${archive}.tar.gz.sha256"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: blogctl-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            dist/*.tar.gz
+            dist/*.sha256
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "blogctl ${GITHUB_REF_NAME#blogctl-v}" \
+            --generate-notes

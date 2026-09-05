@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"myblog/internal/model"
 	"myblog/internal/util"
@@ -71,6 +72,7 @@ func buildFuncMap(sc *SiteConfig) template.FuncMap {
 		"seq":       seq,
 		"safeHTML":  func(s string) template.HTML { return template.HTML(s) },
 		"urlEncode": url.PathEscape,
+		"isFuture":  func(unixTime int) bool { return int64(unixTime) > time.Now().Unix() },
 		"notesPath": func(path string) string {
 			return "/notes/" + strings.Trim(path, "/")
 		},

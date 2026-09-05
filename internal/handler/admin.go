@@ -700,6 +700,57 @@ func (server *Server) adminBackup(context *gin.Context) {
 	respondOK(context, result)
 }
 
+func (server *Server) adminAPITokens(context *gin.Context) {
+	user := server.sessions.User(context)
+	tokens, err := server.service.APITokens(user.Uid)
+	data := server.baseData(context, "Agent 密钥", "tokens")
+	if err != nil {
+		data.Message = "密钥列表读取失败"
+	} else {
+		data.APITokens = tokens
+	}
+	server.render(context, http.StatusOK, "admin/tokens", data)
+}
+
+func (server *Server) adminCreateAPIToken(context *gin.Context) {
+	context.Header("Cache-Control", "no-store")
+	validDays, err := strconv.Atoi(context.PostForm("valid_days"))
+	if err != nil {
+		respondFail(context, "有效期格式不正确")
+		return
+	}
+	user := server.sessions.User(context)
+	token, plaintext, err := server.service.CreateAPIToken(
+		context.PostForm("name"), model.ScopeArticleImport, user.Uid, validDays,
+	)
+	if err != nil {
+		respondServiceError(context, err, "密钥创建失败")
+		return
+	}
+	server.service.InsertLog(model.LogCreateToken, "token_id="+token.TokenID, util.ClientIP(context.Request), user.Uid)
+	respondOK(context, gin.H{
+		"token":     plaintext,
+		"name":      token.Name,
+		"scope":     token.Scope,
+		"expiresAt": token.Expires,
+	})
+}
+
+func (server *Server) adminRevokeAPIToken(context *gin.Context) {
+	id, err := strconv.Atoi(context.PostForm("id"))
+	if err != nil {
+		respondFail(context, "密钥 ID 不正确")
+		return
+	}
+	user := server.sessions.User(context)
+	if err := server.service.RevokeAPIToken(id, user.Uid); err != nil {
+		respondServiceError(context, err, "密钥撤销失败")
+		return
+	}
+	server.service.InsertLog(model.LogRevokeToken, "id="+strconv.Itoa(id), util.ClientIP(context.Request), user.Uid)
+	respondOK(context)
+}
+
 func respondServiceError(context *gin.Context, err error, fallback string) {
 	if message, ok := serviceMessage(err); ok {
 		respondFail(context, message)
