@@ -155,6 +155,10 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`id="access-key-toggle"`,
 		`id="access-key-modal"`,
 		`导入访问密钥`,
+		`>Blogs</a>`,
+		`>Archieve</a>`,
+		`>Friends</a>`,
+		`>About</a>`,
 	} {
 		if !strings.Contains(string(homeHTML), marker) {
 			t.Fatalf("home page missing UI marker %q", marker)
