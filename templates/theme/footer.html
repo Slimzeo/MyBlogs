@@ -325,7 +325,13 @@
             var viewportWidth = 0;
             var viewportHeight = 0;
             var pixelRatio = 1;
-            var leafColors = ['#c47b45', '#d2a35b', '#9c633e', '#e0bd72'];
+            var leafPalette = [
+                {front: '#c9663b', back: '#8d4933', vein: 'rgba(72, 39, 27, .62)'},
+                {front: '#e0a447', back: '#a66a35', vein: 'rgba(83, 51, 25, .58)'},
+                {front: '#ad4f32', back: '#743a2d', vein: 'rgba(62, 34, 27, .66)'},
+                {front: '#d7bb67', back: '#9b7d3d', vein: 'rgba(72, 57, 27, .54)'},
+                {front: '#a57b3f', back: '#6d5733', vein: 'rgba(55, 46, 29, .58)'}
+            ];
 
             function randomBetween(minimum, maximum) {
                 return minimum + Math.random() * (maximum - minimum);
@@ -343,38 +349,99 @@
             }
 
             function resetLeaf(leaf, startAboveViewport) {
+                leaf.depth = randomBetween(0.28, 1);
+                leaf.size = randomBetween(5.2, 9.6) * (0.72 + leaf.depth * 0.62);
                 leaf.x = randomBetween(-40, viewportWidth + 40);
+                var spawnDepth = Math.min(120, viewportHeight * 0.16);
                 leaf.y = startAboveViewport
-                    ? randomBetween(-viewportHeight, -leaf.size)
-                    : randomBetween(-leaf.size, viewportHeight);
-                leaf.size = randomBetween(4, 10);
-                leaf.fallSpeed = randomBetween(0.07, 0.22);
-                leaf.wind = randomBetween(-0.12, 0.12);
-                leaf.sway = randomBetween(0.12, 0.38);
+                    ? randomBetween(-spawnDepth - leaf.size * 2, -leaf.size)
+                    : randomBetween(-leaf.size, viewportHeight * 0.9);
+                leaf.fallSpeed = randomBetween(0.055, 0.105) + leaf.depth * 0.115;
+                leaf.wind = randomBetween(-0.035, 0.085);
+                leaf.sway = randomBetween(0.045, 0.13) + leaf.depth * 0.105;
                 leaf.phase = randomBetween(0, Math.PI * 2);
+                leaf.phaseSpeed = randomBetween(0.00042, 0.00092);
                 leaf.rotation = randomBetween(0, Math.PI * 2);
-                leaf.spin = randomBetween(-0.0018, 0.0018);
-                leaf.opacity = randomBetween(0.32, 0.8);
-                leaf.color = leafColors[Math.floor(Math.random() * leafColors.length)];
+                leaf.spin = randomBetween(-0.00155, 0.00155) * (0.65 + leaf.depth);
+                leaf.tumble = randomBetween(0, Math.PI * 2);
+                leaf.tumbleSpeed = randomBetween(0.00125, 0.0031);
+                leaf.opacity = randomBetween(0.2, 0.4) + leaf.depth * 0.48;
+                leaf.shape = Math.floor(Math.random() * 3);
+                leaf.palette = leafPalette[Math.floor(Math.random() * leafPalette.length)];
+                leaf.age = startAboveViewport ? 0 : randomBetween(240, 900);
+            }
+
+            function traceLeafShape(shape) {
+                context.beginPath();
+                if (shape === 1) {
+                    context.moveTo(0, -1);
+                    context.lineTo(0.17, -0.54);
+                    context.lineTo(0.58, -0.76);
+                    context.lineTo(0.46, -0.29);
+                    context.lineTo(0.94, -0.18);
+                    context.lineTo(0.55, 0.08);
+                    context.lineTo(0.72, 0.48);
+                    context.lineTo(0.26, 0.34);
+                    context.lineTo(0, 0.92);
+                    context.lineTo(-0.26, 0.34);
+                    context.lineTo(-0.72, 0.48);
+                    context.lineTo(-0.55, 0.08);
+                    context.lineTo(-0.94, -0.18);
+                    context.lineTo(-0.46, -0.29);
+                    context.lineTo(-0.58, -0.76);
+                    context.lineTo(-0.17, -0.54);
+                    context.closePath();
+                    return;
+                }
+                if (shape === 2) {
+                    context.moveTo(0, 0.92);
+                    context.bezierCurveTo(-0.12, 0.32, -0.9, 0.12, -0.84, -0.5);
+                    context.quadraticCurveTo(-0.46, -0.98, 0, -0.82);
+                    context.quadraticCurveTo(0.46, -0.98, 0.84, -0.5);
+                    context.bezierCurveTo(0.9, 0.12, 0.12, 0.32, 0, 0.92);
+                    context.closePath();
+                    return;
+                }
+                context.moveTo(0, -1);
+                context.bezierCurveTo(0.82, -0.68, 0.96, 0.28, 0, 0.94);
+                context.bezierCurveTo(-0.96, 0.28, -0.82, -0.68, 0, -1);
+                context.closePath();
             }
 
             function drawLeaf(leaf) {
+                var flip = Math.cos(leaf.tumble);
+                var edgeScale = 0.22 + Math.abs(flip) * 0.78;
+                var fadeIn = Math.min(1, leaf.age / 420);
                 context.save();
                 context.translate(leaf.x, leaf.y);
-                context.rotate(leaf.rotation);
-                context.scale(leaf.size, leaf.size * 0.62);
-                context.beginPath();
-                context.moveTo(0, -1);
-                context.bezierCurveTo(0.9, -0.5, 1, 0.45, 0, 1);
-                context.bezierCurveTo(-1, 0.45, -0.9, -0.5, 0, -1);
-                context.fillStyle = leaf.color;
-                context.globalAlpha = leaf.opacity;
+                context.rotate(leaf.rotation + Math.sin(leaf.phase) * 0.16);
+                context.scale(leaf.size, leaf.size * 0.72 * edgeScale);
+                context.globalAlpha = leaf.opacity * fadeIn;
+                context.fillStyle = flip < -0.08 ? leaf.palette.back : leaf.palette.front;
+                if (leaf.depth > 0.78) {
+                    context.shadowColor = 'rgba(35, 24, 18, .24)';
+                    context.shadowBlur = 2.4;
+                    context.shadowOffsetY = 1.2;
+                }
+                traceLeafShape(leaf.shape);
                 context.fill();
+                context.shadowColor = 'transparent';
                 context.beginPath();
-                context.moveTo(0, -0.78);
-                context.lineTo(0, 0.78);
-                context.strokeStyle = 'rgba(83, 54, 35, .55)';
-                context.lineWidth = 0.1;
+                context.moveTo(0, -0.76);
+                context.lineTo(0, 1.08);
+                if (leaf.shape === 1) {
+                    context.moveTo(0, -0.3);
+                    context.lineTo(0.48, -0.18);
+                    context.moveTo(0, -0.3);
+                    context.lineTo(-0.48, -0.18);
+                    context.moveTo(0, 0.12);
+                    context.lineTo(0.38, 0.3);
+                    context.moveTo(0, 0.12);
+                    context.lineTo(-0.38, 0.3);
+                }
+                context.strokeStyle = leaf.palette.vein;
+                context.lineWidth = 0.085;
+                context.lineCap = 'round';
                 context.stroke();
                 context.restore();
             }
@@ -382,14 +449,20 @@
             function renderLeaves(timestamp) {
                 var elapsed = lastTime ? Math.min(timestamp - lastTime, 40) : 16;
                 lastTime = timestamp;
+                var gust = Math.sin(timestamp * 0.00021) * 0.036 +
+                    Math.sin(timestamp * 0.000073 + 1.7) * 0.052;
                 context.clearRect(0, 0, viewportWidth, viewportHeight);
                 for (var index = 0; index < leaves.length; index++) {
                     var leaf = leaves[index];
-                    leaf.phase += elapsed * 0.00055;
-                    leaf.x += (leaf.wind + Math.sin(leaf.phase) * leaf.sway + Math.sin(timestamp * 0.0002 + index) * 0.06) * elapsed;
-                    leaf.y += leaf.fallSpeed * elapsed;
+                    leaf.age += elapsed;
+                    leaf.phase += elapsed * leaf.phaseSpeed;
+                    leaf.tumble += elapsed * leaf.tumbleSpeed;
+                    leaf.x += (leaf.wind + gust * (0.55 + leaf.depth) +
+                        Math.sin(leaf.phase) * leaf.sway) * elapsed;
+                    leaf.y += leaf.fallSpeed * (0.94 + Math.sin(leaf.phase * 0.72) * 0.08) * elapsed;
                     leaf.rotation += leaf.spin * elapsed;
-                    if (leaf.y > viewportHeight + 24 || leaf.x < -70 || leaf.x > viewportWidth + 70) {
+                    if (leaf.y > viewportHeight + leaf.size * 2 ||
+                        leaf.x < -90 || leaf.x > viewportWidth + 90) {
                         resetLeaf(leaf, true);
                     }
                     drawLeaf(leaf);
@@ -398,20 +471,28 @@
             }
 
             resizeCanvas();
-            var leafCount = Math.min(34, Math.max(14, Math.round(viewportWidth / 45)));
+            var leafCount = Math.min(52, Math.max(22, Math.round(viewportWidth / 30)));
             for (var index = 0; index < leafCount; index++) {
                 var leaf = {};
                 resetLeaf(leaf, false);
                 leaves.push(leaf);
             }
+            leaves.sort(function (left, right) {
+                return left.depth - right.depth;
+            });
             var resizeHandler = function () {
                 resizeCanvas();
             };
+            var visibilityHandler = function () {
+                lastTime = 0;
+            };
             window.addEventListener('resize', resizeHandler, {passive: true});
+            document.addEventListener('visibilitychange', visibilityHandler);
             window.fluidLeafCanvas = canvas;
             window.fluidLeafCleanup = function () {
                 window.cancelAnimationFrame(animationFrame);
                 window.removeEventListener('resize', resizeHandler);
+                document.removeEventListener('visibilitychange', visibilityHandler);
                 window.fluidLeafCanvas = null;
                 window.fluidLeafCleanup = null;
                 context.clearRect(0, 0, viewportWidth, viewportHeight);
@@ -557,7 +638,12 @@
         }
 
         window.FluidPage = {navigate: navigate, prefetch: prefetch};
-        window.addEventListener('load', mountPage, {once: true});
+        mountLeafAnimation();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', mountPage, {once: true});
+        } else {
+            mountPage();
+        }
     })();
 </script>
 </body>
