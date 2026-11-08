@@ -5,12 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1"/>
     <meta name="renderer" content="webkit"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <meta name="theme-color" content="#0b1619"/>
+    <meta name="theme-color" content="#2f4154"/>
     <meta name="csrf-token" content="{{.CsrfToken}}"/>
     <meta name="keywords" content="{{if .Keywords}}{{.Keywords}}{{else}}{{siteOption "site_keywords" ""}}{{end}}"/>
     <meta name="description" content="{{if .Description}}{{.Description}}{{else}}{{siteOption "site_description" ""}}{{end}}"/>
-    <link rel="icon" type="image/png" sizes="48x48" href="/user/img/favicon.png?v=2"/>
-    <link rel="apple-touch-icon" sizes="180x180" href="/user/img/apple-touch-icon.png?v=2"/>
+    <link rel="shortcut icon" href="/user/img/favicon.png"/>
+    <link rel="apple-touch-icon" href="/user/img/apple-touch-icon.png"/>
     <title>{{if .Title}}{{.Title}}{{else}}首页{{end}} - {{siteOption "site_title" "HypN0s-Cloud"}}</title>
     <script>
         (function () {
@@ -35,9 +35,9 @@
     {{end}}
     <link href="/user/css/fluid.css?v=5" rel="stylesheet"/>
     <link href="https://cdn.jsdelivr.net/npm/@fontsource-variable/anybody@5.3.0/wdth.css" rel="stylesheet"/>
-    <link href="/user/css/home.css?v=2" rel="stylesheet"/>
+    <link href="/user/css/home.css?v=1" rel="stylesheet"/>
     <script src="/user/js/html-article.js?v=3" defer></script>
-    <script src="/user/js/home.js?v=2" defer></script>
+    <script src="/user/js/home.js?v=1" defer></script>
 </head>
 <body class="fluid-theme fluid-font-{{siteOption "theme_font" "wenkai"}}"
       data-access-key-enabled="{{if .AccessKeyEnabled}}1{{else}}0{{end}}"
@@ -47,10 +47,8 @@
 <header class="fluid-header">
     <nav id="navbar" class="fluid-navbar" aria-label="主导航">
         <div class="fluid-navbar-inner">
-            <a class="fluid-brand" href="{{siteUrl ""}}/">
-                <img src="/user/img/logo.png?v=2" alt="" width="40" height="40"/>
-                <span>{{siteTitle}}</span>
-            </a>
+            <a class="fluid-brand" href="{{siteUrl ""}}/">{{siteTitle}}</a>
+            <span class="hx-badge">Built in public</span>
             <span class="hx-bot-home" id="hx-bot-home" aria-hidden="true"></span>
             <button id="hx-bot" class="hx-bot" type="button" aria-label="小助手菜单" aria-haspopup="true" aria-expanded="false"><i></i><i></i></button>
             <div id="hx-bubble" class="hx-bubble" aria-hidden="true"></div>
@@ -103,36 +101,18 @@
     <div id="banner" class="hx-hero" data-last-post="{{if .Articles}}{{if .Articles.List}}{{(index .Articles.List 0).DisplayTime}}{{end}}{{end}}">
         <canvas id="hx-forest" aria-hidden="true"></canvas>
         <div class="hx-stage">
+            <span class="hx-mark-sub">HYPN0S · CLOUD</span>
             <p class="hx-word" data-glitch>HYPN0S <em>Cloud</em></p>
+            <p class="hx-sub" data-glitch>林间笔记</p>
             <div class="hx-middle">
                 <h1 class="hx-motto" data-glitch>如果这个<b>宇宙</b>的结局是注定的，<br/>是<b>消亡，是归于死寂</b>；<br/>或许这更说明，只有<b>过程</b>才是<b>最重要的</b></h1>
                 <a class="hx-cta" id="hx-cta" href="#board">开始阅读</a>
             </div>
         </div>
         <div class="hx-foot">
-            <pre class="hx-code" id="hx-code" tabindex="0" aria-label="hypnos 的 Python 自述"><code>name = "hypnos"
-# 我是个只擅长速成、学东西很快的理想主义者。
-# 我喜欢数学，希望能参与创造数字生命。
-studying = "LLM"  # AI Native 开发者，非传统工程师。
-
-# 我在搭建 self-harness-system
-self_harness_system = {
-    "RSI infra": "记录各方面的表现指标，量化每次迭代",
-    "open": "保持开放，和人建立连接，把案例收进 golden set",
-    "RL": "用 golden set 做 benchmark，强化迭代",
-    "ME.md": "追求生命的可能性。混沌乐子人，做事全为了乐子。",
-}
-
-# 延伸模块
-modules = {
-    "Express": ("Concise", "Problem oriented",
-                "金字塔结构", "三次握手可靠化策略"),
-    "项目管理": ("TRD 原则", "Agent 调度范式"),
-}
-# 正在精进 AI Native 开发，其他模块待拓展。
-
-exploring = ("流式 LLM", "Agent 应用", "机器学习", "数学学习")</code></pre>
+            <pre class="hx-code" id="hx-code" aria-label="关于我，以 Python 写成"></pre>
             <div class="hx-clock" aria-label="距上次落笔的时间"><span id="hx-days">000</span><small>天</small><span id="hx-time">00:00:00</span><span class="hx-tag"><b>距上次落笔</b><span>时间仍在走</span></span></div>
+            <p class="hx-desc">{{siteOption "site_description" "一个理想主义者的林间笔记。"}}<br/>Agent、工程与生活，边走边记。</p>
         </div>
     </div>
     {{else}}
