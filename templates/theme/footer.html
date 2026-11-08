@@ -30,7 +30,7 @@
             root.dataset.colorScheme = scheme;
             localStorage.setItem('fluid-color-scheme', scheme);
             var themeColor = document.querySelector('meta[name=theme-color]');
-            if (themeColor) themeColor.setAttribute('content', scheme === 'dark' ? '#1f3144' : '#2f4154');
+            if (themeColor) themeColor.setAttribute('content', scheme === 'dark' ? '#0b1619' : '#183032');
         }
 
         function pageParts(documentNode) {
@@ -326,11 +326,11 @@
             var viewportHeight = 0;
             var pixelRatio = 1;
             var leafPalette = [
-                {front: '#c9663b', back: '#8d4933', vein: 'rgba(72, 39, 27, .62)'},
-                {front: '#e0a447', back: '#a66a35', vein: 'rgba(83, 51, 25, .58)'},
-                {front: '#ad4f32', back: '#743a2d', vein: 'rgba(62, 34, 27, .66)'},
-                {front: '#d7bb67', back: '#9b7d3d', vein: 'rgba(72, 57, 27, .54)'},
-                {front: '#a57b3f', back: '#6d5733', vein: 'rgba(55, 46, 29, .58)'}
+                {front: '#68bca6', back: '#3d816f', vein: 'rgba(31, 73, 68, .62)'},
+                {front: '#8fc7d9', back: '#527f95', vein: 'rgba(40, 68, 85, .58)'},
+                {front: '#589a94', back: '#386b68', vein: 'rgba(29, 64, 60, .66)'},
+                {front: '#9bcabb', back: '#678d80', vein: 'rgba(41, 75, 68, .54)'},
+                {front: '#72a6bb', back: '#4d7789', vein: 'rgba(29, 59, 76, .58)'}
             ];
 
             function randomBetween(minimum, maximum) {

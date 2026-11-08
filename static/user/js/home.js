@@ -33,7 +33,10 @@
         function goHome(instant) { var p = homePos(); place(p[0], p[1], instant); }
         function say(text, x, y) {
             window.clearInterval(typing);
-            bubble.style.transform = 'translate(' + (x + 36) + 'px,' + y + 'px)';
+            bubble.textContent = text;
+            var left = x + bot.offsetWidth + 8;
+            if (left + bubble.offsetWidth > inner.clientWidth) left = Math.max(0, x - bubble.offsetWidth - 8);
+            bubble.style.transform = 'translate(' + left + 'px,' + y + 'px)';
             bubble.textContent = '';
             bubble.classList.add('is-on');
             bot.classList.add('is-talking');
@@ -51,7 +54,7 @@
         // follow the hovered nav item and type what it leads to
         inner.addEventListener('pointerover', function (e) {
             var link = e.target.closest && e.target.closest('.fluid-navbar-menu > a[data-hint]');
-            if (!link || link === at || window.innerWidth < 768) return;
+            if (!link || link === at || window.matchMedia('(max-width: 899px)').matches) return;
             window.clearTimeout(back);
             if (at) at.classList.remove('is-hinted');
             at = link; link.classList.add('is-hinted');
@@ -70,7 +73,8 @@
             bot.setAttribute('aria-expanded', open ? 'true' : 'false');
             if (open) {
                 quiet(); goHome();
-                var p = homePos(); menu.style.left = Math.max(0, p[0] - 8) + 'px';
+                var p = homePos();
+                menu.style.left = Math.max(0, Math.min(p[0] - 8, inner.clientWidth - menu.offsetWidth)) + 'px';
                 var pool = document.querySelectorAll('#hx-pool, .hx-latest');
                 var links = [];
                 pool.forEach(function (t) { t.content.querySelectorAll('a').forEach(function (a) { links.push(a.getAttribute('href')); }); });
@@ -128,63 +132,67 @@
         });
     }
 
-    /* ---------------- about me, typed as Python (loops, scrolls like a terminal) ---------------- */
-    var ABOUT = [
-        '$ python -i about.py',
-        'class Hypnos(Idealist):',
-        '    """Gets up to speed on anything new, fast."""',
-        '    interests = ["mathematics"]',
-        '    dream     = "help create digital life"',
-        '    style     = "AI-native, unconventional"',
-        '    studying  = "LLMs, in depth"',
-        '',
-        '    def harness(self):               # self-harness-system',
-        '        rsi  = track(self.life)      # see which changes help',
-        '        gold = open(world).collect() # people, cases, golden set',
-        '        RL(gold).reinforce(self)     # keep what works',
-        '        return explore("ME.md")      # chaos gremlin, for fun',
-        '',
-        '    modules   = [Express, ProjectManagement, ...]  # more to come',
-        '    exploring = {"streaming LLMs", "agents", "ML", "math"}',
-        '',
-        '>>> Hypnos().harness()',
-        '# ▶ 只有过程才是最重要的'
-    ];
-    function highlight(line) {
-        return line.replace(/(#.*$)|("""[^"]*"""|"[^"]*")|\b(class|def|return|self)\b|\b(Hypnos|Idealist|Express|ProjectManagement|RL)\b|(>>>|\$)|([^#"\w$>]+|\w+|>)/g, function (m, c, s, k, n, p) {
-            var cls = c ? 'c' : s ? 's' : k ? 'k' : n ? 'n' : p ? 'p' : '';
-            return cls ? '<span class="' + cls + '">' + esc(m) + '</span>' : esc(m);
-        });
+    /* Keep the full Python source in the page for readers, reduced motion and no JS. */
+    function highlightPython(line) {
+        return line.split(/(#[^\n]*|"[^"]*"?|\b[a-z_]\w*(?=\s*=))/i).map(function (token, index) {
+            if (index % 2 === 0) return esc(token);
+            var style = token[0] === '#' ? 'c' : token[0] === '"' ? 's' : 'k';
+            return '<span class="' + style + '">' + esc(token) + '</span>';
+        }).join('');
     }
+
     function mountTyper(pre) {
-        var narrow = window.innerWidth < 768;
-        var lines = narrow ? ABOUT.reduce(function (out, l) {
-            var m = l.match(/^(\s*)(\S.*?)\s{2,}(#.*)$/);
-            return out.concat(m ? [m[1] + m[3], m[1] + m[2]] : [l]);
-        }, []) : ABOUT;
-        var keep = narrow ? 7 : 9;
-        function render(li, ci) {
-            var shown = lines.slice(0, li + 1).map(function (l, i) { return i === li ? l.slice(0, ci) : l; });
-            shown = shown.slice(-keep);
-            pre.innerHTML = shown.map(highlight).join('\n') + '<span class="hx-cur"></span>';
+        var source = pre && pre.querySelector('code');
+        if (!source) return;
+        var lines = source.textContent.split('\n');
+        source.innerHTML = lines.map(highlightPython).join('\n');
+        if (reduce) return;
+
+        var screen = document.createElement('code');
+        var cursor = document.createElement('span');
+        var line, row, count, timer;
+        screen.setAttribute('aria-hidden', 'true');
+        cursor.className = 'hx-cur';
+        source.classList.add('hx-code-source');
+        pre.appendChild(screen);
+
+        function startLine() {
+            line = document.createElement('span');
+            screen.insertBefore(line, cursor);
+            count = 0;
         }
-        if (reduce) { render(lines.length - 1, Infinity); return; }
-        var li = 0, ci = 0, timer;
-        function step() {
-            var line = lines[li];
-            if (ci < line.length) {
-                ci += /^\s+$/.test(line.slice(0, ci + 4)) ? 4 : 1;
-                render(li, ci);
-                timer = window.setTimeout(step, 14 + Math.random() * 30);
-            } else if (li < lines.length - 1) {
-                li++; ci = 0; render(li, 0);
-                timer = window.setTimeout(step, 160);
+        function start() {
+            row = 0;
+            screen.replaceChildren(cursor);
+            startLine();
+            type();
+        }
+        function type() {
+            if (count < lines[row].length) {
+                count += 1;
+                line.innerHTML = highlightPython(lines[row].slice(0, count));
+                pre.scrollTop = pre.scrollHeight;
+                timer = window.setTimeout(type, 28);
+            } else if (row + 1 < lines.length) {
+                row += 1;
+                screen.insertBefore(document.createTextNode('\n'), cursor);
+                startLine();
+                timer = window.setTimeout(type, 240);
             } else {
-                timer = window.setTimeout(function () { li = 0; ci = 0; step(); }, 7000);
+                timer = window.setTimeout(start, 7000);
             }
         }
-        timer = window.setTimeout(step, 900);
-        cleanups.push(function () { window.clearTimeout(timer); });
+        function readSource() {
+            window.clearTimeout(timer);
+            if (!screen.isConnected) return;
+            screen.remove();
+            source.classList.remove('hx-code-source');
+            pre.scrollTop = 0;
+        }
+        on(pre, 'focus', readSource);
+        on(pre, 'wheel', readSource, {once: true, passive: true});
+        cleanups.push(readSource);
+        start();
     }
 
     /* ---------------- time since the last post ---------------- */
@@ -205,12 +213,12 @@
 
     /* ---------------- the night forest, the dot halo and the bird ---------------- */
     function rng(seed) { var a = seed >>> 0; return function () { a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-    var PINE = ['#a9d6bf', '#6fae8c', '#3f8063'];
-    var AUTUMN = ['#e2a54b', '#d98030', '#c9583c', '#e8c35a'];
+    var PINE = ['#99cdc1', '#629d91', '#3a756d'];
+    var CANOPY = ['#78d8c3', '#62afaa', '#83b8d2', '#a3d5df'];
     function drawTrees(specs, seed) {
         var R = rng(seed), grid = new Map(), trees = [];
         specs.forEach(function (s) {
-            var t = Object.assign({}, s, {cells: [], crown: [], bend: 0, vb: 0, ph: R() * 6.28, col: AUTUMN[(R() * 4) | 0], col2: AUTUMN[(R() * 4) | 0]});
+            var t = Object.assign({}, s, {cells: [], crown: [], bend: 0, vb: 0, ph: R() * 6.28, col: CANOPY[(R() * CANOPY.length) | 0], col2: CANOPY[(R() * CANOPY.length) | 0]});
             function put(gx, gy, ch, color) { if (ch !== ' ' && gy >= 0) grid.set(gy * 4096 + gx, {x: gx, y: gy, ch: ch, color: color, a: s.a, t: t, k: (t.base - gy) / t.h}); }
             var x = t.x, base = t.base, h = t.h;
             if (t.kind === 'pine') {
@@ -223,7 +231,7 @@
                         put(x + dx, base - h + i, dx === -w ? '/' : dx === w ? '\\' : r < .66 ? '^' : r < .76 ? '1' : r < .84 ? '0' : r < .9 ? '*' : ' ', PINE[t.L]);
                     }
                 }
-                for (var y = base - 2; y <= base; y++) put(x, y, '|', '#7a6a4c');
+                for (var y = base - 2; y <= base; y++) put(x, y, '|', '#597571');
             } else {
                 var rr = t.r, cy = base - Math.round(h * .3) - rr;
                 for (var dy = -rr; dy <= rr; dy++) for (var ex = -Math.round(rr * 2.1); ex <= Math.round(rr * 2.1); ex++) {
@@ -232,7 +240,7 @@
                     put(x + ex, cy + dy, d < .6 ? '@%&#*'[(R() * 5) | 0] : d < .88 ? '*o0%'[(R() * 4) | 0] : ".,'"[(R() * 3) | 0], R() < .65 ? t.col : t.col2);
                     if (d < .9) t.crown.push([x + ex, cy + dy]);
                 }
-                for (var yy = cy + rr; yy <= base; yy++) put(x, yy, yy === cy + rr ? 'Y' : '|', '#7a6a4c');
+                for (var yy = cy + rr; yy <= base; yy++) put(x, yy, yy === cy + rr ? 'Y' : '|', '#597571');
             }
             trees.push(t);
         });
@@ -266,6 +274,9 @@
     ];
     function mountForest(hero) {
         var cv = $('hx-forest'), ctx = cv.getContext('2d'), cta = $('hx-cta'), foot = hero.querySelector('.hx-foot');
+        var styles = getComputedStyle(hero);
+        var accent = styles.getPropertyValue('--hx-accent').trim();
+        var ice = styles.getPropertyValue('--hx-ice').trim();
         var W, H, cw, chh, F, raf, visible = true, last = 0, t0 = performance.now(), mx = -1e4, my = -1e4;
         var leaves = [], halo = [], bird = {x: -120, y: 0, phase: 0, burst: 0};
         function fsz() { return W < 768 ? 10 : 13; }
@@ -301,7 +312,7 @@
             if (!F) return;
             ctx.textBaseline = 'top';
             // halo dots lean toward the cursor
-            ctx.fillStyle = '#c99a58';
+            ctx.fillStyle = accent;
             halo.forEach(function (d) {
                 var dx = mx - d.x, dy = my - d.y, dist = Math.hypot(dx, dy), pull = dist < 220 ? (1 - dist / 220) * 18 : 0;
                 var wob = reduce ? 0 : Math.sin(t * 1.2 + d.k * 9) * 1.5;
@@ -338,10 +349,10 @@
                         var gx = bird.x + rx * cw, gy = by + ry * chh, b = bird.burst;
                         if (b > 0) {
                             var sx = Math.sin(rx * 12.9 + ry * 78.2) * 40 * b, sy = Math.cos(rx * 4.1 + ry * 9.7) * 30 * b;
-                            ctx.globalAlpha = .9; ctx.fillStyle = '#f1ecdf';
+                            ctx.globalAlpha = .9; ctx.fillStyle = '#e7f1ef';
                             ctx.fillRect(gx + sx, gy + sy, cw * .8, chh * .7);
                         } else {
-                            ctx.globalAlpha = .9; ctx.fillStyle = /\d/.test(ch) ? '#e2a54b' : '#d58aa8';
+                            ctx.globalAlpha = .9; ctx.fillStyle = /\d/.test(ch) ? accent : ice;
                             ctx.fillText(ch, gx, gy);
                         }
                     });
@@ -429,7 +440,7 @@
     }
 
     /* ---------------- paths: categories as lanes ---------------- */
-    var LANE = ['#8fb8d8', '#d8cfb8', '#e2a54b', '#c9583c', '#7fc79a'];
+    var LANE = ['var(--hx-accent)', 'var(--hx-ice)', '#a4d7c1', '#81b1df', '#a7dbe2'];
     function scramble(el, text) {
         if (reduce) { el.textContent = text; return; }
         var glyphs = '01/\\^*#%', n = 0, id = window.setInterval(function () {
