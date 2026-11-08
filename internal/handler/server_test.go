@@ -140,7 +140,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css`,
 		`class="fluid-theme fluid-font-wenkai"`,
-		`href="/user/css/home.css?v=3"`,
+		`href="/user/css/home.css?v=4"`,
 		`src="/user/js/home.js?v=3"`,
 		`id="banner" class="hx-hero"`,
 		`id="hx-forest"`,

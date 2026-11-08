@@ -35,7 +35,7 @@
     {{end}}
     <link href="/user/css/fluid.css?v=5" rel="stylesheet"/>
     <link href="https://cdn.jsdelivr.net/npm/@fontsource-variable/anybody@5.3.0/wdth.css" rel="stylesheet"/>
-    <link href="/user/css/home.css?v=3" rel="stylesheet"/>
+    <link href="/user/css/home.css?v=4" rel="stylesheet"/>
     <script src="/user/js/html-article.js?v=3" defer></script>
     <script src="/user/js/home.js?v=3" defer></script>
 </head>
@@ -47,8 +47,7 @@
 <header class="fluid-header">
     <nav id="navbar" class="fluid-navbar" aria-label="主导航">
         <div class="fluid-navbar-inner">
-            <a class="fluid-brand" href="{{siteUrl ""}}/">{{siteTitle}}</a>
-            <span class="hx-badge">Built in public</span>
+            <a class="fluid-brand" href="{{siteUrl ""}}/"><span class="hx-badge">HYPN0S cloud</span></a>
             <span class="hx-bot-home" id="hx-bot-home" aria-hidden="true"></span>
             <button id="hx-bot" class="hx-bot" type="button" aria-label="小助手菜单" aria-haspopup="true" aria-expanded="false"><i></i><i></i></button>
             <div id="hx-bubble" class="hx-bubble" aria-hidden="true"></div>
@@ -102,8 +101,6 @@
         <canvas id="hx-forest" aria-hidden="true"></canvas>
         <div class="hx-stage">
             <span class="hx-mark-sub">HYPN0S · CLOUD</span>
-            <p class="hx-word" data-glitch>HYPN0S <em>Cloud</em></p>
-            <p class="hx-sub" data-glitch>林间笔记</p>
             <div class="hx-middle">
                 <h1 class="hx-motto" data-glitch>如果这个<b>宇宙</b>的结局是注定的，<br/>是<b>消亡，是归于死寂</b>；<br/>或许这更说明，只有<b>过程</b>才是<b>最重要的</b></h1>
                 <a class="hx-cta" id="hx-cta" href="#board">开始阅读</a>
@@ -112,7 +109,6 @@
         <div class="hx-foot">
             <pre class="hx-code" id="hx-code" aria-label="关于我，以 Python 写成"></pre>
             <div class="hx-clock" aria-label="距上次落笔的时间"><span id="hx-days">000</span><small>天</small><span id="hx-time">00:00:00</span><span class="hx-tag"><b>距上次落笔</b><span>时间仍在走</span></span></div>
-            <p class="hx-desc">{{siteOption "site_description" "一个理想主义者的林间笔记。"}}<br/>Agent、工程与生活，边走边记。</p>
         </div>
     </div>
     {{else}}
