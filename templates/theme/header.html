@@ -11,9 +11,6 @@
     <meta name="description" content="{{if .Description}}{{.Description}}{{else}}{{siteOption "site_description" ""}}{{end}}"/>
     <link rel="shortcut icon" href="/user/img/favicon.png"/>
     <link rel="apple-touch-icon" href="/user/img/apple-touch-icon.png"/>
-    {{if not .Title}}
-    <link rel="preload" as="image" href="{{siteOption "theme_home_banner" "/user/img/forest.jpg"}}" fetchpriority="high"/>
-    {{end}}
     <title>{{if .Title}}{{.Title}}{{else}}首页{{end}} - {{siteOption "site_title" "HypN0s-Cloud"}}</title>
     <script>
         (function () {
@@ -37,7 +34,10 @@
     <noscript><link href="https://cdn.bootcdn.net/ajax/libs/highlight.js/9.9.0/styles/xcode.min.css" rel="stylesheet"/></noscript>
     {{end}}
     <link href="/user/css/fluid.css?v=5" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/@fontsource-variable/anybody@5.3.0/wdth.css" rel="stylesheet"/>
+    <link href="/user/css/home.css?v=1" rel="stylesheet"/>
     <script src="/user/js/html-article.js?v=3" defer></script>
+    <script src="/user/js/home.js?v=1" defer></script>
 </head>
 <body class="fluid-theme fluid-font-{{siteOption "theme_font" "wenkai"}}"
       data-access-key-enabled="{{if .AccessKeyEnabled}}1{{else}}0{{end}}"
@@ -48,22 +48,31 @@
     <nav id="navbar" class="fluid-navbar" aria-label="主导航">
         <div class="fluid-navbar-inner">
             <a class="fluid-brand" href="{{siteUrl ""}}/">{{siteTitle}}</a>
+            <span class="hx-badge">Built in public</span>
+            <span class="hx-bot-home" id="hx-bot-home" aria-hidden="true"></span>
+            <button id="hx-bot" class="hx-bot" type="button" aria-label="小助手菜单" aria-haspopup="true" aria-expanded="false"><i></i><i></i></button>
+            <div id="hx-bubble" class="hx-bubble" aria-hidden="true"></div>
+            <div id="hx-bot-menu" class="hx-bot-menu" role="menu" hidden>
+                <a id="hx-random" role="menuitem" href="{{siteUrl ""}}/">随机读一篇</a>
+                <button id="hx-search" role="menuitem" type="button">搜索全站 ⌘K</button>
+                <a role="menuitem" href="{{siteUrl "/topics"}}">浏览全部专栏</a>
+            </div>
             <button id="navbar-toggle" class="fluid-navbar-toggle" type="button" aria-label="展开导航" aria-expanded="false">
                 <span></span><span></span><span></span>
             </button>
             <div id="navbar-menu" class="fluid-navbar-menu">
-                <a href="{{siteUrl ""}}/">Blogs</a>
+                <a href="{{siteUrl ""}}/" data-hint="最近写下的东西">Blogs</a>
                 {{if moduleEnabled "notes"}}
-                <a href="{{siteUrl "/notes"}}">Notes</a>
+                <a href="{{siteUrl "/notes"}}" data-hint="零散的学习笔记">Notes</a>
                 {{end}}
                 {{if moduleEnabled "archives"}}
-                <a href="{{siteUrl "/archives"}}">Archieve</a>
+                <a href="{{siteUrl "/archives"}}" data-hint="按时间翻旧帖">Archieve</a>
                 {{end}}
                 {{if moduleEnabled "links"}}
-                <a href="{{siteUrl "/links"}}">Friends</a>
+                <a href="{{siteUrl "/links"}}" data-hint="林子里的朋友们">Friends</a>
                 {{end}}
                 {{if moduleEnabled "about"}}
-                <a href="{{siteUrl "/about"}}">About</a>
+                <a href="{{siteUrl "/about"}}" data-hint="关于 Hypnos">About</a>
                 {{end}}
                 <button id="search-toggle" class="fluid-nav-button" type="button" aria-label="搜索">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
@@ -88,6 +97,25 @@
         </div>
     </nav>
 
+    {{if and (not .Article) (not .Title)}}
+    <div id="banner" class="hx-hero" data-last-post="{{if .Articles}}{{if .Articles.List}}{{(index .Articles.List 0).DisplayTime}}{{end}}{{end}}">
+        <canvas id="hx-forest" aria-hidden="true"></canvas>
+        <div class="hx-stage">
+            <span class="hx-mark-sub">HYPN0S · CLOUD</span>
+            <p class="hx-word" data-glitch>HYPN0S <em>Cloud</em></p>
+            <p class="hx-sub" data-glitch>林间笔记</p>
+            <div class="hx-middle">
+                <h1 class="hx-motto" data-glitch>如果这个<b>宇宙</b>的结局是注定的，<br/>是<b>消亡，是归于死寂</b>；<br/>或许这更说明，只有<b>过程</b>才是<b>最重要的</b></h1>
+                <a class="hx-cta" id="hx-cta" href="#board">开始阅读</a>
+            </div>
+        </div>
+        <div class="hx-foot">
+            <pre class="hx-code" id="hx-code" aria-label="关于我，以 Python 写成"></pre>
+            <div class="hx-clock" aria-label="距上次落笔的时间"><span id="hx-days">000</span><small>天</small><span id="hx-time">00:00:00</span><span class="hx-tag"><b>距上次落笔</b><span>时间仍在走</span></span></div>
+            <p class="hx-desc">{{siteOption "site_description" "一个理想主义者的林间笔记。"}}<br/>Agent、工程与生活，边走边记。</p>
+        </div>
+    </div>
+    {{else}}
     <div id="banner"
          class="fluid-banner {{if .IsPost}}fluid-banner-post{{else if .Title}}fluid-banner-page{{else}}fluid-banner-home{{end}}">
         <img class="fluid-banner-image{{if not .Title}} fluid-banner-image-priority{{end}}"
@@ -124,6 +152,7 @@
             </button>
         </div>
     </div>
+    {{end}}
 </header>
 
 <div id="search-modal" class="fluid-search-modal" role="dialog" aria-modal="true" aria-label="搜索文章">

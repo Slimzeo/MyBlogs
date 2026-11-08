@@ -35,6 +35,12 @@ func (server *Server) renderIndex(context *gin.Context, page int) {
 	data.Articles = server.service.GetContents(page, limit, includeEncrypted)
 	if page > 1 {
 		data.Title = "第" + strconv.Itoa(page) + "页"
+	} else {
+		// The first page is the home page: its category lanes, tag strip and
+		// random-post wheel read the same public topic data as /topics.
+		data.Categories = server.service.GetPublishedMetaList(model.TypeCategory, 5, includeEncrypted)
+		data.Tags = server.service.GetPublishedMetaList(model.TypeTag, 40, includeEncrypted)
+		data.TopicGroups = server.service.GetPublishedTopicGroups(20, 20, includeEncrypted)
 	}
 	server.render(context, http.StatusOK, "index", data)
 }
