@@ -11,6 +11,7 @@
     --hx-muted: #98a59e;
     --hx-faint: #63736c;
     --hx-amber: #e2a54b;
+    --hx-heading-color: initial; /* Set a color to override both large headings; initial keeps their original golds. */
     --hx-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
     --hx-wide: "Anybody Variable", "Arial Black", sans-serif;
 }
@@ -177,7 +178,7 @@ body:has(#banner.hx-hero) { background: var(--hx-night); }
 .hx-mark-sub { color: var(--hx-muted); font: 12px var(--hx-mono); letter-spacing: .3em; }
 .hx-word {
     margin: 10px 0 0;
-    color: var(--hx-amber);
+    color: var(--hx-heading-color, var(--hx-amber));
     font: 800 clamp(40px, 7vw, 92px)/1 var(--hx-wide);
     font-stretch: 150%;
     letter-spacing: .01em;
@@ -192,7 +193,7 @@ body:has(#banner.hx-hero) { background: var(--hx-night); }
     letter-spacing: .04em;
     text-shadow: 0 2px 18px rgb(5 12 10 / .9);
 }
-.hx-motto b { color: #f0b85e; font-weight: 700; }
+.hx-motto b { color: var(--hx-heading-color, #f0b85e); font-weight: 700; }
 .hx-cta {
     position: relative;
     padding: 8px 30px;
