@@ -1,0 +1,135 @@
+#payathon-page .siteMenuBrand .brandLogo {
+  display: block;
+  width: 108px;
+  height: 20px;
+}
+
+.siteMenuBrand { position: relative; }
+.blog-agent-notice {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: calc(100% + 12px);
+  width: max-content;
+  max-width: calc(100vw - 48px);
+  padding: 6px 10px;
+  border: 1px solid #f5f5f5;
+  border-radius: 5px;
+  background: #141414;
+  color: #fff;
+  font: 600 12px/1.4 var(--font-system, system-ui, sans-serif);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-3px);
+  transition: opacity .16s, transform .16s, visibility .16s;
+}
+.blog-agent-notice.is-visible { visibility: visible; opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  .blog-agent-notice { transition: none; transform: none; }
+}
+
+#payathon-title .payathon-name {
+  width: 64.69%;
+  margin-inline: auto;
+}
+
+#overview-title .overview-slogan {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+}
+
+#overview-title .motto-lead,
+#overview-title .motto-main {
+  display: block;
+}
+
+#overview-title .motto-lead {
+  margin-bottom: .55em;
+  color: #bbc1cb;
+  font-size: clamp(14px, 1.28vw, 19px);
+  font-weight: 450;
+  line-height: 1.5;
+  letter-spacing: .025em;
+}
+
+#overview-title .motto-main {
+  font-size: clamp(22px, 2.7vw, 42px);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -.035em;
+}
+
+#overview-title .motto-main b {
+  color: var(--payathon-accent, #86eaff);
+  font-weight: inherit;
+}
+
+#payathon-page .deadline-meta { white-space: nowrap; }
+#payathon-page .blog-scene-anchor { opacity: 0; pointer-events: none; }
+#payathon-page .payathon-button[href="#showcase"] { text-decoration: none; }
+#payathon-page .hero-terminal .blog-python-comment span:not(.terminal-cursor) { color: #84958c; }
+#payathon-page .hero-terminal .blog-python-command span:not(.terminal-cursor) { color: var(--payathon-accent); }
+
+#blog-search {
+  width: min(420px, calc(100vw - 40px));
+  margin: auto;
+  padding: 24px;
+  color: #f3f4f6;
+  background: #191b1e;
+  border: 1px solid #444850;
+  border-radius: 12px;
+  font: inherit;
+}
+
+#blog-search::backdrop { background: rgb(0 0 0 / .65); }
+#blog-search label { font-size: 21px; font-weight: 600; }
+#blog-search form > div { display: flex; gap: 8px; margin-top: 18px; }
+#blog-search input {
+  min-width: 0;
+  flex: 1;
+  padding: 8px 11px;
+  border-radius: 5px;
+  border: 1px solid #727781;
+  background: #101113;
+  color: inherit;
+  font: inherit;
+}
+#blog-search button { cursor: pointer; font: inherit; }
+#blog-search button[type="submit"] {
+  background: var(--payathon-accent, #86eaff);
+  color: #141414;
+  border: 0;
+  border-radius: 5px;
+  padding-inline: 15px;
+}
+#blog-search [data-blog-search-close] {
+  float: right;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 24px;
+  line-height: 1;
+}
+
+@media (max-width: 767px) {
+  #payathon-page .siteMenuBrand .brandLogo { width: 86px; }
+  #payathon-title .payathon-name { width: min(100%, 222px); }
+  #payathon-page .payathon-hero {
+    grid-template-rows: auto auto minmax(72px, 14svh) auto auto;
+    row-gap: clamp(16px, 3svh, 26px);
+  }
+  #overview-title { max-width: 32rem; }
+  #overview-title .motto-lead {
+    margin-bottom: 3px;
+    font-size: 14px;
+  }
+  #overview-title .motto-main { font-size: clamp(23px, 6.1vw, 33px); }
+  #overview-title .overview-slogan-end { margin-top: 14px; }
+  #payathon-page .payathon-hero .overview-blackhole { grid-row: 3; pointer-events: none; }
+  #payathon-page .payathon-hero .overview-registration { grid-row: 4; }
+  #payathon-page .payathon-hero .hero-terminal { grid-row: 5; }
+}

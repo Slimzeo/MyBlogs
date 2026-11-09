@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"myblog/config"
@@ -86,6 +87,9 @@ func (server *Server) render(context *gin.Context, status int, name string, data
 	if data.AccessKeyEnabled {
 		context.Header("Cache-Control", "private, no-store")
 		context.Header("Vary", "Cookie")
+	}
+	if !strings.HasPrefix(name, "admin") {
+		data.PublicSummary = server.service.GetPublicSummary()
 	}
 	context.Status(status)
 	context.Header("Content-Type", "text/html; charset=utf-8")

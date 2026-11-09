@@ -9,6 +9,9 @@ import (
 // PageData is shared by the migrated html/template pages. Keeping one explicit
 // view model makes handler-to-template contracts discoverable.
 type PageData struct {
+	Home             bool
+	PublicSummary    service.PublicSummary
+	HomeContent      service.HomeContent
 	Title            string
 	Keywords         string
 	Description      string

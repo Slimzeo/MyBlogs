@@ -12,3 +12,17 @@
 /.DS_Store
 # @byted-motor/aicoding-telemetry: git-hook run log (do not commit)
 .motor-code/log/
+
+# Keep imported references and generated files local. Track the blog overlay sources.
+/payathon-2026.zip
+/refs_blog/*
+!/refs_blog/payathon-2026/
+/refs_blog/payathon-2026/*
+!/refs_blog/payathon-2026/blog/
+/refs_blog/payathon-2026/blog/*
+!/refs_blog/payathon-2026/blog/transform.py
+!/refs_blog/payathon-2026/blog/NOTES.md
+!/refs_blog/payathon-2026/blog/assets/
+/refs_blog/payathon-2026/blog/assets/agent-topbar.js
+/refs_blog/payathon-2026/blog/assets/brand.svg
+/refs_blog/payathon-2026/blog/assets/.DS_Store
