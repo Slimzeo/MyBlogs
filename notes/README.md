@@ -1,6 +1,6 @@
-# Notes
+# Wiki 学习笔记
 
-这个目录是独立于 Blogs 的 Markdown 笔记空间。
+这里收录按文件夹整理的 Markdown 学习笔记。
 
 - 文件夹会显示成可展开的目录节点。
 - Markdown 文件会显示成笔记页面。

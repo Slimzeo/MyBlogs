@@ -48,14 +48,6 @@
         </div>
         <div class="setting-module-grid">
             <label class="setting-module-card">
-                <strong>Notes</strong>
-                <span>独立的笔记目录与阅读页</span>
-                <select name="module_notes_enabled">
-                    <option value="1" {{if ne (index .Options "module_notes_enabled") "0"}}selected{{end}}>显示</option>
-                    <option value="0" {{if eq (index .Options "module_notes_enabled") "0"}}selected{{end}}>隐藏</option>
-                </select>
-            </label>
-            <label class="setting-module-card">
                 <strong>归档</strong>
                 <span>按时间浏览全部公开文章</span>
                 <select name="module_archives_enabled">

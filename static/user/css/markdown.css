@@ -6,6 +6,30 @@
     line-height: 1.85;
 }
 
+/* Article prose follows the reading stack of Kirigaya's blog. The About page,
+   comments, navigation and independently authored HTML articles keep their own type. */
+#post-content[itemprop="articleBody"] {
+    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+    font-size: 1.05rem;
+    line-height: 2rem;
+    letter-spacing: normal;
+}
+
+#post-content[itemprop="articleBody"] p {
+    margin: 0 0 1.05rem;
+}
+
+@media (max-width: 768px) {
+    #post-content[itemprop="articleBody"] {
+        font-size: 16px;
+        line-height: 28px;
+    }
+
+    #post-content[itemprop="articleBody"] p {
+        margin-bottom: 16px;
+    }
+}
+
 .fluid-markdown > :first-child {
     margin-top: 0;
 }

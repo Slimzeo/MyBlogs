@@ -115,8 +115,8 @@ func (server *Server) apiImportArticle(context *gin.Context) {
 		AuthorID:    token.AuthorID,
 		Title:       context.PostForm("title"),
 		Slug:        context.PostForm("slug"),
-		Tags:        context.PostForm("tags"),
-		Categories:  context.PostForm("categories"),
+		Tags:        strings.Join(context.PostFormArray("tags"), ","),
+		Categories:  strings.Join(context.PostFormArray("categories"), ","),
 		Status:      model.TypeDraft,
 		DisplayTime: displayTime,
 	}

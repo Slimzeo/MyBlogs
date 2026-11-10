@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
@@ -27,10 +26,6 @@ import (
 func TestAgentAPIImportsDraftIdempotentlyAndRevokesToken(t *testing.T) {
 	gin.SetMode(gin.ReleaseMode)
 	directory := t.TempDir()
-	notesDirectory := filepath.Join(directory, "notes")
-	if err := os.MkdirAll(notesDirectory, 0o755); err != nil {
-		t.Fatal(err)
-	}
 	runtimeConfig := &config.Config{
 		DBDriver:             "sqlite",
 		DBDSN:                filepath.Join(directory, "blog.db"),
@@ -39,7 +34,6 @@ func TestAgentAPIImportsDraftIdempotentlyAndRevokesToken(t *testing.T) {
 		DBConnMaxLifetime:    time.Minute,
 		SessionSecret:        "agent-api-test-secret-0123456789abcdef",
 		UploadDir:            filepath.Join(directory, "upload"),
-		NotesDir:             notesDirectory,
 		HitFlushEvery:        100,
 		RateLimitRPS:         1000,
 		RateLimitBurst:       2000,
@@ -102,6 +96,11 @@ func TestAgentAPIImportsDraftIdempotentlyAndRevokesToken(t *testing.T) {
 		"categories":   {"Tools"},
 		"display_time": {"2026-09-05T21:30"},
 		"status":       {"publish"},
+	}
+	badColumns := url.Values{"categories": {"读书", "工程"}, "tags": {"Go", "工程"}}
+	rejected := postAgentImport(t, testServer.URL, plaintext, "two-columns-request", archive, badColumns)
+	if rejected.Success || rejected.Status != http.StatusUnprocessableEntity {
+		t.Fatalf("AI import accepted two columns: %#v", rejected)
 	}
 	first := postAgentImport(t, testServer.URL, plaintext, "same-import-request", archive, fields)
 	if first.Status != http.StatusOK || !first.Success || first.Data.ID <= 0 || first.Data.Replayed {

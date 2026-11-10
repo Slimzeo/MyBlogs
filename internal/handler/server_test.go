@@ -44,23 +44,6 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	tempDirectory := t.TempDir()
 	testUsername := "test-admin"
 	testPassword := randomTestPassword(t)
-	notesDirectory := filepath.Join(tempDirectory, "notes")
-	if err := os.MkdirAll(filepath.Join(notesDirectory, "Go", "Concurrency"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(notesDirectory, "README.md"), []byte("# Notes\n\nRoot notes."), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(notesDirectory, "Go", "README.md"), []byte("# Go\n\nGo notes."), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(
-		filepath.Join(notesDirectory, "Go", "Concurrency", "goroutines.md"),
-		[]byte("# Goroutines\n\nA note about goroutines."),
-		0o644,
-	); err != nil {
-		t.Fatal(err)
-	}
 	runtimeConfig := &config.Config{
 		DBDriver:             "sqlite",
 		DBDSN:                filepath.Join(tempDirectory, "blog.db") + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)",
@@ -76,7 +59,6 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		AdminUsername:        testUsername,
 		AdminEmail:           "test@example.com",
 		AdminInitialPassword: testPassword,
-		NotesDir:             notesDirectory,
 	}
 	database, err := db.Open(runtimeConfig)
 	if err != nil {
@@ -97,7 +79,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		_ = sqlDB.Close()
 	})
 
-	for _, path := range []string{"/", "/healthz", "/readyz", "/article/welcome", "/article/welcome.html", "/topics", "/notes", "/notes/Go", "/notes/Go/Concurrency/goroutines", "/archives", "/links", "/about"} {
+	for _, path := range []string{"/", "/healthz", "/readyz", "/article/welcome", "/article/welcome.html", "/topics", "/notes", "/blogs", "/archives", "/links", "/about"} {
 		response, requestErr := http.Get(testServer.URL + path)
 		if requestErr != nil {
 			t.Fatalf("GET %s: %v", path, requestErr)
@@ -135,23 +117,24 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		t.Fatal("public static asset is missing Cache-Control")
 	}
 	for _, marker := range []string{
-		`href="/user/css/fluid.css?v=5"`,
+		`href="/user/css/fluid.css?v=7"`,
 		`href="/user/css/markdown.css"`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css`,
 		`class="fluid-theme fluid-font-wenkai"`,
-		`href="/user/css/home.css?v=4"`,
-		`src="/user/js/home.js?v=3"`,
+		`href="/user/css/home.css?v=10"`,
+		`src="/user/js/home.js?v=4"`,
 		`id="banner" class="hx-hero"`,
 		`id="hx-forest"`,
 		`如果这个<b>宇宙</b>的结局是注定的，<br/>`,
 		`<b>最重要的</b>`,
-		`id="hx-bot"`,
+		`<span class="brandLogo">HYPNOS Cloud</span></a>`,
+		`data-agent-read-entry`,
 		`id="hx-code"`,
-		`id="hx-strip"`,
-		`id="hx-labels"`,
+		`id="blogs"`,
+		`class="journal-list"`,
 		`window.HomeFX.mount()`,
-		`class="fluid-board fluid-index-board"`,
+		`class="fluid-main journal-main"`,
 		`id="color-toggle"`,
 		`id="access-key-toggle"`,
 		`id="access-key-modal"`,
@@ -159,59 +142,34 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`var leafPalette = [`,
 		`var spawnDepth = Math.min(120, viewportHeight * 0.16);`,
 		`document.addEventListener('DOMContentLoaded', mountPage, {once: true});`,
-		`>Blogs</a>`,
-		`>Archieve</a>`,
-		`>Friends</a>`,
+		`>Home</a>`,
+		`>Archives</a>`,
+		`>Categories</a>`,
+		`>Tags</a>`,
 		`>About</a>`,
 	} {
 		if !strings.Contains(string(homeHTML), marker) {
 			t.Fatalf("home page missing UI marker %q", marker)
 		}
 	}
-	if !strings.Contains(string(homeHTML), "fluid-index-card-no-image") {
-		t.Fatal("home page is missing image-less article card")
+	if strings.Contains(string(homeHTML), `id="hx-strip"`) || strings.Contains(string(homeHTML), `id="hx-labels"`) {
+		t.Fatal("home feed must follow the intro without promotional sections")
 	}
 	if strings.Contains(string(homeHTML), "highlight.js/9.9.0/styles/xcode.min.css") {
 		t.Fatal("home page should not load article highlight styles")
 	}
-	notesResponse, err := http.Get(testServer.URL + "/notes")
-	if err != nil {
-		t.Fatal(err)
-	}
-	notesHTML, err := io.ReadAll(notesResponse.Body)
-	_ = notesResponse.Body.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, marker := range []string{
-		`href="/notes/Go"`,
-		`href="/topics"`,
-		`fluid-notes-explorer`,
-		`fluid-notes-tabs`,
-	} {
-		if !strings.Contains(string(notesHTML), marker) {
-			t.Fatalf("notes page missing UI marker %q", marker)
+	for _, path := range []string{"/wiki", "/wiki/README", "/notes/Go/Concurrency/goroutines"} {
+		r, err := http.Get(testServer.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.Body.Close()
+		if r.StatusCode != http.StatusNotFound {
+			t.Errorf("retired note URL %s: status %d", path, r.StatusCode)
 		}
 	}
-	noteDocumentResponse, err := http.Get(testServer.URL + "/notes/Go/Concurrency/goroutines")
-	if err != nil {
-		t.Fatal(err)
-	}
-	noteDocumentHTML, err := io.ReadAll(noteDocumentResponse.Body)
-	_ = noteDocumentResponse.Body.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(noteDocumentHTML), "A note about goroutines.") {
-		t.Fatal("notes markdown document was not rendered")
-	}
-	unsafeNotesResponse, err := http.Get(testServer.URL + "/notes/../.env")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_ = unsafeNotesResponse.Body.Close()
-	if unsafeNotesResponse.StatusCode != http.StatusNotFound {
-		t.Fatalf("unsafe notes path status = %d, want 404", unsafeNotesResponse.StatusCode)
+	if strings.Contains(string(homeHTML), `href="/wiki"`) {
+		t.Error("removed Wiki still in navigation")
 	}
 	aboutResponse, err := http.Get(testServer.URL + "/about")
 	if err != nil {
@@ -256,9 +214,9 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, marker := range []string{
-		`class="fluid-topic-tabs"`,
-		`href="/topics?view=categories"`,
-		`href="/topics?view=tags"`,
+		`id="blog-library"`,
+		`class="library-shelves"`,
+		`aria-label="按标签筛选"`,
 		`href="/archives"`,
 	} {
 		if !strings.Contains(string(topicsHTML), marker) {
@@ -275,10 +233,12 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if strings.Contains(string(articleHTML), `src="/user/img/forest.jpg"`) || strings.Contains(string(articleHTML), `id="hx-forest"`) {
+		t.Fatal("article page mounts the wallpaper or home animation")
+	}
 	for _, marker := range []string{
-		`class="fluid-banner fluid-banner-post"`,
-		`class="fluid-banner-image"`,
-		`src="/user/img/forest.jpg"`,
+		`class="fluid-reader-top"`,
+		`class="fluid-reader-heading"`,
 		`class="fluid-post-layout"`,
 		`class="fluid-board fluid-post-board"`,
 		`id="article-toc"`,
@@ -324,7 +284,6 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	for _, marker := range []string{
 		"前台模块",
-		`name="module_notes_enabled"`,
 		`name="module_archives_enabled"`,
 		`name="module_links_enabled"`,
 		`name="module_about_enabled"`,
@@ -335,7 +294,6 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		}
 	}
 	settingsHidden := postAdminForm(t, client, testServer.URL, "/admin/setting", "/admin/setting", url.Values{
-		"module_notes_enabled":    {"0"},
 		"module_archives_enabled": {"0"},
 		"module_links_enabled":    {"0"},
 		"module_about_enabled":    {"0"},
@@ -344,7 +302,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if !settingsHidden.Success {
 		t.Fatalf("hiding public modules failed: %s", settingsHidden.Msg)
 	}
-	for _, path := range []string{"/notes", "/archives", "/links", "/about"} {
+	for _, path := range []string{"/wiki", "/archives", "/links", "/about"} {
 		hiddenResponse, requestErr := http.Get(testServer.URL + path)
 		if requestErr != nil {
 			t.Fatalf("GET hidden module %s: %v", path, requestErr)
@@ -363,13 +321,12 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, hiddenLink := range []string{`href="/notes"`, `href="/archives"`, `href="/links"`, `href="/about"`} {
+	for _, hiddenLink := range []string{`href="/wiki"`, `href="/archives"`, `href="/links"`, `href="/about"`} {
 		if strings.Contains(string(hiddenHomeHTML), hiddenLink) {
 			t.Fatalf("hidden module link remains in navigation: %s", hiddenLink)
 		}
 	}
 	settingsRestored := postAdminForm(t, client, testServer.URL, "/admin/setting", "/admin/setting", url.Values{
-		"module_notes_enabled":    {"1"},
 		"module_archives_enabled": {"1"},
 		"module_links_enabled":    {"1"},
 		"module_about_enabled":    {"1"},
@@ -428,9 +385,9 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`id="archive-file-name"`,
 		`article-import-file-picker`,
 		`data-meta-target="article-tags"`,
-		`data-meta-target="article-categories"`,
+		`list="article-column-options"`,
 		`data-meta-value="Go"`,
-		`data-meta-value="默认分类"`,
+		`<option value="默认分类">`,
 		`value="encrypted"`,
 		`/admin/article/import`,
 		`clipboardData`,
@@ -439,6 +396,9 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		if !strings.Contains(string(articleEditorHTML), marker) {
 			t.Fatalf("article editor missing marker %q", marker)
 		}
+	}
+	if strings.Contains(string(articleEditorHTML), `data-meta-target="article-categories"`) || strings.Contains(string(articleEditorHTML), `data-meta-target="import-categories"`) {
+		t.Fatal("category still offers the multi-select tag control")
 	}
 	articleListResponse, err := client.Get(testServer.URL + "/admin/article")
 	if err != nil {
@@ -455,9 +415,9 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`id="archive-file"`,
 		`id="archive-file-name"`,
 		`data-meta-target="import-tags"`,
-		`data-meta-target="import-categories"`,
+		`list="import-column-options"`,
 		`data-meta-value="Go"`,
-		`data-meta-value="默认分类"`,
+		`<option value="默认分类">`,
 		`/admin/article/import`,
 	} {
 		if !strings.Contains(string(articleListHTML), marker) {
@@ -582,10 +542,14 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		AllowPing:    true,
 		AllowFeed:    true,
 	}
+	if err := services.Publish(normalizedMetaContent); err == nil || normalizedMetaContent.Cid != 0 {
+		t.Fatal("article was accepted with two distinct columns")
+	}
+	normalizedMetaContent.Categories = "integration-category，integration-category"
 	if err := services.Publish(normalizedMetaContent); err != nil {
 		t.Fatal(err)
 	}
-	if normalizedMetaContent.Categories != "默认分类,integration-category" ||
+	if normalizedMetaContent.Categories != "integration-category" ||
 		normalizedMetaContent.Tags != "integration-tag,fresh-tag" {
 		t.Fatalf(
 			"metadata not normalized: categories=%q tags=%q",
@@ -599,8 +563,8 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		Count(&normalizedRelationships).Error; err != nil {
 		t.Fatal(err)
 	}
-	if normalizedRelationships != 4 {
-		t.Fatalf("normalized relationships = %d, want 4", normalizedRelationships)
+	if normalizedRelationships != 3 {
+		t.Fatalf("normalized relationships = %d, want 3", normalizedRelationships)
 	}
 
 	var contentsBeforeImport int64
@@ -842,7 +806,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if !archiveFound {
 		t.Fatalf("article was not archived under display month %s", archiveMonth)
 	}
-	expandedTopicsResponse, err := http.Get(testServer.URL + "/topics")
+	expandedTopicsResponse, err := http.Get(testServer.URL + "/blogs?tag=integration-tag")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -852,7 +816,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, marker := range []string{
-		`<details class="fluid-topic-node">`,
+		`class="library-results"`,
 		`Concurrent Article`,
 		`href="/article/concurrent-article"`,
 	} {
@@ -968,6 +932,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		"/category/integration-encrypted-category",
 		"/tag/integration-encrypted-tag",
 		"/topics",
+		"/blogs?category=integration-encrypted-category&tag=integration-encrypted-tag",
 	}
 	for _, path := range encryptedPublicPaths {
 		publicResponse, requestErr := http.Get(testServer.URL + path)

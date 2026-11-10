@@ -53,7 +53,7 @@ Front matter 可省略，也可以使用下面这些字段：
 title: Agent 系统阅读笔记
 slug: agent-system-notes
 tags: [Agent, Paper]
-categories: 研究, 学习
+categories: 研究
 display_time: "2026-09-05T21:30"
 status: draft
 ---
@@ -66,7 +66,8 @@ status: draft
 
 - `title`：可省略；省略时服务端使用文件名。
 - `slug`：可省略；填写时只允许字母、数字、`_`、`-`，长度 5–100。
-- `tags` / `categories`：可写 YAML 字符串列表或英文逗号分隔字符串。
+- `categories` 填一个专栏名，省略时归入默认分类。
+- `tags` 可写多个，用 YAML 列表或逗号分隔。
 - `display_time`：支持 `YYYY-MM-DDTHH:MM` 或 RFC3339。
 - `status`：只能省略或写 `draft`。CLI 和服务端都会拒绝通过 Agent Token 直接发布。
 

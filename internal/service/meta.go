@@ -3,6 +3,9 @@ package service
 import (
 	"strings"
 
+	"errors"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"myblog/internal/model"
 )
 
@@ -160,44 +163,53 @@ func (s *Service) GetPublishedMetaList(typ string, limit int, includeEncrypted b
 	return list
 }
 
-// DeleteMeta removes a meta and rewrites the tags/categories of its posts.
-// Mirrors MetaServiceImpl.delete.
+// DeleteMeta moves articles from a removed column to the default in the same
+// transaction. Removing a tag only detaches that tag.
 func (s *Service) DeleteMeta(mid int) error {
-	var meta model.Meta
-	if err := s.db.First(&meta, mid).Error; err != nil {
-		return nil // not found: nothing to do
-	}
-	typ, name := meta.Type, meta.Name
-
 	var affected []model.Content
 	err := s.db.Transaction(func(tx txLike) error {
-		if err := tx.Delete(&model.Meta{}, mid).Error; err != nil {
+		var meta model.Meta
+		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&meta, mid).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		if err != nil {
 			return err
 		}
-		var rels []model.Relationship
-		tx.Where("mid = ?", mid).Find(&rels)
-		for _, r := range rels {
-			var content model.Content
-			if err := tx.First(&content, r.Cid).Error; err != nil {
+		if err := tx.Table("t_contents AS c").Select("c.*").
+			Joins("JOIN t_relationships r ON r.cid=c.cid").Where("r.mid=?", mid).Scan(&affected).Error; err != nil {
+			return err
+		}
+		for _, post := range affected {
+			field, value := "tags", reMeta(meta.Name, post.Tags)
+			switch meta.Type {
+			case model.TypeCategory:
+				field, value = "categories", reMeta(meta.Name, post.Categories)
+				if post.Type == model.TypeArticle {
+					if meta.Name == model.DefaultColumn {
+						return Tip("默认分类里还有文章，请先将它们移到另一个专栏。")
+					}
+					value = model.DefaultColumn
+					if err := s.saveOrUpdateMetaTx(tx, post.Cid, value, model.TypeCategory); err != nil {
+						return err
+					}
+				}
+			case model.TypeTag:
+			default:
 				continue
 			}
-			affected = append(affected, content)
-			updates := map[string]interface{}{}
-			if typ == model.TypeCategory {
-				updates["categories"] = reMeta(name, content.Categories)
-			}
-			if typ == model.TypeTag {
-				updates["tags"] = reMeta(name, content.Tags)
-			}
-			if len(updates) > 0 {
-				tx.Model(&model.Content{}).Where("cid = ?", r.Cid).Updates(updates)
+			if err := tx.Model(&model.Content{}).Where("cid=?", post.Cid).Update(field, value).Error; err != nil {
+				return err
 			}
 		}
-		return tx.Where("mid = ?", mid).Delete(&model.Relationship{}).Error
+		if err := tx.Where("mid=?", mid).Delete(&model.Relationship{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&model.Meta{}, mid).Error
 	})
 	if err == nil {
-		for index := range affected {
-			s.invalidateContent(&affected[index])
+		for i := range affected {
+			s.invalidateContent(&affected[i])
 		}
 	}
 	return err
@@ -212,6 +224,9 @@ func (s *Service) SaveOrRenameCategory(typ, name string, mid int) error {
 	}
 	if name == "" {
 		return Tip("名称不能为空")
+	}
+	if strings.ContainsAny(name, ",，") {
+		return Tip("名称不能包含逗号。")
 	}
 	var existing []model.Meta
 	query := s.db.Where("type = ? AND name = ?", typ, name)
@@ -307,7 +322,7 @@ func (s *Service) saveMetasTx(tx txLike, cid int, names, typ string) error {
 	if strings.TrimSpace(names) == "" || strings.TrimSpace(typ) == "" {
 		return nil
 	}
-	for _, name := range splitMetaNames(names) {
+	for _, name := range model.MetaNames(names) {
 		if err := s.saveOrUpdateMetaTx(tx, cid, name, typ); err != nil {
 			return err
 		}
@@ -317,24 +332,16 @@ func (s *Service) saveMetasTx(tx txLike, cid int, names, typ string) error {
 
 func (s *Service) saveOrUpdateMetaTx(tx txLike, cid int, name, typ string) error {
 	meta := model.Meta{Slug: name, Name: name, Type: typ}
-	if err := tx.Where("type = ? AND name = ?", typ, name).FirstOrCreate(&meta).Error; err != nil {
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("type = ? AND name = ?", typ, name).FirstOrCreate(&meta).Error; err != nil {
 		return err
 	}
-	mid := meta.Mid
-	if mid != 0 {
-		var count int64
-		tx.Model(&model.Relationship{}).Where("cid = ? AND mid = ?", cid, mid).Count(&count)
-		if count == 0 {
-			return tx.Create(&model.Relationship{Cid: cid, Mid: mid}).Error
-		}
-	}
-	return nil
+	return tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.Relationship{Cid: cid, Mid: meta.Mid}).Error
 }
 
 // reMeta removes `name` from a comma-separated list. Mirrors MetaServiceImpl.reMeta.
 func reMeta(name, metas string) string {
 	var kept []string
-	for _, m := range splitMetaNames(metas) {
+	for _, m := range model.MetaNames(metas) {
 		if m != name {
 			kept = append(kept, m)
 		}
@@ -343,7 +350,7 @@ func reMeta(name, metas string) string {
 }
 
 func replaceMeta(oldName, newName, metas string) string {
-	parts := splitMetaNames(metas)
+	parts := model.MetaNames(metas)
 	for index := range parts {
 		if parts[index] == oldName {
 			parts[index] = newName
@@ -353,23 +360,5 @@ func replaceMeta(oldName, newName, metas string) string {
 }
 
 func normalizeMetaNames(value string) string {
-	return strings.Join(splitMetaNames(value), ",")
-}
-
-func splitMetaNames(value string) []string {
-	value = strings.ReplaceAll(value, "，", ",")
-	seen := make(map[string]struct{})
-	names := make([]string, 0)
-	for _, candidate := range strings.Split(value, ",") {
-		name := strings.TrimSpace(candidate)
-		if name == "" {
-			continue
-		}
-		if _, exists := seen[name]; exists {
-			continue
-		}
-		seen[name] = struct{}{}
-		names = append(names, name)
-	}
-	return names
+	return strings.Join(model.MetaNames(value), ",")
 }

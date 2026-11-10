@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"github.com/goccy/go-yaml"
+
+	"myblog/internal/model"
 )
 
 const (
@@ -219,7 +221,13 @@ func validateArticleMetadata(metadata *articleMetadata) error {
 		return errors.New("slug 只能包含字母、数字、下划线和连字符，长度为5-100")
 	}
 	metadata.Tags = normalizeCommaList(metadata.Tags)
-	metadata.Categories = normalizeCommaList(metadata.Categories)
+	if strings.TrimSpace(metadata.Categories) != "" {
+		column, err := model.ArticleColumn(metadata.Categories)
+		if err != nil {
+			return err
+		}
+		metadata.Categories = column
+	}
 	status := strings.ToLower(strings.TrimSpace(metadata.Status))
 	if status == "" {
 		status = "draft"
@@ -237,21 +245,7 @@ func validateArticleMetadata(metadata *articleMetadata) error {
 }
 
 func normalizeCommaList(value string) string {
-	seen := make(map[string]struct{})
-	parts := strings.Split(value, ",")
-	result := make([]string, 0, len(parts))
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			continue
-		}
-		if _, exists := seen[part]; exists {
-			continue
-		}
-		seen[part] = struct{}{}
-		result = append(result, part)
-	}
-	return strings.Join(result, ",")
+	return strings.Join(model.MetaNames(value), ",")
 }
 
 func normalizeDisplayTime(value string) (string, error) {

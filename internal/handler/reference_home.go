@@ -2,7 +2,7 @@ package handler
 
 import (
 	"bytes"
-	"encoding/json"
+	"html"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -23,39 +23,34 @@ func (server *Server) ReferenceRoot() string {
 	return root
 }
 
-func (server *Server) renderReferenceHome(context *gin.Context, data PageData) bool {
-	page, err := os.ReadFile(filepath.Join(server.ReferenceRoot(), "blog", "index.html"))
+func (server *Server) renderReferencePage(context *gin.Context, data PageData, partial string) bool {
+	filename := "index.html"
+	if !data.Home {
+		filename = "journal.html"
+	}
+	page, err := os.ReadFile(filepath.Join(server.ReferenceRoot(), "blog", filename))
 	if err != nil {
 		return false
 	}
-	data.PublicSummary = server.service.GetPublicSummary()
-	modules := make(map[string]bool, 4)
-	for _, name := range []string{"notes", "archives", "links", "about"} {
-		modules[name] = server.siteConfig.ModuleEnabled(name)
+	// Both shells render the very same navigation, including enabled modules and access controls.
+	for _, slot := range []struct{ marker, partial string }{
+		{"<!--BLOG_TOPBAR-->", "topbar"}, {"<!--BLOG_DIALOGS-->", "topbar-dialogs"}, {"<!--BLOG_FEED-->", partial},
+	} {
+		marker := []byte(slot.marker)
+		if bytes.Count(page, marker) != 1 {
+			return false
+		}
+		var fragment bytes.Buffer
+		if err := server.renderer.Render(&fragment, slot.partial, data); err != nil {
+			return false
+		}
+		page = bytes.Replace(page, marker, fragment.Bytes(), 1)
 	}
-	payload, err := json.Marshal(struct {
-		Data        map[string]any  `json:"data"`
-		Title       string          `json:"title"`
-		Description string          `json:"description"`
-		Modules     map[string]bool `json:"modules"`
-	}{Data: map[string]any{
-		"PublicSummary": data.PublicSummary,
-		"HomeContent":   data.HomeContent,
-		"Articles":      data.Articles,
-		"Tags":          data.Tags,
-		"Links":         data.Links,
-		"TopicGroups":   data.TopicGroups,
-	}, Title: server.siteConfig.Title(), Description: server.siteConfig.Option("site_description", ""), Modules: modules})
-	if err != nil {
-		return false
+	title := "HYPNOS · Blog"
+	if data.Title != "" {
+		title = data.Title + " · HYPNOS"
 	}
-	marker := []byte("<!--BLOG_HOME_DATA-->")
-	if bytes.Count(page, marker) != 1 {
-		return false
-	}
-	block := append([]byte(`<script id="blog-home-data" type="application/json">`), payload...)
-	block = append(block, []byte(`</script>`)...)
-	page = bytes.Replace(page, marker, block, 1)
+	page = bytes.Replace(page, []byte("<!--BLOG_TITLE-->"), []byte(html.EscapeString(title)), 1)
 	context.Header("Cache-Control", "private, no-store")
 	context.Header("Vary", "Cookie")
 	context.Header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'")

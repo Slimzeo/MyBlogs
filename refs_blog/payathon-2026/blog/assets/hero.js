@@ -41,26 +41,3 @@ if (clock) {
   window.addEventListener('pagehide', () => clearTimeout(timeout));
   window.addEventListener('pageshow', update);
 }
-
-const dialog = document.querySelector('#blog-search');
-const input = dialog.querySelector('input');
-function showSearch() {
-  if (!dialog.open) dialog.showModal();
-  input.focus();
-  input.select();
-}
-document.querySelector('[data-blog-search-open]').addEventListener('click', showSearch);
-dialog.querySelector('[data-blog-search-close]').addEventListener('click', () => dialog.close());
-dialog.addEventListener('click', event => { if (event.target === dialog && !event.target.closest('form')) dialog.close(); });
-dialog.querySelector('form').addEventListener('submit', event => {
-  event.preventDefault();
-  const term = input.value.trim();
-  if (term) location.assign('/search/' + encodeURIComponent(term));
-  else input.focus();
-});
-document.addEventListener('keydown', event => {
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-    event.preventDefault();
-    showSearch();
-  }
-});

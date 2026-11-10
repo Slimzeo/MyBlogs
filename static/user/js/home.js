@@ -1,6 +1,4 @@
-/* Home effects. The navbar bot is global; everything else mounts when the
-   home hero is on the page and tears itself down when a client-side
-   navigation swaps the hero out (footer.html calls HomeFX.mount on every page). */
+/* Effects used by the fallback home scene. */
 (function () {
     'use strict';
     var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -10,98 +8,6 @@
     function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
     function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = (Math.random() * (i + 1)) | 0; var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 
-    /* ---------------- the square bot (top left, every page) ---------------- */
-    var botReady = false;
-    function mountBot() {
-        if (botReady) return;
-        var bot = $('hx-bot'), home = $('hx-bot-home'), bubble = $('hx-bubble'), menu = $('hx-bot-menu'), inner = bot && bot.parentElement;
-        if (!bot || !home) return;
-        botReady = true;
-        var typing = 0, back = 0, at = null;
-        function place(x, y, instant) {
-            var cur = bot._x == null ? x : bot._x;
-            bot.classList.toggle('to-left', x < cur);
-            if (!instant && !reduce && Math.abs(x - cur) > 8) {
-                bot.classList.add('is-moving');
-                window.clearTimeout(bot._mv);
-                bot._mv = window.setTimeout(function () { bot.classList.remove('is-moving'); }, 420);
-            }
-            bot._x = x; bot._y = y;
-            bot.style.transform = 'translate(' + x + 'px,' + y + 'px)';
-        }
-        function homePos() { var r = inner.getBoundingClientRect(), h = home.getBoundingClientRect(); return [h.left - r.left, h.top - r.top]; }
-        function goHome(instant) { var p = homePos(); place(p[0], p[1], instant); }
-        function say(text, x, y) {
-            window.clearInterval(typing);
-            bubble.style.transform = 'translate(' + (x + 36) + 'px,' + y + 'px)';
-            bubble.textContent = '';
-            bubble.classList.add('is-on');
-            bot.classList.add('is-talking');
-            var n = 0;
-            typing = window.setInterval(function () {
-                n++; bubble.textContent = text.slice(0, n);
-                if (n >= text.length) { window.clearInterval(typing); bot.classList.remove('is-talking'); }
-            }, reduce ? 0 : 45);
-        }
-        function quiet() { window.clearInterval(typing); bubble.classList.remove('is-on'); bot.classList.remove('is-talking'); }
-        goHome(true);
-        window.addEventListener('resize', function () { if (!at) goHome(true); });
-        if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (!at) goHome(true); });
-
-        // follow the hovered nav item and type what it leads to
-        inner.addEventListener('pointerover', function (e) {
-            var link = e.target.closest && e.target.closest('.fluid-navbar-menu > a[data-hint]');
-            if (!link || link === at || window.innerWidth < 768) return;
-            window.clearTimeout(back);
-            if (at) at.classList.remove('is-hinted');
-            at = link; link.classList.add('is-hinted');
-            var r = inner.getBoundingClientRect(), l = link.getBoundingClientRect();
-            var x = l.left - r.left + l.width / 2 - 14, y = l.bottom - r.top + 12;
-            place(x, y);
-            window.setTimeout(function () { if (at === link) say(link.dataset.hint, x, y); }, reduce ? 0 : 380);
-        });
-        inner.addEventListener('pointerleave', function () {
-            back = window.setTimeout(function () { if (at) at.classList.remove('is-hinted'); at = null; quiet(); if (menu.hidden) goHome(); }, 500);
-        });
-
-        // its menu
-        function toggleMenu(open) {
-            menu.hidden = !open;
-            bot.setAttribute('aria-expanded', open ? 'true' : 'false');
-            if (open) {
-                quiet(); goHome();
-                var p = homePos(); menu.style.left = Math.max(0, p[0] - 8) + 'px';
-                var pool = document.querySelectorAll('#hx-pool, .hx-latest');
-                var links = [];
-                pool.forEach(function (t) { t.content.querySelectorAll('a').forEach(function (a) { links.push(a.getAttribute('href')); }); });
-                $('hx-random').href = links.length ? links[(Math.random() * links.length) | 0] : '/topics';
-            }
-        }
-        bot.addEventListener('click', function (e) { e.stopPropagation(); toggleMenu(menu.hidden); });
-        document.addEventListener('click', function (e) { if (!menu.hidden && !menu.contains(e.target)) toggleMenu(false); });
-        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !menu.hidden) { toggleMenu(false); bot.focus(); } });
-        $('hx-search').addEventListener('click', function () {
-            toggleMenu(false);
-            var t = $('search-toggle'); if (t) t.click();
-        });
-
-        // first visit: a short binary rain falls from the bot
-        if (!reduce) {
-            var rain = document.createElement('div');
-            rain.className = 'hx-rain';
-            var p = homePos();
-            rain.style.left = (p[0] - 6) + 'px';
-            for (var c = 0; c < 7; c++) {
-                var col = document.createElement('span'), txt = '';
-                for (var k = 0; k < 6; k++) txt += (Math.random() < .3 ? '|' : Math.random() < .5 ? '1' : '0') + '\n';
-                col.textContent = txt;
-                col.style.animationDelay = (c * 70 + Math.random() * 120) + 'ms';
-                rain.appendChild(col);
-            }
-            inner.appendChild(rain);
-            window.setTimeout(function () { rain.remove(); }, 2200);
-        }
-    }
 
     /* ---------------- hovered characters glitch ---------------- */
     function splitGlyphs(root) {
@@ -138,12 +44,12 @@
         '',
         '# 我在搭建 self-harness-system',
         'self_harness_system = {',
+        '    "ME.md": ("追求生命的可能性。"',
+        '              "混沌乐子人，做事全为了乐子。"),',
         '    "RSI infra": "记录各项表现指标，量化迭代",',
         '    "open": ("保持开放社交，建立连接，"',
         '             "收集案例，建立 golden set"),',
         '    "RL": "用 golden set 做 benchmark，强化迭代",',
-        '    "ME.md": ("追求生命的可能性。"',
-        '              "混沌乐子人，做事全为了乐子。"),',
         '}',
         '',
         '# 延伸模块',
@@ -175,7 +81,7 @@
             shown = shown.slice(-keep);
             pre.innerHTML = shown.map(highlight).join('\n') + '<span class="hx-cur"></span>';
         }
-        if (reduce) { render(lines.length - 1, Infinity); return; }
+        if (reduce) { render(Math.min(keep, lines.length) - 1, Infinity); return; }
         var li = 0, ci = 0, timer;
         function step() {
             var line = lines[li];
@@ -485,7 +391,7 @@
     }
 
     function mount() {
-        mountBot();
+
         while (cleanups.length) cleanups.pop()();
         var hero = document.querySelector('#banner.hx-hero');
         if (!hero) return;
@@ -495,6 +401,7 @@
         mountForest(hero);
         mountWalk();
         mountPaths();
+        hero.setAttribute("data-intro-complete", "");
     }
     window.HomeFX = {mount: mount};
 })();

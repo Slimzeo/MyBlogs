@@ -102,7 +102,10 @@ func autoMigrate(gdb *gorm.DB) error {
 		Update("content_format", model.ContentMarkdown).Error; err != nil {
 		return err
 	}
-	return migrateHTMLThemeColors(gdb)
+	if err := migrateHTMLThemeColors(gdb); err != nil {
+		return err
+	}
+	return migrateArticleColumns(gdb)
 }
 
 func migrateHTMLThemeColors(gdb *gorm.DB) error {
@@ -182,7 +185,6 @@ func seed(gdb *gorm.DB, cfg *config.Config) error {
 			{Name: "theme_font", Value: "wenkai"},
 			{Name: "theme_music_url", Value: ""},
 			{Name: "theme_music_title", Value: "留一首歌给今天"},
-			{Name: "module_notes_enabled", Value: "1"},
 			{Name: "module_archives_enabled", Value: "1"},
 			{Name: "module_links_enabled", Value: "1"},
 			{Name: "module_about_enabled", Value: "1"},

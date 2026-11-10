@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"myblog/config"
 	"myblog/internal/middleware"
 	"myblog/internal/model"
-	"myblog/internal/notes"
 	"myblog/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -25,7 +25,6 @@ type Server struct {
 	sessions    *middleware.SessionManager
 	hitCounter  *service.HitCounter
 	rateLimiter *middleware.IPLimiter
-	notes       *notes.Store
 }
 
 func NewServer(config *config.Config, service *service.Service, templateRoot string) (*Server, error) {
@@ -37,10 +36,6 @@ func NewServer(config *config.Config, service *service.Service, templateRoot str
 	if err := os.MkdirAll(config.UploadDir, 0o755); err != nil {
 		return nil, err
 	}
-	noteStore, err := notes.NewStore(config.NotesDir)
-	if err != nil {
-		return nil, err
-	}
 	return &Server{
 		config:      config,
 		service:     service,
@@ -49,7 +44,6 @@ func NewServer(config *config.Config, service *service.Service, templateRoot str
 		sessions:    middleware.NewSessionManager(service, config.SessionSecret, config.CookieSecure),
 		hitCounter:  service.NewHitCounter(config.HitFlushEvery),
 		rateLimiter: middleware.NewIPLimiter(config.RateLimitRPS, config.RateLimitBurst),
-		notes:       noteStore,
 	}, nil
 }
 
@@ -89,6 +83,8 @@ func (server *Server) render(context *gin.Context, status int, name string, data
 		context.Header("Vary", "Cookie")
 	}
 	if !strings.HasPrefix(name, "admin") {
+		_, guideErr := os.Stat(filepath.Join(server.ReferenceRoot(), "blog/assets/generated/guide.css"))
+		data.NativeGuide = guideErr == nil
 		data.PublicSummary = server.service.GetPublicSummary()
 	}
 	context.Status(status)

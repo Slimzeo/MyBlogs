@@ -27,7 +27,7 @@ func TestPrepareMarkdownArticlePackagesFrontMatterAndAssets(t *testing.T) {
 title: Agent 阅读笔记
 slug: agent-reading-notes
 tags: [Agent, Paper, Agent]
-categories: 研究, 学习
+categories: [研究]
 display_time: "2026-09-05T21:30"
 status: draft
 ---
@@ -48,7 +48,7 @@ status: draft
 		t.Fatalf("upload identity = %q/%q", upload.Filename, upload.Format)
 	}
 	if upload.Metadata.Title != "Agent 阅读笔记" || upload.Metadata.Tags != "Agent,Paper" ||
-		upload.Metadata.Categories != "研究,学习" || upload.Metadata.DisplayTime != "2026-09-05T21:30" {
+		upload.Metadata.Categories != "研究" || upload.Metadata.DisplayTime != "2026-09-05T21:30" {
 		t.Fatalf("metadata = %#v", upload.Metadata)
 	}
 	if !reflect.DeepEqual(upload.Assets, []string{"images/pixel.png", "paper.pdf"}) {
@@ -134,5 +134,16 @@ func TestConfigRoundTripAndServerSafety(t *testing.T) {
 		if _, err := normalizeServer(unsafe); err == nil {
 			t.Fatalf("unsafe server accepted: %s", unsafe)
 		}
+	}
+}
+
+func TestArticleMetadataSingleColumnMultipleTags(t *testing.T) {
+	input := articleMetadata{Categories: "读书，研究", Tags: "Go,随笔，Go"}
+	if err := validateArticleMetadata(&input); err == nil || !strings.Contains(err.Error(), "只能属于一个专栏") {
+		t.Fatalf("multiple columns accepted: %v", err)
+	}
+	input.Categories = "读书"
+	if err := validateArticleMetadata(&input); err != nil || input.Tags != "Go,随笔" {
+		t.Fatalf("column with multiple tags: %#v, %v", input, err)
 	}
 }

@@ -1,5 +1,5 @@
-{{define "header"}}<!DOCTYPE html>
-<html lang="zh-CN">
+{{define "header"}}{{$reader := .IsPost}}<!DOCTYPE html>
+<html lang="zh-CN" data-blog-site>
 <head>
     <meta charset="utf-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1"/>
@@ -12,14 +12,7 @@
     <link rel="shortcut icon" href="/user/img/favicon.png"/>
     <link rel="apple-touch-icon" href="/user/img/apple-touch-icon.png"/>
     <title>{{if .Title}}{{.Title}}{{else}}首页{{end}} - {{siteOption "site_title" "HypN0s-Cloud"}}</title>
-    <script>
-        (function () {
-            document.documentElement.classList.add('js');
-            var saved = localStorage.getItem('fluid-color-scheme');
-            var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            document.documentElement.dataset.colorScheme = saved || (dark ? 'dark' : 'light');
-        })();
-    </script>
+    <script src="/user/js/color-scheme.js?v=1"></script>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
     <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css" onload="this.onload=null;this.rel='stylesheet'"/>
     <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css" onload="this.onload=null;this.rel='stylesheet'"/>
@@ -33,77 +26,42 @@
     <link rel="preload" as="style" href="https://cdn.bootcdn.net/ajax/libs/highlight.js/9.9.0/styles/xcode.min.css" onload="this.onload=null;this.rel='stylesheet'"/>
     <noscript><link href="https://cdn.bootcdn.net/ajax/libs/highlight.js/9.9.0/styles/xcode.min.css" rel="stylesheet"/></noscript>
     {{end}}
-    <link href="/user/css/fluid.css?v=5" rel="stylesheet"/>
+    <link href="/user/css/fluid.css?v=7" rel="stylesheet"/>
+    {{if $reader}}
+    <link href="/user/css/reader.css?v=2" rel="stylesheet"/>
+    {{else}}
     <link href="https://cdn.jsdelivr.net/npm/@fontsource-variable/anybody@5.3.0/wdth.css" rel="stylesheet"/>
-    <link href="/user/css/home.css?v=4" rel="stylesheet"/>
+    <link href="/user/css/home.css?v=10" rel="stylesheet"/>
+    {{end}}
+    {{if .Home}}<link rel="preload" as="image" href="/user/img/forest.jpg" fetchpriority="high" data-forest-source/><script src="/user/js/forest-intro.js?v=1" defer></script>{{end}}
+    {{if or (eq .Active "home") (eq .Active "blogs")}}<link href="/user/css/journal.css?v=7" rel="stylesheet"/>{{end}}
+    {{if eq .Active "notes"}}<link href="/user/css/library.css?v=5" rel="stylesheet"/>{{end}}
     <script src="/user/js/html-article.js?v=3" defer></script>
-    <script src="/user/js/home.js?v=3" defer></script>
+    {{if not $reader}}<script src="/user/js/home.js?v=4" defer></script>{{end}}
+    {{if .NativeGuide}}
+    <link rel="stylesheet" href="/assets/blog/generated/guide.css?v=1"/>
+    <script type="module" src="/assets/blog/agent-topbar.js?v=3"></script>
+    {{else}}
+    <script type="module" src="/user/js/agent-reader.js?v=2"></script>
+    {{end}}
+    <link rel="stylesheet" href="/user/css/topbar.css?v=9"/>
+    <script src="/user/js/topbar.js?v=2" defer></script>
 </head>
-<body class="fluid-theme fluid-font-{{siteOption "theme_font" "wenkai"}}"
+<body class="fluid-theme{{if $reader}} fluid-reader{{end}} fluid-font-{{siteOption "theme_font" "wenkai"}}"
       data-access-key-enabled="{{if .AccessKeyEnabled}}1{{else}}0{{end}}"
       data-encrypted-access="{{if .EncryptedAccess}}1{{else}}0{{end}}"
       data-access-expires-at="{{.AccessExpiresAt}}">
 <div id="reading-progress" class="fluid-progress" aria-hidden="true"></div>
 <header class="fluid-header">
-    <nav id="navbar" class="fluid-navbar" aria-label="主导航">
-        <div class="fluid-navbar-inner">
-            <a class="fluid-brand" href="{{siteUrl ""}}/"><span class="hx-badge">HYPN0S cloud</span></a>
-            <span class="hx-bot-home" id="hx-bot-home" aria-hidden="true"></span>
-            <button id="hx-bot" class="hx-bot" type="button" aria-label="小助手菜单" aria-haspopup="true" aria-expanded="false"><i></i><i></i></button>
-            <div id="hx-bubble" class="hx-bubble" aria-hidden="true"></div>
-            <div id="hx-bot-menu" class="hx-bot-menu" role="menu" hidden>
-                <a id="hx-random" role="menuitem" href="{{siteUrl ""}}/">随机读一篇</a>
-                <button id="hx-search" role="menuitem" type="button">搜索全站 ⌘K</button>
-                <a role="menuitem" href="{{siteUrl "/topics"}}">浏览全部专栏</a>
-            </div>
-            <button id="navbar-toggle" class="fluid-navbar-toggle" type="button" aria-label="展开导航" aria-expanded="false">
-                <span></span><span></span><span></span>
-            </button>
-            <div id="navbar-menu" class="fluid-navbar-menu">
-                <a href="{{siteUrl ""}}/" data-hint="最近写下的东西">Blogs</a>
-                {{if moduleEnabled "notes"}}
-                <a href="{{siteUrl "/notes"}}" data-hint="零散的学习笔记">Notes</a>
-                {{end}}
-                {{if moduleEnabled "archives"}}
-                <a href="{{siteUrl "/archives"}}" data-hint="按时间翻旧帖">Archieve</a>
-                {{end}}
-                {{if moduleEnabled "links"}}
-                <a href="{{siteUrl "/links"}}" data-hint="林子里的朋友们">Friends</a>
-                {{end}}
-                {{if moduleEnabled "about"}}
-                <a href="{{siteUrl "/about"}}" data-hint="关于 Hypnos">About</a>
-                {{end}}
-                <button id="search-toggle" class="fluid-nav-button" type="button" aria-label="搜索">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
-                </button>
-                {{if .AccessKeyEnabled}}
-                <button id="access-key-toggle" class="fluid-nav-button{{if .EncryptedAccess}} is-authorized{{end}}" type="button"
-                        aria-label="{{if .EncryptedAccess}}加密文章已授权{{else}}导入访问密钥{{end}}">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        {{if .EncryptedAccess}}
-                        <path d="M7 10V7a5 5 0 0 1 9.4-2.4"></path><path d="M5 10h14v10H5Z"></path><path d="M12 14v2"></path>
-                        {{else}}
-                        <path d="M7 10V7a5 5 0 0 1 10 0v3"></path><path d="M5 10h14v10H5Z"></path><path d="M12 14v2"></path>
-                        {{end}}
-                    </svg>
-                </button>
-                {{end}}
-                <button id="color-toggle" class="fluid-nav-button" type="button" aria-label="切换颜色模式">
-                    <svg class="fluid-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.2A8 8 0 0 1 8.8 4 8 8 0 1 0 20 15.2Z"></path></svg>
-                    <svg class="fluid-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    {{if and (not .Article) (not .Title)}}
+    <div class="payathon-site-header" data-payathon-header data-ready>{{template "topbar" .}}</div>
+    {{if .Home}}
     <div id="banner" class="hx-hero" data-last-post="{{if .Articles}}{{if .Articles.List}}{{(index .Articles.List 0).DisplayTime}}{{end}}{{end}}">
         <canvas id="hx-forest" aria-hidden="true"></canvas>
         <div class="hx-stage">
             <span class="hx-mark-sub">HYPN0S · CLOUD</span>
             <div class="hx-middle">
                 <h1 class="hx-motto" data-glitch>如果这个<b>宇宙</b>的结局是注定的，<br/>是<b>消亡，是归于死寂</b>；<br/>或许这更说明，只有<b>过程</b>才是<b>最重要的</b></h1>
-                <a class="hx-cta" id="hx-cta" href="#board">开始阅读</a>
+                <a class="hx-cta" id="hx-cta" href="#blogs">开始阅读</a>
             </div>
         </div>
         <div class="hx-foot">
@@ -111,7 +69,9 @@
             <div class="hx-clock" aria-label="距上次落笔的时间"><span id="hx-days">000</span><small>天</small><span id="hx-time">00:00:00</span><span class="hx-tag"><b>距上次落笔</b><span>时间仍在走</span></span></div>
         </div>
     </div>
-    {{else}}
+    {{else if $reader}}
+    <div id="banner" class="fluid-reader-top" aria-hidden="true"></div>
+    {{else if and (ne .Active "blogs") (ne .Active "home") (ne .Active "notes")}}
     <div id="banner"
          class="fluid-banner {{if .IsPost}}fluid-banner-post{{else if .Title}}fluid-banner-page{{else}}fluid-banner-home{{end}}">
         <img class="fluid-banner-image{{if not .Title}} fluid-banner-image-priority{{end}}"
@@ -151,39 +111,5 @@
     {{end}}
 </header>
 
-<div id="search-modal" class="fluid-search-modal" role="dialog" aria-modal="true" aria-label="搜索文章">
-    <div class="fluid-search-box">
-        <button id="search-close" class="fluid-search-close" type="button" aria-label="关闭">×</button>
-        <h2>搜索</h2>
-        <form id="site-search-form" role="search">
-            <input id="search-inp" type="search" placeholder="输入关键词" maxlength="50" autocomplete="off"/>
-        </form>
-    </div>
-</div>
-{{if .AccessKeyEnabled}}
-<div id="access-key-modal" class="fluid-search-modal fluid-access-modal" role="dialog" aria-modal="true" aria-label="加密文章访问">
-    <div class="fluid-search-box fluid-access-box">
-        <button id="access-key-close" class="fluid-search-close" type="button" aria-label="关闭">×</button>
-        <span class="fluid-eyebrow">PRIVATE READING</span>
-        <h2>{{if .EncryptedAccess}}加密文章已解锁{{else}}导入访问密钥{{end}}</h2>
-        {{if .LoginUser}}
-        <p class="fluid-access-copy">当前管理员身份始终可以查看加密文章，不受访客密钥有效期限制。</p>
-        <a class="fluid-access-submit fluid-access-revoke" href="/logout">退出管理员并清除本机授权</a>
-        {{else if .EncryptedAccess}}
-        <p class="fluid-access-copy">当前浏览器与访问 IP 可以查看加密文章。授权自导入起有效 24 小时；切换网络或到期后需要重新导入。</p>
-        <form id="access-key-revoke-form">
-            <button class="fluid-access-submit fluid-access-revoke" type="submit">撤销本机授权</button>
-        </form>
-        {{else}}
-        <p class="fluid-access-copy">密钥只用于本次验证，不会保存在页面或服务器数据库中。通过后会向此浏览器签发绑定当前访问 IP 的 24 小时授权。</p>
-        <form id="access-key-form">
-            <input id="access-key-input" name="accessKey" type="password" placeholder="输入访问密钥"
-                   autocomplete="off" minlength="16" required/>
-            <button class="fluid-access-submit" type="submit">导入密钥</button>
-        </form>
-        {{end}}
-        <p id="access-key-status" class="fluid-access-status" aria-live="polite"></p>
-    </div>
-</div>
-{{end}}
+{{template "topbar-dialogs" .}}
 {{end}}

@@ -66,12 +66,9 @@ func (s *Service) Publish(c *model.Content) error {
 	c.Hits = 0
 	c.CommentsNum = 0
 
-	tags := c.Tags
-	categories := c.Categories
-	c.Tags = normalizeMetaNames(tags)
-	c.Categories = normalizeMetaNames(categories)
-	tags = c.Tags
-	categories = c.Categories
+	if err := normalizeArticleMetas(c); err != nil {
+		return err
+	}
 
 	// One transaction: insert content + attach its metas/relationships.
 	err := s.db.Transaction(func(tx txLike) error {
@@ -82,10 +79,10 @@ func (s *Service) Publish(c *model.Content) error {
 		if err := create.Create(c).Error; err != nil {
 			return err
 		}
-		if err := s.saveMetasTx(tx, c.Cid, tags, model.TypeTag); err != nil {
+		if err := s.saveMetasTx(tx, c.Cid, c.Tags, model.TypeTag); err != nil {
 			return err
 		}
-		return s.saveMetasTx(tx, c.Cid, categories, model.TypeCategory)
+		return s.saveMetasTx(tx, c.Cid, c.Categories, model.TypeCategory)
 	})
 	if err == nil {
 		s.invalidateContent(c)
@@ -268,12 +265,9 @@ func (s *Service) UpdateArticle(c *model.Content) error {
 	}
 	c.Modified = util.CurrentUnixTime()
 	cid := c.Cid
-	tags := c.Tags
-	categories := c.Categories
-	c.Tags = normalizeMetaNames(tags)
-	c.Categories = normalizeMetaNames(categories)
-	tags = c.Tags
-	categories = c.Categories
+	if err := normalizeArticleMetas(c); err != nil {
+		return err
+	}
 
 	var original model.Content
 	if err := s.db.First(&original, cid).Error; err != nil {
@@ -323,10 +317,10 @@ func (s *Service) UpdateArticle(c *model.Content) error {
 		if err := tx.Where("cid = ?", cid).Delete(&model.Relationship{}).Error; err != nil {
 			return err
 		}
-		if err := s.saveMetasTx(tx, cid, tags, model.TypeTag); err != nil {
+		if err := s.saveMetasTx(tx, cid, c.Tags, model.TypeTag); err != nil {
 			return err
 		}
-		return s.saveMetasTx(tx, cid, categories, model.TypeCategory)
+		return s.saveMetasTx(tx, cid, c.Categories, model.TypeCategory)
 	})
 	if err == nil {
 		s.invalidateContent(&original)
@@ -384,4 +378,18 @@ func visibilityCacheKey(includeEncrypted bool) string {
 		return "with-encrypted"
 	}
 	return "public"
+}
+
+func normalizeArticleMetas(c *model.Content) error {
+	c.Tags = normalizeMetaNames(c.Tags)
+	if c.Type != model.TypeArticle {
+		c.Categories = normalizeMetaNames(c.Categories)
+		return nil
+	}
+	column, err := model.ArticleColumn(c.Categories)
+	if err != nil {
+		return Tip(err.Error())
+	}
+	c.Categories = column
+	return nil
 }

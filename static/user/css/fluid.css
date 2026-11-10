@@ -9,9 +9,9 @@
     --fluid-board-bg: #fff;
     --fluid-text: #3c4858;
     --fluid-post-text: #2c3e50;
-    --fluid-secondary: #718096;
+    --fluid-secondary: #657282;
     --fluid-line: #eaecef;
-    --fluid-link: #30a9de;
+    --fluid-link: #22749b;
     --fluid-hover-bg: #ebedef;
     --fluid-navbar: #2f4154;
     --fluid-shadow: 0 12px 15px rgba(0, 0, 0, .24), 0 17px 50px rgba(0, 0, 0, .19);
@@ -29,7 +29,7 @@ html[data-color-scheme="dark"] {
     --fluid-post-text: #c4c6c9;
     --fluid-secondary: #a7a9ad;
     --fluid-line: #435266;
-    --fluid-link: #30a9de;
+    --fluid-link: #71c5ed;
     --fluid-hover-bg: #364151;
     --fluid-navbar: #1f3144;
     color-scheme: dark;
@@ -58,24 +58,12 @@ body.fluid-theme {
     transition: color .2s ease, background-color .2s ease;
 }
 
-.fluid-font-wenkai .fluid-banner-title,
-.fluid-font-wenkai .fluid-index-info h2,
-.fluid-font-wenkai .fluid-index-excerpt,
 .fluid-font-wenkai .fluid-markdown,
-.fluid-font-wenkai .fluid-list-heading,
-.fluid-font-wenkai .fluid-archive-list,
-.fluid-font-wenkai .fluid-link-text,
 .fluid-font-wenkai .fluid-comment-content {
     font-family: var(--fluid-font-reading);
 }
 
-.fluid-font-serif .fluid-banner-title,
-.fluid-font-serif .fluid-index-info h2,
-.fluid-font-serif .fluid-index-excerpt,
 .fluid-font-serif .fluid-markdown,
-.fluid-font-serif .fluid-list-heading,
-.fluid-font-serif .fluid-archive-list,
-.fluid-font-serif .fluid-link-text,
 .fluid-font-serif .fluid-comment-content {
     font-family: var(--fluid-font-serif);
 }
@@ -100,14 +88,14 @@ body.fluid-theme textarea {
     font: inherit;
 }
 
-::-webkit-scrollbar {
+body.fluid-theme ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 
-::-webkit-scrollbar-thumb {
+body.fluid-theme ::-webkit-scrollbar-thumb {
     border-radius: 6px;
-    background: #c4c6c9;
+    background: var(--scroll-thumb, #c4c6c9);
 }
 
 .fluid-progress {
@@ -316,7 +304,7 @@ html[data-color-scheme="dark"] .fluid-moon {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: var(--photo-ink);
     background: rgba(0, 0, 0, .3);
 }
 
@@ -339,7 +327,7 @@ html[data-color-scheme="dark"] .fluid-moon {
 
 .fluid-banner-title {
     margin: 0;
-    color: #fff;
+    color: inherit;
     font-size: clamp(1.5rem, 3vw, 2rem);
     font-weight: 500;
     letter-spacing: .06em;
@@ -365,7 +353,7 @@ html[data-color-scheme="dark"] .fluid-moon {
     flex-wrap: wrap;
     justify-content: center;
     gap: 9px;
-    color: rgba(255, 255, 255, .82);
+    color: var(--photo-muted);
     font-size: 14px;
 }
 
@@ -378,7 +366,7 @@ html[data-color-scheme="dark"] .fluid-moon {
     height: 42px;
     transform: translateX(-50%);
     border: 0;
-    color: #fff;
+    color: inherit;
     background: transparent;
     cursor: pointer;
 }
@@ -390,8 +378,8 @@ html[data-color-scheme="dark"] .fluid-moon {
     width: 16px;
     height: 16px;
     transform: rotate(45deg);
-    border-right: 2px solid #fff;
-    border-bottom: 2px solid #fff;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
     animation: fluid-scroll-down 1.5s infinite;
 }
 

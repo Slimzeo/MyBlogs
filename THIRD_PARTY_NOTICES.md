@@ -27,6 +27,14 @@ package:
 - typeface license: SIL Open Font License 1.1
 - webfont package license: MIT
 
+## Source Han Serif
+
+This repository includes HYPNOS Motto Serif, a ten-character WOFF2 subset
+of Adobe's [Source Han Serif CN SemiBold 2.003](https://github.com/adobe-fonts/source-han-serif/blob/2.003R/SubsetOTF/CN/SourceHanSerifCN-SemiBold.otf).
+The subset keeps the original glyph outlines and uses a new family name.
+The font is distributed under the [SIL Open Font License 1.1](refs_blog/payathon-2026/blog/assets/fonts/OFL.txt).
+If the headline changes, regenerate the subset to cover its new characters.
+
 ## Default banner
 
 `static/user/img/blog-banner.jpg` is based on the Unsplash photo

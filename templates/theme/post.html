@@ -6,7 +6,14 @@
         <div class="fluid-post-column">
             <section id="board" class="fluid-board fluid-post-board{{if eq .Article.ContentFormat "html"}} fluid-html-post-board{{end}}">
                 <article class="fluid-post-content{{if eq .Article.ContentFormat "html"}} fluid-html-post-content{{end}}" itemscope="" itemtype="https://schema.org/Article">
-                    <h1 class="fluid-seo-title" itemprop="name headline">{{.Article.Title}}</h1>
+                    {{$text := readingArticle .Article}}
+                    <header class="fluid-reader-heading">
+                        {{if and $text $text.Heading}}{{$text.Heading}}{{else}}<h1 itemprop="headline">{{.Article.Title}}</h1>{{end}}
+                        <p class="fluid-reader-meta"><time datetime="{{fmtdate .Article.DisplayTime}}">{{fmtdate .Article.DisplayTime}}</time>
+                            {{if eq .Article.Status "encrypted"}}<span class="fluid-encrypted-badge">加密</span>{{end}}
+                            <span>{{.Hits}} 次阅读</span><span>{{.Article.CommentsNum}} 条评论</span>
+                        </p>
+                    </header>
                     {{if eq .Article.ContentFormat "html"}}
                     <div class="fluid-html-frame-shell is-loading" aria-busy="true">
                     <div class="fluid-html-frame-viewport">
@@ -26,14 +33,14 @@
                     </div>
                     {{else}}
                     <div id="post-content" class="fluid-markdown" itemprop="articleBody">
-                    {{article .Article.Content}}
+                    {{$text.Body}}
                     </div>
                     {{end}}
                     <div class="fluid-post-details{{if eq .Article.ContentFormat "html"}} fluid-html-post-details{{end}}">
                     <hr class="fluid-post-divider"/>
                     <div class="fluid-post-bottom-meta">
-                        <div class="fluid-post-categories">{{showCategories .Article.Categories}}</div>
-                        <div class="fluid-post-tags">{{showTags .Article.Tags}}</div>
+                        <div class="fluid-post-categories"><span>专栏</span> {{showCategories .Article.Categories}}</div>
+                        {{with .Article.Tags}}<div class="fluid-post-tags" id="article-tags"><span>标签</span> {{showTags .}}</div>{{end}}
                     </div>
                     <div class="fluid-license-box">
                         <strong>{{.Article.Title}}</strong>
@@ -46,7 +53,15 @@
             </section>
         </div>
         {{if ne .Article.ContentFormat "html"}}
-        <aside class="fluid-post-sidebar">
+        {{template "reading-toc" .}}
+        {{end}}
+    </div>
+</main>
+{{template "footer" .}}
+{{end}}
+
+{{define "reading-toc"}}
+<aside class="fluid-post-sidebar">
             <div id="toc-card" class="fluid-toc">
                 <div class="fluid-toc-title">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>
@@ -55,8 +70,4 @@
                 <ul id="article-toc"></ul>
             </div>
         </aside>
-        {{end}}
-    </div>
-</main>
-{{template "footer" .}}
 {{end}}

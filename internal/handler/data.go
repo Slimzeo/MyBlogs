@@ -2,13 +2,14 @@ package handler
 
 import (
 	"myblog/internal/model"
-	"myblog/internal/notes"
 	"myblog/internal/service"
 )
 
 // PageData is shared by the migrated html/template pages. Keeping one explicit
 // view model makes handler-to-template contracts discoverable.
 type PageData struct {
+	NativeGuide      bool
+	Library          *blogLibrary
 	Home             bool
 	PublicSummary    service.PublicSummary
 	HomeContent      service.HomeContent
@@ -47,11 +48,6 @@ type PageData struct {
 	Links          []model.Meta
 	Categories     []model.MetaDto
 	Tags           []model.MetaDto
-	NotesTree      []notes.Node
-	NotesFolder    []notes.Node
-	NotesDocument  *notes.Document
-	NotesPath      string
-	NotesIsFolder  bool
 	Statistics     model.StatisticsBo
 	Options        map[string]string
 	APITokens      []model.APIToken

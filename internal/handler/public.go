@@ -3,17 +3,14 @@ package handler
 import (
 	"crypto/sha256"
 	"crypto/subtle"
-	"errors"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"myblog/internal/middleware"
 	"myblog/internal/model"
-	"myblog/internal/notes"
 	"myblog/internal/service"
 	"myblog/internal/util"
 
@@ -21,31 +18,38 @@ import (
 )
 
 func (server *Server) index(context *gin.Context) {
-	server.renderIndex(context, 1)
+	server.renderIndex(context, 1, "home")
 }
 
 func (server *Server) indexPage(context *gin.Context) {
-	server.renderIndex(context, pathInt(context, "page", 1))
+	server.renderIndex(context, pathInt(context, "page", 1), "home")
 }
 
-func (server *Server) renderIndex(context *gin.Context, page int) {
-	page = clampPage(page)
-	limit := clampLimit(queryInt(context, "limit", 12), 12, 100)
-	includeEncrypted := server.canAccessEncrypted(context)
-	data := server.baseData(context, "", "")
-	data.Articles = server.service.GetContents(page, limit, includeEncrypted)
-	if page > 1 {
-		data.Title = "第" + strconv.Itoa(page) + "页"
-	} else {
-		data.Home = true
-		data.Articles = server.service.GetContents(1, 9, includeEncrypted)
-		data.Categories = server.service.GetPublicSummary().Categories
-		data.HomeContent = server.service.GetHomeContent(includeEncrypted, time.Now())
-		data.Links = server.service.GetMetas(model.TypeLink)
-		data.Tags = server.service.GetPublishedMetaList(model.TypeTag, 40, includeEncrypted)
-		data.TopicGroups = server.service.GetPublishedTopicGroups(20, 20, includeEncrypted)
+func (server *Server) blogs(context *gin.Context) {
+	if query := context.Request.URL.Query(); query.Has("category") || query.Has("tag") || query.Has("view") {
+		server.topics(context)
+		return
 	}
-	if page == 1 && context.Request.URL.Path == "/" && server.renderReferenceHome(context, data) {
+	server.renderIndex(context, queryInt(context, "page", 1), "blogs")
+}
+
+func (server *Server) renderIndex(context *gin.Context, page int, active string) {
+	page = clampPage(page)
+	limit := clampLimit(queryInt(context, "limit", journalPageSize), journalPageSize, 100)
+	data := server.baseData(context, "", active)
+	data.Home = active == "home" && page == 1
+	data.Articles = server.service.GetContents(page, limit, server.canAccessEncrypted(context))
+	if page > data.Articles.Pages {
+		server.render(context, http.StatusNotFound, "error_404", PageData{})
+		return
+	}
+	if active == "blogs" {
+		data.Title = "最近记录"
+	}
+	if page > 1 {
+		data.Title = "最近记录 · 第" + strconv.Itoa(page) + "页"
+	}
+	if server.renderReferencePage(context, data, "journal-feed") {
 		return
 	}
 	server.render(context, http.StatusOK, "index", data)
@@ -268,67 +272,12 @@ func (server *Server) search(context *gin.Context) {
 	server.render(context, http.StatusOK, "page-category", data)
 }
 
-func (server *Server) topics(context *gin.Context) {
-	view := context.DefaultQuery("view", "categories")
-	if view != "categories" && view != "tags" {
-		view = "categories"
-	}
-	data := server.baseData(context, "学习目录", "")
-	data.TopicView = view
-	includeEncrypted := server.canAccessEncrypted(context)
-	data.Categories = server.service.GetPublishedMetaList(model.TypeCategory, 100, includeEncrypted)
-	data.Tags = server.service.GetPublishedMetaList(model.TypeTag, 100, includeEncrypted)
-	data.TopicGroups = server.service.GetPublishedTopicGroups(100, 20, includeEncrypted)
-	server.render(context, http.StatusOK, "topics", data)
-}
-
-func (server *Server) notesPage(context *gin.Context) {
-	if !server.siteConfig.ModuleEnabled("notes") {
-		server.render(context, http.StatusNotFound, "error_404", PageData{})
-		return
-	}
-	path := strings.TrimPrefix(context.Param("path"), "/")
-	data := server.baseData(context, "Notes", "")
-	data.NotesPath = path
-	data.NotesTree, _ = server.notes.Tree()
-
-	if path != "" {
-		document, documentErr := server.notes.Document(path)
-		if documentErr == nil {
-			data.NotesDocument = document
-			data.Title = document.Title
-			server.render(context, http.StatusOK, "notes", data)
-			return
-		}
-	}
-
-	folder, folderErr := server.notes.Folder(path)
-	if folderErr != nil {
-		if errors.Is(folderErr, notes.ErrNotFound) {
-			server.render(context, http.StatusNotFound, "error_404", PageData{})
-			return
-		}
-		server.render(context, http.StatusInternalServerError, "error_500", PageData{Message: "读取 Notes 目录失败"})
-		return
-	}
-	data.NotesFolder = folder
-	data.NotesIsFolder = true
-	readmePath := "README"
-	if path != "" {
-		readmePath = path + "/README"
-	}
-	if readme, readmeErr := server.notes.Document(readmePath); readmeErr == nil {
-		data.NotesDocument = readme
-	}
-	server.render(context, http.StatusOK, "notes", data)
-}
-
 func (server *Server) archives(context *gin.Context) {
 	if !server.siteConfig.ModuleEnabled("archives") {
 		server.render(context, http.StatusNotFound, "error_404", PageData{})
 		return
 	}
-	data := server.baseData(context, "文章归档", "")
+	data := server.baseData(context, "文章归档", "archives")
 	data.Archives = server.service.GetArchives(server.canAccessEncrypted(context))
 	for _, archive := range data.Archives {
 		data.ArchiveCount += len(archive.Articles)
@@ -341,7 +290,7 @@ func (server *Server) links(context *gin.Context) {
 		server.render(context, http.StatusNotFound, "error_404", PageData{})
 		return
 	}
-	data := server.baseData(context, "友情链接", "")
+	data := server.baseData(context, "友情链接", "links")
 	data.Links = server.service.GetMetas(model.TypeLink)
 	server.render(context, http.StatusOK, "links", data)
 }
@@ -409,6 +358,9 @@ func (server *Server) customPageOrNotFound(context *gin.Context) {
 	server.hitCounter.Observe(content.Cid, content.Hits)
 	server.hitCounter.Incr(content.Cid)
 	data := server.baseData(context, content.Title, "")
+	if path == "about" {
+		data.Active = "about"
+	}
 	data.Article = content
 	data.Hits = server.hitCounter.Current(content.Cid)
 	if content.AllowComment {

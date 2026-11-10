@@ -1,0 +1,358 @@
+/* Theme colors and typography shared by both public layouts. */
+html[data-blog-site] {
+  --fluid-font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --bar-font: var(--fluid-font-ui);
+  --bar-height: 64px;
+  --bar-gutter: clamp(18px, 4.5vw, 64px);
+  --bar-ink: #e5e9ec;
+  --bar-muted: #aeb8c2;
+  --bar-hover-ink: #fff;
+  --bar-panel: #242b32;
+  --bar-rule: #46515c;
+  --bar-hover: #394550;
+  --photo-ink: #d0d0d0;
+  --photo-muted: #c3cacf;
+  --scroll-thumb: #687582;
+  --scroll-thumb-hover: #9da8b3;
+}
+html[data-color-scheme="light"] {
+  --bar-ink: #354552;
+  --bar-muted: #606e78;
+  --bar-hover-ink: #155e78;
+  --bar-panel: #fbfcfa;
+  --bar-rule: #d5dcd9;
+  --bar-hover: #e9eeeb;
+  --photo-ink: #fff;
+  --photo-muted: #e2e7e9;
+  --scroll-thumb: #c4c6c9;
+  --scroll-thumb-hover: #a6a6a6;
+}
+
+/* Fluid's 200ms color fade, shared by the Go reader and the animated index.
+   Keep it below component styles: the guide, glyphs and cards own their motion. */
+@layer fluid-palette {
+  @media (prefers-reduced-motion: no-preference) {
+    :where(body, .fluid-banner-mask, .fluid-board, .fluid-post-sidebar, .fluid-footer,
+           .journal-feed, .library-main, #blog-library, #blog-topbar .brand, .journal-cue .journal-down span,
+           .hx-mark-sub, .hx-motto, .hx-motto b, .hx-clock, .hx-code, .overview-status, .deadline-label,
+           .motto-lead, .motto-main, .motto-main b, .hero-terminal),
+    :where(.fluid-board, .fluid-post-sidebar, .journal-feed, #blog-library)
+      :where(article, section, header, footer, div, nav, li, a, summary, h1, h2, h3, h4, h5, h6,
+             p, span, strong, em, time, small, blockquote, pre, th, td, input, textarea, button),
+    :where(.hero-terminal, .hx-clock, .hx-code)
+      :where(span, small, b) {
+      transition: color .2s ease-in-out, background-color .2s ease-in-out, border-color .2s ease-in-out;
+    }
+  }
+}
+
+@media (any-pointer: fine) and (forced-colors: none) {
+  html[data-blog-site]::-webkit-scrollbar { width: 6px; height: 6px; }
+  html[data-blog-site]::-webkit-scrollbar-track,
+  html[data-blog-site]::-webkit-scrollbar-corner { background: transparent; }
+  html[data-blog-site]::-webkit-scrollbar-thumb { border-radius: 6px; background: var(--scroll-thumb); }
+  html[data-blog-site]::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
+  @supports not selector(::-webkit-scrollbar) {
+    html[data-blog-site] { scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) transparent; }
+  }
+}
+
+:is(.payathon-hero, .hx-hero) {
+  --photo-accent: color-mix(in srgb, var(--payathon-accent, var(--hx-heading-color, #86eaff)) 48%, var(--photo-ink));
+  --motto-ink: var(--photo-ink);
+  --motto-accent: color-mix(in srgb, var(--photo-accent) 90%, white);
+  --motto-shadow: 0 0 2px rgb(4 12 14 / .8), 0 1px 5px rgb(0 0 0 / .5);
+}
+@media (max-width: 767px) {
+  :is(.payathon-hero, .hx-hero) {
+    --motto-ink: color-mix(in srgb, var(--photo-ink) 72%, white);
+    --motto-accent: color-mix(in srgb, var(--photo-accent) 42%, white);
+  }
+}
+html:not([data-reading]):has(.payathon-hero, .hx-hero, .fluid-banner-image) #blog-topbar
+  :is(.siteMenuBrand, .navActions, .siteMenuToggle, .siteMenuNav:not(.is-menu-open) .siteMenuLinks) {
+  --bar-ink: color-mix(in srgb, var(--photo-ink) 75%, var(--photo-muted));
+  --bar-hover-ink: var(--photo-ink);
+}
+html[data-blog-site] [data-payathon-header] {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 1000;
+  height: var(--bar-height);
+  background: transparent;
+  color: var(--bar-ink);
+  text-align: start;
+  pointer-events: none;
+}
+html[data-blog-site] #blog-topbar {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: var(--bar-height);
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  color: var(--bar-ink);
+  font: 400 .875rem/1.5 var(--bar-font);
+  letter-spacing: .02em;
+  pointer-events: none;
+}
+#blog-topbar *, #blog-topbar *::before, #blog-topbar *::after { box-sizing: border-box; }
+html[data-blog-site] #blog-topbar .siteMenuNav {
+  position: relative;
+  inset: auto;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  width: min(calc(100% - var(--bar-gutter) - var(--bar-gutter)), 1140px);
+  max-width: none;
+  height: var(--bar-height);
+  min-height: 0;
+  margin: 0 auto;
+  padding: 0;
+  transform: none;
+}
+#blog-topbar :is(.siteMenuBrand, .siteReadingControls, .navActions) { flex: none; pointer-events: auto; }
+#blog-topbar .siteMenuBrand {
+  --brand-size: 1.25rem;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: .23em;
+  margin: 0 auto 0 0;
+  color: var(--bar-ink);
+  font: 400 var(--brand-size)/1.2 var(--bar-font);
+  letter-spacing: .005em;
+}
+#blog-topbar .brand,
+#blog-topbar .siteMenuAgentBadge {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-decoration: none;
+}
+#blog-topbar .brand { position: static; height: 44px; white-space: nowrap; }
+html[data-blog-site] #blog-topbar .brandLogo {
+  display: block;
+  width: auto;
+  height: auto;
+  color: inherit;
+  font: inherit;
+  filter: none;
+}
+/* The chat bot measures this button to size its speech, independently of the wordmark. */
+#blog-topbar .siteMenuAgentBadge {
+  position: relative;
+  inset: auto;
+  isolation: isolate;
+  justify-content: center;
+  min-width: 0;
+  width: 36px;
+  height: 22px;
+  font: 650 14px/1 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 0;
+  filter: none;
+  cursor: pointer;
+}
+#blog-topbar .blog-chatbot-icon { display: block; width: 33px; height: 26px; pointer-events: none; }
+/* The floating menu supplies the desktop button, including keyboard focus. */
+html:has(.bubbleMenuTrigger) #blog-topbar .siteMenuAgentBadge[data-agent-friendly] { visibility: hidden; pointer-events: none; }
+/* The animated guide docks just beyond the right edge of its invisible measuring shape. */
+#blog-topbar .siteMenuAgentShape { left: auto; right: 100%; pointer-events: none; }
+#blog-topbar .siteMenuAgentBadge::before {
+  content: "";
+  position: absolute;
+  inset: -11px 0;
+  background: transparent;
+  transform: none;
+}
+#blog-topbar .siteMenuAgentBadge::after,
+#blog-topbar .siteMenuAgentMaterial,
+#blog-topbar .siteMenuAgentBadge:not([data-agent-friendly]) :is(.siteMenuAgentEyes, .siteMenuAgentShape) { display: none; }
+#blog-topbar :is(.brand, .siteMenuAgentBadge):is(:hover, :focus-visible) { color: var(--bar-hover-ink); }
+
+/* Use the same unboxed controls in both shells, regardless of the optional guide styles. */
+#blog-topbar :is(.siteReadingControls, .siteMenuCluster, .navActions, .siteMenuPanel, .siteMenuLinks) {
+  position: static;
+  inset: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+#blog-topbar .siteMenuPanel {
+  max-height: none;
+  overflow: visible;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: none;
+}
+#blog-topbar .siteMenuPanel::before, #blog-topbar .siteMenuPanel::after { content: none; }
+#blog-topbar .siteMenuLinks > a,
+#blog-topbar :is(.blog-action, .siteMenuToggle) {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: auto;
+  height: 44px;
+  min-height: 0;
+  margin: 0;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--bar-ink);
+  font: inherit;
+  letter-spacing: inherit;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color .16s ease;
+}
+#blog-topbar .siteMenuLinks > a:is(:hover, :focus-visible, [aria-current="page"]),
+#blog-topbar :is(.blog-action, .siteMenuToggle):is(:hover, :focus-visible) {
+  background: transparent;
+  color: var(--bar-hover-ink);
+}
+#blog-topbar .siteMenuLinks > a::before { content: none; }
+#blog-topbar .blog-nav-icon {
+  display: block;
+  flex: none;
+  width: .98em;
+  height: .98em;
+  fill: currentColor;
+  pointer-events: none;
+}
+#blog-topbar :is(.blog-action, .siteMenuToggle) { width: 35px; padding: 0; }
+#blog-topbar :is(.blog-action, .siteMenuToggle) svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+#blog-topbar #color-toggle .blog-moon { fill: currentColor; stroke: none; }
+#blog-topbar .siteMenuToggle, #blog-topbar .menu-close { display: none; }
+#blog-topbar #color-toggle { display: inline-grid; place-items: center; }
+#blog-topbar #color-toggle > svg { grid-area: 1 / 1; }
+html[data-color-scheme="dark"] #blog-topbar .blog-moon,
+html:not([data-color-scheme="dark"]) #blog-topbar .blog-sun { opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  #blog-topbar #color-toggle > svg { transition: opacity .2s ease-in-out; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #blog-topbar .siteMenuLinks > a, #blog-topbar :is(.blog-action, .siteMenuToggle) { transition: none; }
+}
+#blog-topbar :is(a,button):focus-visible, .blog-dialog :focus-visible {
+  outline: 2px solid #569ce8;
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+html[data-blog-site][data-journal-page] #top { padding-top: var(--bar-height); }
+
+/* The guide lives directly under body, outside Fluid's content palette. */
+html[data-blog-site] :is(.bubbleGuide,.bubbleMenu) {
+  --site-ink-ffffff: #fff; --site-ink-151515: #151515; --site-fixed-111111: #111;
+  --site-fixed-ffffff: #fff; --site-line-888888: #888; --site-ink-faeff0: #faf9f7;
+  --command-menu-surface: #242526; --command-menu-line: #55595a; --theme-muted: #abb1b2;
+  color: #fff;
+}
+.blog-agent-notice { position: absolute; left: 0; top: calc(100% + 8px); width: max-content; max-width: calc(100vw - 38px); padding: 6px 10px; border-radius: 5px; background: #242526; color: #fff; font: 600 12px/1.5 var(--bar-font); visibility: hidden; }
+.blog-agent-notice.is-visible { visibility: visible; }
+.blog-dialog, #blog-search.blog-dialog { width: min(420px,calc(100% - 32px)); margin: auto; padding: 24px; border: 1px solid var(--bar-rule); border-radius: 12px; background: var(--bar-panel); color: var(--bar-ink); font: 15px/1.55 var(--bar-font); text-align: start; }
+.blog-dialog::backdrop { background: rgb(0 0 0 / .55); }
+.blog-dialog button { cursor: pointer; }
+.blog-dialog [data-dialog-close] { float: right; background: none; color: inherit; border: 0; font-size: 22px; }
+.blog-dialog label { font-size: 20px; font-weight: 650; }
+.blog-dialog .blog-search-field { display: flex; gap: 8px; margin: 14px 0 0; }
+.blog-dialog input, #blog-search.blog-dialog input { min-width: 0; padding: 9px; flex: 1; background: var(--bar-panel); border: 1px solid var(--bar-rule); border-radius: 6px; color: var(--bar-ink); }
+.blog-dialog button[type=submit] { color: var(--bar-ink); background: var(--bar-hover); border: 0; padding: 4px 12px; border-radius: 6px; }
+.blog-dialog .fluid-search-box { position: static; width: 100%; margin: 0; padding: 0; box-shadow: none; color: inherit; background: none; }
+
+@media (max-width: 980px) {
+  html[data-blog-site] { --bar-height: 60px; --bar-gutter: clamp(14px, 4vw, 26px); }
+  #blog-topbar .siteMenuBrand { --brand-size: 1.125rem; }
+  #blog-topbar :is(.blog-action, .siteMenuToggle) { width: 44px; height: 44px; }
+  #blog-topbar .siteMenuToggle { display: inline-flex; }
+  #blog-topbar .siteMenuToggle svg { width: 19px; height: 19px; }
+  #blog-topbar .siteMenuToggle[aria-expanded="true"] .menu-bars { display: none; }
+  #blog-topbar .siteMenuToggle[aria-expanded="true"] .menu-close { display: block; }
+  #blog-topbar .siteMenuPanel {
+    display: none;
+    position: fixed;
+    inset: var(--bar-height) 0 auto;
+    padding: 4px var(--bar-gutter) 10px;
+    max-height: calc(100dvh - var(--bar-height));
+    overflow: auto;
+    overscroll-behavior: contain;
+    background: var(--bar-panel);
+  }
+  #blog-topbar .is-menu-open .siteMenuPanel { display: block; }
+  #blog-topbar .siteMenuLinks { flex-direction: column; align-items: stretch; }
+  #blog-topbar .siteMenuLinks > a {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr);
+    align-content: center;
+    align-items: center;
+    justify-content: start;
+    gap: 2px 10px;
+    min-height: 50px;
+    height: auto;
+    padding: 6px 4px;
+    font-size: .9375rem;
+    text-align: start;
+    white-space: normal;
+  }
+  #blog-topbar .siteMenuLinks > a[aria-current="page"] { font-weight: 600; }
+  #blog-topbar .blog-nav-icon { grid-column: 1; grid-row: 1 / span 2; }
+  #blog-topbar .siteMenuLinks > a::after {
+    content: attr(data-guide-message);
+    grid-column: 2;
+    grid-row: 2;
+    color: var(--bar-muted);
+    font: 400 .75rem/1.4 var(--bar-font);
+    letter-spacing: normal;
+  }
+}
+@media (max-width: 365px) {
+  html[data-blog-site] #blog-topbar .siteMenuNav:has(#access-key-toggle) { width: calc(100% - 16px); }
+  #blog-topbar .siteMenuNav:has(#access-key-toggle) :is(.blog-action, .siteMenuToggle) { width: 34px; min-width: 0; }
+}
+@media (max-width: 980px) and (prefers-reduced-motion: no-preference) {
+  #blog-topbar .siteMenuPanel { transition: background-color .2s ease-in-out; }
+  #blog-topbar .siteMenuLinks > a::after { transition: color .2s ease-in-out; }
+}
+@media (scripting: none) and (max-width: 980px) {
+  #blog-topbar .siteMenuCluster:focus-within .siteMenuPanel { display: block; }
+}

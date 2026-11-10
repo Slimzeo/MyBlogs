@@ -44,22 +44,20 @@
         </div>
         <div class="article-import-fields">
             <div class="article-meta-field">
-                <label for="import-tags">标签（可选，可新建）</label>
+                <label for="import-categories">所属专栏</label>
+                <input id="import-categories" type="text" name="categories" list="import-column-options" pattern="[^,，]*" title="只选一个专栏，可输入新名称" placeholder="选择或新建专栏，留空归入默认分类"/>
+                <datalist id="import-column-options">
+                    {{range .Categories}}<option value="{{.Name}}"></option>{{end}}
+                </datalist>
+            </div>
+            <div class="article-meta-field">
+                <label for="import-tags">标签（可多选，可新建）</label>
                 <input id="import-tags" type="text" name="tags" placeholder="Go,Blog"/>
                 {{if .Tags}}
                 <div class="article-meta-picker" data-meta-target="import-tags" aria-label="已有标签">
                     {{range $meta := .Tags}}<button class="article-meta-option" type="button" data-meta-value="{{$meta.Name}}">{{$meta.Name}} · {{$meta.Count}}</button>{{end}}
                 </div>
                 {{else}}<p class="article-meta-empty">还没有标签，可直接输入新标签。</p>{{end}}
-            </div>
-            <div class="article-meta-field">
-                <label for="import-categories">分类（可选，可新建）</label>
-                <input id="import-categories" type="text" name="categories" value="默认分类"/>
-                {{if .Categories}}
-                <div class="article-meta-picker" data-meta-target="import-categories" aria-label="已有分类">
-                    {{range $meta := .Categories}}<button class="article-meta-option" type="button" data-meta-value="{{$meta.Name}}">{{$meta.Name}} · {{$meta.Count}}</button>{{end}}
-                </div>
-                {{else}}<p class="article-meta-empty">还没有分类，将使用“默认分类”。</p>{{end}}
             </div>
         </div>
         <p class="help-block article-import-help">可直接导入单文件内联 HTML；有相对图片时请打包为 ZIP，图片会安全内嵌，CSS/JavaScript 需写在 HTML 内。导入后默认保存为草稿。</p>

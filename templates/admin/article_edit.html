@@ -96,6 +96,13 @@
             <input type="text" value="{{if $c}}{{fmtdatef $c.Created "yyyy-MM-dd HH:mm"}}{{else}}保存时自动生成{{end}}" disabled/>
         </div>
         <div class="article-meta-field">
+            <label for="article-categories">所属专栏</label>
+            <input id="article-categories" type="text" name="categories" value="{{if $c}}{{$c.Categories}}{{end}}" list="article-column-options" pattern="[^,，]*" title="只选一个专栏，可输入新名称" placeholder="选择或新建专栏，留空归入默认分类"/>
+            <datalist id="article-column-options">
+                {{range .Categories}}<option value="{{.Name}}"></option>{{end}}
+            </datalist>
+        </div>
+        <div class="article-meta-field">
             <label for="article-tags">标签（逗号分隔，可新建）</label>
             <input id="article-tags" type="text" name="tags" value="{{if $c}}{{$c.Tags}}{{end}}" placeholder="Go,Blog"/>
             {{if .Tags}}
@@ -103,15 +110,6 @@
                 {{range $meta := .Tags}}<button class="article-meta-option" type="button" data-meta-value="{{$meta.Name}}">{{$meta.Name}} · {{$meta.Count}}</button>{{end}}
             </div>
             {{else}}<p class="article-meta-empty">还没有标签，输入新名称后保存文章会自动创建。</p>{{end}}
-        </div>
-        <div class="article-meta-field">
-            <label for="article-categories">分类（逗号分隔，可新建）</label>
-            <input id="article-categories" type="text" name="categories" value="{{if $c}}{{$c.Categories}}{{else}}默认分类{{end}}"/>
-            {{if .Categories}}
-            <div class="article-meta-picker" data-meta-target="article-categories" aria-label="已有分类">
-                {{range $meta := .Categories}}<button class="article-meta-option" type="button" data-meta-value="{{$meta.Name}}">{{$meta.Name}} · {{$meta.Count}}</button>{{end}}
-            </div>
-            {{else}}<p class="article-meta-empty">还没有分类，保存时将使用“默认分类”。</p>{{end}}
         </div>
         <label>自定义路径 slug (可选, 至少5位)</label>
         <input type="text" name="slug" value="{{if $c}}{{$c.Slug}}{{end}}"/>

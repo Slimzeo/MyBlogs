@@ -1,0 +1,190 @@
+/* The original Fluid index: one raised board containing chronological article rows. */
+.journal-feed {
+  --index-page: var(--fluid-body-bg, #eee);
+  --index-board: var(--fluid-board-bg, #fff);
+  --index-ink: var(--fluid-text, #3c4858);
+  --index-muted: var(--fluid-secondary, #657282);
+  --index-line: var(--fluid-line, #e3e6e9);
+  --index-link: var(--fluid-link, #22749b);
+  position: relative;
+  z-index: 2;
+  display: flow-root;
+  padding: clamp(20px, 3vw, 42px) 0 clamp(44px, 6vw, 80px);
+  background: var(--index-page);
+  color: var(--index-ink);
+  font: 16px/1.55 var(--fluid-font-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif);
+  letter-spacing: .01em;
+  text-align: start;
+}
+html[data-color-scheme="dark"] .journal-feed {
+  --index-page: var(--fluid-body-bg, #181c27);
+  --index-board: var(--fluid-board-bg, #252d38);
+  --index-ink: var(--fluid-text, #c4c6c9);
+  --index-muted: var(--fluid-secondary, #a7a9ad);
+  --index-line: var(--fluid-line, #435266);
+  --index-link: var(--fluid-link, #71c5ed);
+}
+.journal-after-hero {
+  /* Keep the board and its shadow on the article side of the fold. */
+  overflow: clip;
+  min-block-size: calc(100dvh - var(--bar-height, 68px) - 8px);
+  padding-top: 0;
+}
+#blogs.journal-board {
+  box-sizing: border-box;
+  scroll-margin-top: calc(var(--bar-height, 68px) + 8px);
+  width: min(calc(100% - 30px), 1140px);
+  margin: 0 auto;
+  padding: 48px clamp(24px, 8vw, 110px);
+  border-radius: 8px;
+  background: var(--index-board);
+  box-shadow: var(--fluid-shadow, 0 12px 15px rgb(0 0 0 / .16), 0 17px 50px rgb(0 0 0 / .12));
+}
+#blogs .journal-list, #blogs .journal-list > li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+#blogs .journal-list { display: grid; gap: 40px; }
+#blogs .journal-card { display: flex; align-items: flex-start; gap: 28px; }
+#blogs .journal-copy { flex: 1; min-width: 0; }
+#blogs .journal-thumb {
+  display: block;
+  flex: 0 0 30%;
+  overflow: hidden;
+  aspect-ratio: 1.9;
+  border-radius: 4px;
+  box-shadow: 0 3px 11px rgb(0 0 0 / .15);
+}
+#blogs .journal-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+#blogs .journal-title {
+  margin: 0;
+  color: var(--index-ink);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: clamp(20px, 1.8vw, 24px);
+  line-height: 1.4;
+  letter-spacing: -.012em;
+  overflow-wrap: anywhere;
+}
+#blogs a { color: inherit; text-decoration: none; }
+#blogs .journal-link { display: inline-block; max-width: 100%; vertical-align: top; }
+#blogs .interactive-glyph { display: inline-block; position: relative; }
+#blogs .journal-excerpt {
+  display: -webkit-box;
+  margin: 9px 0 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  color: var(--index-muted);
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+#blogs .journal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 18px;
+  margin-top: 9px;
+  color: var(--index-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+#blogs .journal-meta > :is(time,a,span) { display: inline-flex; align-items: baseline; gap: 6px; }
+#blogs .journal-meta > *, #blogs .journal-tags a { max-width: 100%; overflow-wrap: anywhere; }
+#blogs .journal-meta svg {
+  align-self: center;
+  width: 15px;
+  height: 15px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#blogs .journal-tags { flex-wrap: wrap; }
+#blogs .fluid-encrypted-badge {
+  display: inline-block; margin-inline-start: 5px; padding: 1px 5px; border: 1px solid var(--index-line);
+  border-radius: 4px; color: var(--index-muted); font: 500 11px/1.4 system-ui, sans-serif; vertical-align: middle;
+}
+#blogs .journal-foot, #blogs .journal-pager { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; }
+#blogs .journal-foot {
+  margin-top: 36px; padding: 12px 0 0; border-top: 1px solid var(--index-line);
+  background: transparent; color: var(--index-muted); font: inherit; font-size: 14px;
+}
+#blogs .journal-foot a { padding-block: 6px; }
+#blogs .journal-columns { margin-inline-start: auto; }
+#blogs a:focus-visible { outline: 2px solid var(--index-link); outline-offset: 3px; border-radius: 2px; }
+#blogs .journal-meta a:hover, #blogs .journal-foot a:hover { color: var(--index-link); text-decoration: underline; }
+#blogs .journal-empty { margin: 0; color: var(--index-muted); }
+#blogs:focus { outline: none; }
+.journal-down:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 50%; }
+.fluid-theme .journal-main { margin: 0; padding: 0; }
+.fluid-theme:not(:has(.hx-hero)) .journal-main { padding-top: var(--bar-height, 68px); }
+html[data-journal-page]:has(#blogs) body { background: #eee; }
+html[data-journal-page][data-color-scheme="dark"]:has(#blogs) body { background: #181c27; }
+
+/* The cue sits over the last part of the hero. The feed starts after it. */
+.journal-cue {
+  --cue-max-gap: 36px;
+  position: relative;
+  z-index: 3;
+  block-size: 0;
+}
+#payathon-page .payathon-hero { min-block-size: 100dvh; }
+.hx-hero { min-block-size: max(100dvh, 720px); }
+html[data-blog-site] .journal-cue .journal-down {
+  position: absolute;
+  bottom: clamp(4px, calc(11svh - 61px), var(--cue-max-gap));
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  transform: translateX(-50%);
+  color: var(--photo-ink);
+  filter: drop-shadow(0 1px 3px rgb(0 0 0 / .8));
+}
+.journal-cue .journal-down span {
+  width: 15px; height: 15px;
+  border: solid var(--photo-ink); border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+html[data-reading] .journal-cue .journal-down,
+html.js:has(.payathon-hero:not([data-intro-complete])):not([data-skip-title-intro]) .journal-cue .journal-down { visibility: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.journal-down) { scroll-behavior: smooth; }
+  .journal-cue .journal-down span { animation: journal-down 1.6s ease-in-out infinite; }
+}
+@keyframes journal-down {
+  0%, 100% { transform: translateY(-3px) rotate(45deg); opacity: .68; }
+  50% { transform: translateY(3px) rotate(45deg); opacity: 1; }
+}
+
+/* A local CSS version also works on installations without the optional scene module. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  #blogs .journal-link:not(:has(.interactive-glyph)):hover .reveal-ink {
+    animation: journal-title-split .44s ease-out;
+  }
+}
+@keyframes journal-title-split {
+  0%, 100% { text-shadow: none; }
+  18% { text-shadow: 2px 0 #21b8ff, -2px 0 #ff8623; }
+  52% { text-shadow: -1px 0 #21b8ff, 1px 0 #ff8623; }
+}
+@media (max-width: 767px) {
+  #blogs.journal-board { padding: 32px 24px; }
+  #blogs .journal-list { gap: 32px; }
+  #blogs .journal-card { flex-direction: column; gap: 14px; }
+  #blogs .journal-thumb { flex: none; width: 100%; }
+  #blogs .journal-copy { width: 100%; }
+  #blogs .journal-excerpt { font-size: 15px; }
+  #blogs .journal-meta { column-gap: 12px; font-size: 13px; }
+  .journal-cue { --cue-max-gap: 26px; }
+}
+@media (max-width: 520px) {
+  #blogs.journal-board { width: calc(100% - 20px); padding-inline: 20px; }
+}

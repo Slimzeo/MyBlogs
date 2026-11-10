@@ -2,11 +2,23 @@
 const localPreview = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
 const blogOrigin = localPreview ? 'https://www.hypn0s.cloud' : location.origin;
 export const blogReadingPrompt =
-  '请从 HYPNOS 博客的文章归档 ' + new URL('/archives', blogOrigin).href +
-  ' 开始，按我感兴趣的主题找到相关文章。阅读原文，概括作者的观点和实践经验，附上对应文章的链接。';
+  '请从 HYPNOS 的博客首页 ' + new URL('/#blogs', blogOrigin).href +
+  ' 开始，按日期浏览作者公开的日记精华、读书笔记和实践记录。也可以从专栏目录 ' + new URL('/notes', blogOrigin).href +
+  ' 按专栏或标签找原文。请附上日期和文章链接。';
+
+export const blogReadingCopied = '已复制博客地址和阅读说明，粘贴到 AI 对话即可';
 
 export async function copyBlogReadingPrompt() {
   await navigator.clipboard.writeText(blogReadingPrompt);
+}
+
+export function blogGuideMessage(target) {
+  if (target.dataset.guideMessage) return target.dataset.guideMessage;
+  const href = target.getAttribute('href');
+  if (!href || !href.startsWith('/')) return '';
+  const item = Array.from(document.querySelectorAll('.siteMenuLinks a[data-guide-message]'))
+    .find(link => link.getAttribute('href') === href);
+  return item?.dataset.guideMessage || '';
 }
 
 // On compact screens the reference hides the floating guide and does not install its click handler.
@@ -22,7 +34,7 @@ if (badge) {
     clearTimeout(hideNotice);
     try {
       await copyBlogReadingPrompt();
-      notice.textContent = '已复制阅读指令，粘贴给 Agent 即可';
+      notice.textContent = blogReadingCopied;
     } catch {
       notice.textContent = '复制失败，请允许浏览器访问剪贴板后重试';
     }

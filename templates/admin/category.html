@@ -1,15 +1,15 @@
 {{define "admin/category"}}
 {{template "admin/header" .}}
 <div class="card">
-    <h3>分类</h3>
+    <h3>文章专栏</h3>
     <form id="cat-form" style="display:flex;gap:10px;align-items:flex-end;">
         <input type="hidden" name="type" value="category"/>
-        <div style="flex:1;"><label>新增/重命名分类</label><input type="text" name="cname" id="cname" placeholder="分类名"/></div>
+        <div style="flex:1;"><label>新增/重命名专栏</label><input type="text" name="cname" id="cname" placeholder="专栏名"/></div>
         <input type="hidden" name="mid" id="cat-mid" value="0"/>
         <button type="submit" class="btn btn-primary" style="margin-bottom:12px;">保存</button>
     </form>
     <table>
-        <thead><tr><th>分类名</th><th style="width:100px;">文章数</th><th style="width:160px;">操作</th></tr></thead>
+        <thead><tr><th>专栏名</th><th style="width:100px;">文章数</th><th style="width:160px;">操作</th></tr></thead>
         <tbody>
         {{range $m := .Categories}}
         <tr>

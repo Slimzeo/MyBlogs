@@ -171,9 +171,6 @@ func (server *Server) adminArticlePublish(context *gin.Context) {
 		respondFail(context, err.Error())
 		return
 	}
-	if content.Categories == "" {
-		content.Categories = "默认分类"
-	}
 	if err := server.service.Publish(content); err != nil {
 		respondServiceError(context, err, "文章发布失败")
 		return
@@ -274,8 +271,8 @@ func (server *Server) adminArticleImport(context *gin.Context) {
 	user := server.sessions.User(context)
 	options := service.ImportOptions{
 		AuthorID:   user.Uid,
-		Tags:       context.PostForm("tags"),
-		Categories: context.PostForm("categories"),
+		Tags:       strings.Join(context.PostFormArray("tags"), ","),
+		Categories: strings.Join(context.PostFormArray("categories"), ","),
 		Status:     model.TypeDraft,
 	}
 	var content *model.Content
@@ -322,8 +319,8 @@ func (server *Server) articleFromForm(context *gin.Context) (*model.Content, err
 		ContentFormat: defaultString(context.PostForm("content_format"), model.ContentMarkdown),
 		DisplayTime:   displayTime,
 		Slug:          strings.TrimSpace(context.PostForm("slug")),
-		Tags:          strings.TrimSpace(context.PostForm("tags")),
-		Categories:    strings.TrimSpace(context.PostForm("categories")),
+		Tags:          strings.TrimSpace(strings.Join(context.PostFormArray("tags"), ",")),
+		Categories:    strings.TrimSpace(strings.Join(context.PostFormArray("categories"), ",")),
 		Status:        defaultString(context.PostForm("status"), model.TypePublish),
 		Type:          model.TypeArticle,
 		AuthorID:      server.sessions.User(context).Uid,

@@ -63,6 +63,9 @@ func (s *Service) ImportArticleArchive(archiveData []byte, options ImportOptions
 	if !validContentStatus(model.TypeArticle, options.Status) {
 		return nil, Tip("文章状态不合法")
 	}
+	if _, err := model.ArticleColumn(options.Categories); err != nil {
+		return nil, Tip(err.Error())
+	}
 	entries, documentPath, contentFormat, err := readImportEntries(archiveData)
 	if err != nil {
 		return nil, err
@@ -128,9 +131,6 @@ func (s *Service) ImportArticleArchive(archiveData []byte, options ImportOptions
 		AllowPing:     true,
 		AllowFeed:     true,
 	}
-	if content.Categories == "" {
-		content.Categories = "默认分类"
-	}
 	if err := s.Publish(content); err != nil {
 		cleanup()
 		return nil, err
@@ -176,9 +176,6 @@ func (s *Service) ImportHTMLDocument(data []byte, filename string, options Impor
 		AllowComment:  true,
 		AllowPing:     true,
 		AllowFeed:     true,
-	}
-	if content.Categories == "" {
-		content.Categories = "默认分类"
 	}
 	if err := s.Publish(content); err != nil {
 		return nil, err

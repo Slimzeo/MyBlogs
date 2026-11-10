@@ -1,135 +1,151 @@
-#payathon-page .siteMenuBrand .brandLogo {
-  display: block;
-  width: 108px;
-  height: 20px;
-}
-
-.siteMenuBrand { position: relative; }
-.blog-agent-notice {
-  position: absolute;
-  z-index: 2;
-  left: 0;
-  top: calc(100% + 12px);
-  width: max-content;
-  max-width: calc(100vw - 48px);
-  padding: 6px 10px;
-  border: 1px solid #f5f5f5;
-  border-radius: 5px;
-  background: #141414;
-  color: #fff;
-  font: 600 12px/1.4 var(--font-system, system-ui, sans-serif);
-  pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-3px);
-  transition: opacity .16s, transform .16s, visibility .16s;
-}
-.blog-agent-notice.is-visible { visibility: visible; opacity: 1; transform: translateY(0); }
-@media (prefers-reduced-motion: reduce) {
-  .blog-agent-notice { transition: none; transform: none; }
-}
-
 #payathon-title .payathon-name {
   width: 64.69%;
   margin-inline: auto;
 }
 
+.payathon-hero[data-intro-complete] #payathon-title,
+html[data-skip-title-intro] #payathon-title { opacity: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-skip-title-intro]) .payathon-hero[data-intro-complete] #payathon-title {
+    /* Keep the word solid through the native 900ms move to its resting position. */
+    animation: blog-wordmark-out .55s ease-in-out .9s backwards;
+  }
+}
+@keyframes blog-wordmark-out { from { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  #payathon-title { opacity: 0; }
+}
+
+/* The forest is the base of the scene. The tide canvas and the animated
+   creatures keep their original stacking and pointer coordinates. */
+#payathon-page .payathon-hero {
+  background: linear-gradient(to bottom, rgba(8, 15, 17, .58), rgba(7, 14, 16, .48) 45%,
+                              rgba(10, 16, 17, .63) 82%, #141413 100%),
+              url("/user/img/forest.jpg") center 52% / cover no-repeat #141414;
+}
+
+#payathon-page .blog-hero-tide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: .48;
+  pointer-events: none;
+}
+
+#payathon-page #overview-title {
+  position: absolute;
+  top: calc(50svh - var(--overview-top, 44svh));
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  width: min(100%, 52rem);
+  margin: 0;
+  text-align: center;
+  font-family: var(--fluid-font-ui);
+  text-shadow: var(--motto-shadow);
+}
+
 #overview-title .overview-slogan {
-  min-width: 0;
+  display: block;
+  grid-area: auto;
+  justify-self: center;
+  width: fit-content;
   max-width: 100%;
+  min-width: 0;
+  text-align: center;
   white-space: normal;
 }
 
-#overview-title .motto-lead,
+#overview-title .motto-lead {
+  display: block;
+  color: color-mix(in srgb, var(--photo-muted) 58%, white);
+  font-family: inherit;
+  font-size: clamp(14px, 1.2vw, 17px);
+  font-weight: 400;
+  line-height: 1.65;
+  letter-spacing: .025em;
+  text-wrap: balance;
+}
+
+#overview-title .motto-lead > span { display: inline-block; }
+
+#overview-title .overview-slogan-start {
+  position: absolute;
+  inset-inline: 0;
+  bottom: calc(100% + clamp(9px, 1.25svh, 14px));
+  margin-inline: auto;
+}
+
 #overview-title .motto-main {
   display: block;
-}
-
-#overview-title .motto-lead {
-  margin-bottom: .55em;
-  color: #bbc1cb;
-  font-size: clamp(14px, 1.28vw, 19px);
-  font-weight: 450;
-  line-height: 1.5;
-  letter-spacing: .025em;
-}
-
-#overview-title .motto-main {
-  font-size: clamp(22px, 2.7vw, 42px);
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -.035em;
+  color: var(--motto-ink);
+  font-family: inherit;
+  font-size: 2rem;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: .02em;
 }
 
 #overview-title .motto-main b {
-  color: var(--payathon-accent, #86eaff);
+  color: var(--motto-accent);
   font-weight: inherit;
 }
 
+#payathon-page .overview-registration .overview-status { zoom: .5; color: var(--photo-ink); }
 #payathon-page .deadline-meta { white-space: nowrap; }
-#payathon-page .blog-scene-anchor { opacity: 0; pointer-events: none; }
-#payathon-page .payathon-button[href="#showcase"] { text-decoration: none; }
-#payathon-page .hero-terminal .blog-python-comment span:not(.terminal-cursor) { color: #84958c; }
-#payathon-page .hero-terminal .blog-python-command span:not(.terminal-cursor) { color: var(--payathon-accent); }
-
-#blog-search {
-  width: min(420px, calc(100vw - 40px));
-  margin: auto;
-  padding: 24px;
-  color: #f3f4f6;
-  background: #191b1e;
-  border: 1px solid #444850;
-  border-radius: 12px;
-  font: inherit;
-}
-
-#blog-search::backdrop { background: rgb(0 0 0 / .65); }
-#blog-search label { font-size: 21px; font-weight: 600; }
-#blog-search form > div { display: flex; gap: 8px; margin-top: 18px; }
-#blog-search input {
-  min-width: 0;
-  flex: 1;
-  padding: 8px 11px;
-  border-radius: 5px;
-  border: 1px solid #727781;
-  background: #101113;
-  color: inherit;
-  font: inherit;
-}
-#blog-search button { cursor: pointer; font: inherit; }
-#blog-search button[type="submit"] {
-  background: var(--payathon-accent, #86eaff);
-  color: #141414;
-  border: 0;
-  border-radius: 5px;
-  padding-inline: 15px;
-}
-#blog-search [data-blog-search-close] {
-  float: right;
-  width: 32px;
-  height: 32px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font-size: 24px;
-  line-height: 1;
-}
+#payathon-page .deadline-label { color: var(--photo-muted); }
+#payathon-page .payathon-button[href="#blogs"] { text-decoration: none; }
+#payathon-page .hero-terminal { color: var(--photo-muted); }
+#payathon-page .hero-terminal :is(.terminal-token-property, .terminal-cursor) { color: var(--photo-ink); }
+#payathon-page .hero-terminal :is(.terminal-token-command, .terminal-token-keyword, .blog-python-command span:not(.terminal-cursor)) { color: var(--photo-accent); }
+#payathon-page .hero-terminal .terminal-token-string { color: color-mix(in srgb, var(--photo-accent), var(--photo-ink)); }
+#payathon-page .hero-terminal :is(.terminal-token-comment, .blog-python-comment span:not(.terminal-cursor)) { color: color-mix(in srgb, var(--photo-muted) 70%, #84958c); }
 
 @media (max-width: 767px) {
-  #payathon-page .siteMenuBrand .brandLogo { width: 86px; }
   #payathon-title .payathon-name { width: min(100%, 222px); }
   #payathon-page .payathon-hero {
-    grid-template-rows: auto auto minmax(72px, 14svh) auto auto;
-    row-gap: clamp(16px, 3svh, 26px);
+    padding: 0 20px 24px;
+    grid-template-rows: 35svh 30svh minmax(min-content, 12svh) auto;
+    align-content: start;
+    row-gap: 0;
   }
-  #overview-title { max-width: 32rem; }
-  #overview-title .motto-lead {
-    margin-bottom: 3px;
-    font-size: 14px;
+  #payathon-page .payathon-hero #payathon-title {
+    align-self: center;
+    margin-block-start: var(--event-header-height, 60px);
   }
-  #overview-title .motto-main { font-size: clamp(23px, 6.1vw, 33px); }
-  #overview-title .overview-slogan-end { margin-top: 14px; }
-  #payathon-page .payathon-hero .overview-blackhole { grid-row: 3; pointer-events: none; }
-  #payathon-page .payathon-hero .overview-registration { grid-row: 4; }
-  #payathon-page .payathon-hero .hero-terminal { grid-row: 5; }
+  #payathon-page #overview-title {
+    position: relative;
+    inset: auto;
+    transform: none;
+    align-self: center;
+    grid-row: 2;
+  }
+  #overview-title .motto-lead { font-size: 14px; color: color-mix(in srgb, var(--photo-muted) 40%, white); }
+  #overview-title .motto-main { font-size: clamp(1.35rem, 5.8vw, 1.5rem); }
+  #payathon-page .payathon-hero .overview-registration { grid-row: 3; align-self: center; }
+  #payathon-page .payathon-hero .hero-terminal { grid-row: 4; }
+}
+
+@media (max-width: 767px) and (max-height: 720px) {
+  #payathon-page .payathon-hero {
+    grid-template-rows: 35svh 30svh minmax(min-content, calc(12svh - 32px)) auto;
+  }
+}
+
+@media (scripting: none) {
+  #payathon-page .payathon-hero { display: none; }
+}
+
+/* This veil covers only the photograph, below the tide, creatures and lettering. */
+html.js .payathon-hero::before {
+  content: ""; position: absolute; inset: 0; z-index: -2; pointer-events: none;
+  background: #141414; opacity: 1; transition: opacity 1.1s ease-in-out;
+}
+html.js .payathon-hero[data-forest-ready][data-intro-complete]::before { opacity: 0; }
+html.js[data-skip-title-intro] .payathon-hero::before { transition: none; opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  html.js .payathon-hero::before { transition: none; opacity: 0; }
 }

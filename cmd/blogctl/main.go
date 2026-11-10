@@ -179,7 +179,7 @@ func runArticleCommand(importArticle bool, args []string, stdout, stderr io.Writ
 	title := flags.String("title", "", "覆盖文章标题")
 	slug := flags.String("slug", "", "覆盖文章 slug")
 	tags := flags.String("tags", "", "覆盖标签，英文逗号分隔")
-	categories := flags.String("categories", "", "覆盖分类，英文逗号分隔")
+	categories := flags.String("categories", "", "覆盖文章所属的一个专栏")
 	displayTime := flags.String("display-time", "", "覆盖显示时间（YYYY-MM-DDTHH:MM 或 RFC3339）")
 	server := flags.String("server", "", "仅本次使用的博客地址")
 	jsonOutput := flags.Bool("json", false, "输出 JSON，适合本地 Agent")

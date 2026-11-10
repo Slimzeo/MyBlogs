@@ -35,9 +35,22 @@ func buildFuncMap(sc *SiteConfig) template.FuncMap {
 		"social": sc.Social,
 
 		// ---- article/meta rendering (Commons.*) ----
-		"permalink":      permalink,
+		"permalink": permalink,
+		"readingArticle": func(post *model.Content) *util.ReadingText {
+			if post.ContentFormat == model.ContentHTML {
+				return nil
+			}
+			result := util.SplitReadingHeading(renderArticle(post.Content), post.Title)
+			return &result
+		},
 		"article":        renderArticle,
 		"contentIntro":   util.ContentIntro,
+		"journalExcerpt": journalExcerpt,
+		"journalCover":   func(post model.Content) string { return journalCover(post, sc.Option("site_url", "")) },
+		"journalTags":    model.MetaNames,
+		"libraryURL":     libraryURL,
+
+		"journalPageURL": journalPageURL,
 		"contentThumb":   util.ContentFirstImage,
 		"showIcon":       showIcon,
 		"showCategories": func(s string) template.HTML { return template.HTML(showCategories(s)) },
@@ -73,10 +86,7 @@ func buildFuncMap(sc *SiteConfig) template.FuncMap {
 		"safeHTML":  func(s string) template.HTML { return template.HTML(s) },
 		"urlEncode": url.PathEscape,
 		"isFuture":  func(unixTime int) bool { return int64(unixTime) > time.Now().Unix() },
-		"notesPath": func(path string) string {
-			return "/notes/" + strings.Trim(path, "/")
-		},
-		"dict": dict,
+		"dict":      dict,
 		"default": func(def, val string) string {
 			if strings.TrimSpace(val) == "" {
 				return def
@@ -110,20 +120,12 @@ var icons = []string{"bg-ico-book", "bg-ico-game", "bg-ico-note", "bg-ico-chat",
 // showIcon mirrors Commons.show_icon.
 func showIcon(cid int) string { return icons[cid%len(icons)] }
 
-// showCategories renders category links. Mirrors Commons.show_categories.
-func showCategories(categories string) string {
-	if strings.TrimSpace(categories) == "" {
-		categories = "默认分类"
+// Article metadata exposes exactly one column link.
+func showCategories(category string) string {
+	if category == "" {
+		category = model.DefaultColumn
 	}
-	var b strings.Builder
-	for _, c := range strings.Split(categories, ",") {
-		c = strings.TrimSpace(c)
-		if c == "" {
-			continue
-		}
-		b.WriteString(`<a href="/category/` + url.PathEscape(c) + `">` + template.HTMLEscapeString(c) + `</a>`)
-	}
-	return b.String()
+	return `<a href="` + template.HTMLEscapeString(libraryURL(category, "", 1)) + `">` + template.HTMLEscapeString(category) + `</a>`
 }
 
 // showTags renders tag links. Mirrors Commons.show_tags.
@@ -137,7 +139,7 @@ func showTags(tags string) string {
 		if t == "" {
 			continue
 		}
-		b.WriteString(`<a href="/tag/` + url.PathEscape(t) + `">` + template.HTMLEscapeString(t) + `</a>`)
+		b.WriteString(`<a href="` + template.HTMLEscapeString(libraryURL("", t, 1)) + `">` + template.HTMLEscapeString(t) + `</a>`)
 	}
 	return b.String()
 }

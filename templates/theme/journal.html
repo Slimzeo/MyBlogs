@@ -1,0 +1,67 @@
+{{define "journal-feed"}}
+{{if .Home}}
+<div class="journal-cue">
+  <a class="journal-down" href="#blogs" aria-label="向下浏览文章"><span aria-hidden="true"></span></a>
+</div>
+{{end}}
+<div class="journal-feed{{if .Home}} journal-after-hero{{end}}">
+  <section id="blogs" class="journal-board" aria-label="最近的文章" tabindex="-1">
+    {{if .Articles.List}}
+    <ol class="journal-list" role="list">
+      {{range .Articles.List}}
+      {{$post := .}}
+      <li class="journal-item">
+        <article class="journal-card" aria-labelledby="entry-{{.Cid}}">
+          {{with journalCover .}}
+          <a class="journal-thumb" href="{{permalink $post}}" aria-hidden="true" tabindex="-1">
+            <img src="{{.}}" alt="" loading="lazy" decoding="async">
+          </a>
+          {{end}}
+          <div class="journal-copy">
+            <h2 class="journal-title" id="entry-{{.Cid}}">
+              <a class="journal-link" data-journal-title data-text-entered href="{{permalink .}}" aria-label="{{.Title}}"><span class="reveal-ink">{{.Title}}</span></a>
+              {{if eq .Status "encrypted"}}<span class="fluid-encrypted-badge">加密</span>{{end}}
+            </h2>
+            {{with journalExcerpt . 200}}
+            <a class="journal-excerpt" href="{{permalink $post}}" tabindex="-1">{{.}}</a>
+            {{end}}
+            <div class="journal-meta">
+              {{with fmtdate (or .DisplayTime .Created)}}
+              <time datetime="{{.}}">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v4m10-4v4M4 10h16"/><rect x="4" y="5" width="16" height="16" rx="2"/></svg>{{.}}
+              </time>
+              {{end}}
+              {{with .Categories}}
+              <a href="{{libraryURL . "" 1}}" aria-label="专栏：{{.}}">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2 3h9v10H3Z"/></svg>{{.}}
+              </a>
+              {{end}}
+              {{with journalTags .Tags}}
+              <span class="journal-tags">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 8 0 8 8-8 8-8-8Z"/><circle cx="9" cy="9" r="1"/></svg>
+                {{range .}}<a href="{{libraryURL "" . 1}}" aria-label="标签：{{.}}">#{{.}}</a>{{end}}
+              </span>
+              {{end}}
+            </div>
+          </div>
+        </article>
+      </li>
+      {{end}}
+    </ol>
+    {{else}}
+    <p class="journal-empty">还没有发表的记录。</p>
+    {{end}}
+    <footer class="journal-foot">
+      {{if gt .Articles.Pages 1}}
+      <nav class="journal-pager" aria-label="记录分页">
+        {{if .Articles.HasPreviousPage}}<a href="{{journalPageURL .Articles.PrePage .Articles.PageSize .Active}}" rel="prev">← 较新的记录</a>{{end}}
+        <span>{{.Articles.PageNum}} / {{.Articles.Pages}}</span>
+        {{if .Articles.HasNextPage}}<a href="{{journalPageURL .Articles.NextPage .Articles.PageSize .Active}}" rel="next">更早的记录 →</a>{{end}}
+      </nav>
+      {{else if .Articles.Total}}<span>共 {{.Articles.Total}} 篇</span>{{end}}
+      <a class="journal-columns" href="/notes">浏览专栏 <span aria-hidden="true">→</span></a>
+    </footer>
+  </section>
+  {{if .Articles.List}}<script type="module" src="/user/js/journal-titles.js?v=1"></script>{{end}}
+</div>
+{{end}}
