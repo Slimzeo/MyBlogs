@@ -1,4 +1,4 @@
-{{define "header"}}{{$reader := .IsPost}}<!DOCTYPE html>
+{{define "header"}}{{$reader := .IsPost}}{{$directory := or (eq .Active "archives") (eq .Active "categories") (eq .Active "tags") (eq .Active "search")}}<!DOCTYPE html>
 <html lang="zh-CN" data-blog-site>
 <head>
     <meta charset="utf-8"/>
@@ -31,13 +31,13 @@
     <link href="/user/css/reader.css?v=2" rel="stylesheet"/>
     {{else}}
     <link href="https://cdn.jsdelivr.net/npm/@fontsource-variable/anybody@5.3.0/wdth.css" rel="stylesheet"/>
-    <link href="/user/css/home.css?v=10" rel="stylesheet"/>
+    <link href="/user/css/home.css?v=11" rel="stylesheet"/>
     {{end}}
     {{if .Home}}<link rel="preload" as="image" href="/user/img/forest.jpg" fetchpriority="high" data-forest-source/><script src="/user/js/forest-intro.js?v=1" defer></script>{{end}}
-    {{if or (eq .Active "home") (eq .Active "blogs")}}<link href="/user/css/journal.css?v=7" rel="stylesheet"/>{{end}}
-    {{if eq .Active "notes"}}<link href="/user/css/library.css?v=5" rel="stylesheet"/>{{end}}
+    {{if or (eq .Active "home") (eq .Active "blogs")}}<link href="/user/css/journal.css?v=8" rel="stylesheet"/>{{end}}
+    <link href="/user/css/library.css?v=7" rel="stylesheet"/>
     <script src="/user/js/html-article.js?v=3" defer></script>
-    {{if not $reader}}<script src="/user/js/home.js?v=4" defer></script>{{end}}
+    {{if not $reader}}<script type="module" src="/user/js/home.js?v=5"></script>{{end}}
     {{if .NativeGuide}}
     <link rel="stylesheet" href="/assets/blog/generated/guide.css?v=1"/>
     <script type="module" src="/assets/blog/agent-topbar.js?v=3"></script>
@@ -71,16 +71,18 @@
     </div>
     {{else if $reader}}
     <div id="banner" class="fluid-reader-top" aria-hidden="true"></div>
-    {{else if and (ne .Active "blogs") (ne .Active "home") (ne .Active "notes")}}
+    {{else if and (ne .Active "blogs") (ne .Active "home")}}
     <div id="banner"
          class="fluid-banner {{if .IsPost}}fluid-banner-post{{else if .Title}}fluid-banner-page{{else}}fluid-banner-home{{end}}">
         <img class="fluid-banner-image{{if not .Title}} fluid-banner-image-priority{{end}}"
              src="{{if .IsPost}}{{siteOption "theme_post_banner" "/user/img/forest.jpg"}}{{else if .Title}}{{siteOption "theme_page_banner" "/user/img/forest.jpg"}}{{else}}{{siteOption "theme_home_banner" "/user/img/forest.jpg"}}{{end}}"
-             alt="" decoding="async"{{if not .Title}} fetchpriority="high"{{end}}
+             alt="" decoding="async"{{if or $directory (not .Title)}} fetchpriority="high"{{end}}
              onload="this.classList.add('is-loaded')"/>
         <div class="fluid-banner-mask">
             <div class="fluid-banner-text">
-                {{if .Article}}
+                {{if $directory}}
+                <h1 class="fluid-banner-title" id="directory-title">{{.Title}}</h1>
+                {{else if .Article}}
                 <div class="fluid-banner-title">{{.Article.Title}}</div>
                 {{if .IsPost}}
                 <div class="fluid-banner-meta">

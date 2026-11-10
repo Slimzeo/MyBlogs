@@ -59,7 +59,7 @@
         {{if .Articles.HasNextPage}}<a href="{{journalPageURL .Articles.NextPage .Articles.PageSize .Active}}" rel="next">更早的记录 →</a>{{end}}
       </nav>
       {{else if .Articles.Total}}<span>共 {{.Articles.Total}} 篇</span>{{end}}
-      <a class="journal-columns" href="/notes">浏览专栏 <span aria-hidden="true">→</span></a>
+      <a class="journal-columns" href="/categories">浏览专栏 <span aria-hidden="true">→</span></a>
     </footer>
   </section>
   {{if .Articles.List}}<script type="module" src="/user/js/journal-titles.js?v=1"></script>{{end}}

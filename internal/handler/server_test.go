@@ -122,8 +122,8 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css`,
 		`class="fluid-theme fluid-font-wenkai"`,
-		`href="/user/css/home.css?v=10"`,
-		`src="/user/js/home.js?v=4"`,
+		`href="/user/css/home.css?v=11"`,
+		`src="/user/js/home.js?v=5"`,
 		`id="banner" class="hx-hero"`,
 		`id="hx-forest"`,
 		`如果这个<b>宇宙</b>的结局是注定的，<br/>`,
@@ -215,8 +215,8 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	for _, marker := range []string{
 		`id="blog-library"`,
-		`class="library-shelves"`,
-		`aria-label="按标签筛选"`,
+		`class="column-index"`,
+		`href="/tags"`,
 		`href="/archives"`,
 	} {
 		if !strings.Contains(string(topicsHTML), marker) {
@@ -816,7 +816,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, marker := range []string{
-		`class="library-results"`,
+		`class="dated-list"`,
 		`Concurrent Article`,
 		`href="/article/concurrent-article"`,
 	} {

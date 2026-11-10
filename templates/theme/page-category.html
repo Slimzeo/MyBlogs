@@ -1,48 +1,39 @@
-{{define "page-category"}}
-{{template "header" .}}
-<main id="fluid-page-main" class="fluid-main">
-    <div class="fluid-container">
-    <section id="board" class="fluid-board fluid-list-board">
-        <div class="fluid-list-heading">
-            <h2>{{.Type}}：{{.Keyword}}</h2>
-            <p>{{if .Articles}}共 {{.Articles.Total}} 篇文章{{end}}</p>
-        </div>
-        {{if or (not .Articles) (not .Articles.List)}}
-        <div class="fluid-empty">
-            <p>暂时没有匹配的文章。</p>
-        </div>
-        {{else}}
-        <div class="fluid-archive-list">
-            {{range $article := .Articles.List}}
-            <a class="fluid-archive-item" href="{{permalink $article}}">
-                <time>{{fmtdate $article.DisplayTime}}</time>
-                <span>{{$article.Title}}</span>
-                {{if eq $article.Status "encrypted"}}<span class="fluid-encrypted-badge">加密</span>{{end}}
-            </a>
-            {{end}}
-        </div>
-        <div class="fluid-pagination">
-            {{$prefix := "search"}}
-            {{if eq .Type "分类"}}{{$prefix = "category"}}{{end}}
-            {{if eq .Type "标签"}}{{$prefix = "tag"}}{{end}}
-            <ol class="page-navigator">
-                {{$articles := .Articles}}
-                {{if $articles.HasPreviousPage}}
-                <li class="prev"><a href="/{{$prefix}}/{{urlEncode $.Keyword}}/{{$articles.PrePage}}">←</a></li>
-                {{end}}
-                {{range $page := $articles.NavigatepageNums}}
-                <li class="{{if eq $articles.PageNum $page}}current{{end}}">
-                    <a href="/{{$prefix}}/{{urlEncode $.Keyword}}/{{$page}}">{{$page}}</a>
-                </li>
-                {{end}}
-                {{if $articles.HasNextPage}}
-                <li class="next"><a href="/{{$prefix}}/{{urlEncode $.Keyword}}/{{$articles.NextPage}}">→</a></li>
-                {{end}}
-            </ol>
-        </div>
-        {{end}}
-    </section>
+{{define "column-index"}}
+{{if .TopicGroups}}
+<ul class="column-index" aria-label="文章专栏">
+{{range .TopicGroups}}
+  <li><details data-column="{{.Meta.Name}}">
+    <summary><span class="column-name">{{.Meta.Name}}</span><span class="directory-count">{{.Meta.Count}} 篇</span></summary>
+    <div class="column-contents">
+      {{with .Meta.Description}}<p>{{.}}</p>{{end}}
+      <ul>{{range .Articles}}<li><a href="{{permalink .}}">{{.Title}}{{if eq .Status "encrypted"}} <small class="fluid-encrypted-badge">加密</small>{{end}}</a></li>{{end}}</ul>
+      <a class="index-action" href="{{libraryURL .Meta.Name "" 1}}">进入专栏 <span aria-hidden="true">→</span></a>
     </div>
-</main>
-{{template "footer" .}}
+  </details></li>
+{{end}}
+</ul>
+{{else}}<p class="directory-empty">还没有已发表文章的专栏。</p>{{end}}
+{{end}}
+
+{{define "tag-index"}}
+{{if .Tags}}
+{{$most := (index .Tags 0).Count}}
+<ul class="tag-index" id="tags" aria-label="文章标签">
+  {{range .Tags}}<li><a data-tag="{{.Name}}" href="{{libraryURL "" .Name 1}}" aria-label="{{.Name}}，{{.Count}} 篇文章"
+    {{if and (gt .Count 1) (eq .Count $most)}}class="tag-major"{{else if gt .Count 1}}class="tag-common"{{end}}>{{.Name}} <small>{{.Count}}</small></a></li>{{end}}
+</ul>
+{{else}}<p class="directory-empty">还没有文章使用标签。</p>{{end}}
+{{end}}
+
+{{define "column-filters"}}{{$lib := .Library}}
+{{if or .Tags $lib.Tag}}
+<details class="index-filter" {{if $lib.Tag}}open{{end}}>
+  <summary>{{if $lib.Tag}}标签 · {{$lib.Tag}}{{else}}按标签筛选{{end}}</summary>
+  <nav class="filter-links" aria-label="按标签筛选">
+    <a href="{{libraryURL $lib.Category "" 1}}" {{if not $lib.Tag}}aria-current="true"{{end}}>全部</a>
+    {{range .Tags}}<a data-tag="{{.Name}}" href="{{libraryURL $lib.Category .Name 1}}" {{if eq .Name $lib.Tag}}aria-current="true"{{end}}>{{.Name}}</a>{{end}}
+  </nav>
+  {{if $lib.Tag}}<a class="index-action" href="{{libraryURL "" $lib.Tag 1}}">在所有专栏查看 #{{$lib.Tag}} <span aria-hidden="true">→</span></a>{{end}}
+</details>
+{{end}}
 {{end}}

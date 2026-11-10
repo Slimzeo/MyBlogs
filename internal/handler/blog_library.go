@@ -6,106 +6,121 @@ import (
 	"strconv"
 	"strings"
 
-	"myblog/internal/model"
-	"myblog/internal/service"
-
 	"github.com/gin-gonic/gin"
 )
 
 type blogLibrary struct {
-	Category, Tag, Description string
-	Columns                    []service.BlogColumn
-	Tags, MoreTags             []model.MetaDto
-	ExpandTags                 bool
+	Category, Tag string
+}
+
+func directoryURL(path, category, tag string, page, size int) string {
+	query := url.Values{}
+	if category != "" {
+		query.Set("category", category)
+	}
+	if tag != "" {
+		query.Set("tag", tag)
+	}
+	if page > 1 {
+		query.Set("page", strconv.Itoa(page))
+	}
+	if size != journalPageSize {
+		query.Set("limit", strconv.Itoa(size))
+	}
+	return (&url.URL{Path: path, RawQuery: query.Encode()}).String()
 }
 
 func libraryURL(category, tag string, page int) string {
-	q := url.Values{}
-	if category != "" {
-		q.Set("category", category)
+	path := "/categories"
+	if category == "" && tag != "" {
+		path = "/tags"
 	}
-	if tag != "" {
-		q.Set("tag", tag)
-	}
-	if page > 1 {
-		q.Set("page", strconv.Itoa(page))
-	}
-	if len(q) == 0 {
-		return "/notes"
-	}
-	return "/notes?" + q.Encode()
+	return directoryURL(path, category, tag, page, journalPageSize)
 }
 
-func (server *Server) columns(context *gin.Context) {
-	category, tag := strings.TrimSpace(context.Query("category")), strings.TrimSpace(context.Query("tag"))
+func (data PageData) DirectoryPageURL(page int) string {
+	path := "/" + data.Active
+	if data.Active == "search" {
+		path += "/" + data.Keyword
+	}
+	var filters blogLibrary
+	if data.Library != nil {
+		filters = *data.Library
+	}
+	return directoryURL(path, filters.Category, filters.Tag, page, data.Articles.PageSize)
+}
+
+// Categories and Tags each have an index. A tag can also narrow an author's column.
+func (server *Server) library(context *gin.Context) {
+	category := strings.TrimSpace(context.Query("category"))
+	tag := strings.TrimSpace(context.Query("tag"))
 	page := clampPage(queryInt(context, "page", 1))
+	tagIndex := context.FullPath() == "/tags"
+	if tagIndex && category != "" || !tagIndex && category == "" && tag != "" {
+		context.Redirect(http.StatusFound, libraryURL(category, tag, page))
+		return
+	}
+	title, active := "文章专栏", "categories"
+	if tagIndex {
+		title, active = "标签", "tags"
+	}
+	data := server.baseData(context, title, active)
+	data.Library = &blogLibrary{Category: category, Tag: tag}
 	access := server.canAccessEncrypted(context)
-	columns, err := server.service.BlogColumns(access)
-	if err != nil {
-		context.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
-	tags, err := server.service.BlogTags(category, access)
-	if err != nil {
-		context.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
-	lib := &blogLibrary{Category: category, Tag: tag, Columns: columns, Tags: tags, ExpandTags: context.Query("view") == "tags"}
-	for _, col := range columns {
-		if col.Name == category {
-			lib.Description = col.Description
-			break
+	if category == "" && tag == "" {
+		if page > 1 {
+			context.Redirect(http.StatusFound, "/"+active)
+			return
 		}
-	}
-	const shown = 7
-	if len(tags) > shown {
-		// A selected tag stays visible even after following a link from an article.
-		for i := shown; i < len(tags); i++ {
-			if tags[i].Name == tag {
-				tags[shown-1], tags[i] = tags[i], tags[shown-1]
-				break
-			}
+		var err error
+		if tagIndex {
+			data.Tags, err = server.service.BlogTags("", access)
+		} else {
+			data.TopicGroups, err = server.service.GetPublishedTopicGroups(5, access)
 		}
-		lib.Tags, lib.MoreTags = tags[:shown], tags[shown:]
-	}
-	data := server.baseData(context, "文章专栏", "notes")
-	data.Library = lib
-	if category != "" || tag != "" {
-		data.Articles, err = server.service.BlogArticles(category, tag, page, journalPageSize, access)
 		if err != nil {
 			context.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
-		if page > data.Articles.Pages {
-			server.render(context, http.StatusNotFound, "error_404", PageData{})
+		server.render(context, http.StatusOK, "directory", data)
+		return
+	}
+	if category != "" {
+		data.Title = category
+		var err error
+		data.Tags, err = server.service.BlogTags(category, access)
+		if err != nil {
+			context.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
-		if category != "" {
-			data.Title = category + " · 专栏"
-		}
-		if tag != "" {
-			data.Title += " · #" + tag
-		}
-	} else if page != 1 {
-		context.Redirect(http.StatusFound, "/notes")
-		return
+	} else {
+		data.Title = "#" + tag
 	}
-	if server.renderReferencePage(context, data, "blog-library") {
-		return
-	}
-	server.render(context, http.StatusOK, "blogs", data)
+	server.directoryPosts(context, data, category, tag, page)
 }
 
-// Keep old bookmarks, including the old tag tab, on the same directory.
-func (server *Server) topics(context *gin.Context) {
-	target := libraryURL(context.Query("category"), context.Query("tag"), clampPage(queryInt(context, "page", 1)))
-	if context.Query("view") == "tags" {
-		u, _ := url.Parse(target)
-		q := u.Query()
-		q.Set("view", "tags")
-		u.RawQuery = q.Encode()
-		u.Fragment = "tags"
-		target = u.String()
+func (server *Server) directoryPosts(context *gin.Context, data PageData, category, tag string, page int) {
+	limit := clampLimit(queryInt(context, "limit", journalPageSize), journalPageSize, 100)
+	posts, err := server.service.BlogArticles(category, tag, page, limit, server.canAccessEncrypted(context))
+	if err != nil {
+		context.AbortWithError(http.StatusInternalServerError, err)
+		return
 	}
-	context.Redirect(http.StatusFound, target)
+	if page > posts.Pages {
+		server.render(context, http.StatusNotFound, "error_404", PageData{})
+		return
+	}
+	data.Articles = posts
+	server.render(context, http.StatusOK, "directory", data)
+}
+
+// Existing /notes, /topics and filtered /blogs bookmarks keep their selections.
+func (server *Server) topics(context *gin.Context) {
+	category := strings.TrimSpace(context.Query("category"))
+	tag := strings.TrimSpace(context.Query("tag"))
+	if category == "" && tag == "" && context.Query("view") == "tags" {
+		context.Redirect(http.StatusFound, "/tags")
+		return
+	}
+	context.Redirect(http.StatusFound, libraryURL(category, tag, clampPage(queryInt(context, "page", 1))))
 }

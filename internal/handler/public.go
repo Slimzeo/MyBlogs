@@ -227,49 +227,43 @@ func (server *Server) comment(context *gin.Context) {
 }
 
 func (server *Server) category(context *gin.Context) {
-	server.metaArticles(context, model.TypeCategory, context.Param("keyword"), "分类")
+	server.legacyMeta(context, model.TypeCategory, context.Param("keyword"))
 }
 
 func (server *Server) tag(context *gin.Context) {
-	name := strings.ReplaceAll(context.Param("name"), "+", " ")
-	server.metaArticles(context, model.TypeTag, name, "标签")
+	server.legacyMeta(context, model.TypeTag, context.Param("name"))
 }
 
-func (server *Server) metaArticles(context *gin.Context, metaType, name, displayType string) {
-	meta := server.service.GetMeta(metaType, name)
+func (server *Server) legacyMeta(context *gin.Context, kind, name string) {
+	meta := server.service.GetMeta(kind, name)
+	if meta == nil && kind == model.TypeTag && strings.Contains(name, "+") {
+		meta = server.service.GetMeta(kind, strings.ReplaceAll(name, "+", " "))
+	}
 	if meta == nil {
 		server.render(context, http.StatusNotFound, "error_404", PageData{})
 		return
 	}
 	page := clampPage(pathInt(context, "page", 1))
-	limit := clampLimit(queryInt(context, "limit", 12), 12, 100)
-	data := server.baseData(context, name, "")
-	data.Meta = meta
-	data.Articles = server.service.GetArticlesByMeta(
-		meta.Mid,
-		page,
-		limit,
-		server.canAccessEncrypted(context),
-	)
-	data.Type = displayType
-	data.Keyword = name
-	server.render(context, http.StatusOK, "page-category", data)
+	limit := clampLimit(queryInt(context, "limit", journalPageSize), journalPageSize, 100)
+	target := directoryURL("/categories", meta.Name, "", page, limit)
+	if kind == model.TypeTag {
+		target = directoryURL("/tags", "", meta.Name, page, limit)
+	}
+	context.Redirect(http.StatusFound, target)
 }
 
 func (server *Server) search(context *gin.Context) {
 	keyword := context.Param("keyword")
-	page := clampPage(pathInt(context, "page", 1))
-	limit := clampLimit(queryInt(context, "limit", 12), 12, 100)
-	data := server.baseData(context, keyword, "")
-	data.Articles = server.service.SearchArticles(
-		keyword,
-		page,
-		limit,
-		server.canAccessEncrypted(context),
-	)
-	data.Type = "搜索"
+	page := clampPage(queryInt(context, "page", pathInt(context, "page", 1)))
+	limit := clampLimit(queryInt(context, "limit", journalPageSize), journalPageSize, 100)
+	data := server.baseData(context, "搜索「"+keyword+"」", "search")
 	data.Keyword = keyword
-	server.render(context, http.StatusOK, "page-category", data)
+	data.Articles = server.service.SearchArticles(keyword, page, limit, server.canAccessEncrypted(context))
+	if page > data.Articles.Pages {
+		server.render(context, http.StatusNotFound, "error_404", PageData{})
+		return
+	}
+	server.render(context, http.StatusOK, "directory", data)
 }
 
 func (server *Server) archives(context *gin.Context) {
@@ -278,11 +272,7 @@ func (server *Server) archives(context *gin.Context) {
 		return
 	}
 	data := server.baseData(context, "文章归档", "archives")
-	data.Archives = server.service.GetArchives(server.canAccessEncrypted(context))
-	for _, archive := range data.Archives {
-		data.ArchiveCount += len(archive.Articles)
-	}
-	server.render(context, http.StatusOK, "archives", data)
+	server.directoryPosts(context, data, "", "", clampPage(queryInt(context, "page", 1)))
 }
 
 func (server *Server) links(context *gin.Context) {

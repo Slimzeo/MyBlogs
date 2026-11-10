@@ -6,33 +6,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// BlogColumn is a category overview. Only the latest article's metadata is
-// needed for the directory; long article bodies stay out of this query.
-type BlogColumn struct {
-	Name, Description, LatestTitle, LatestStatus string
-	Count, LatestDate                            int
-}
-
-func (s *Service) BlogColumns(includeEncrypted bool) ([]BlogColumn, error) {
-	statuses := publicArticleStatuses(includeEncrypted)
-	sizes := s.db.Table("t_relationships AS r").Select("r.mid, COUNT(*) AS entries").
-		Joins("JOIN t_contents AS c ON c.cid = r.cid").
-		Where("c.type = ? AND c.status IN ?", model.TypeArticle, statuses).Group("r.mid")
-	latest := s.db.Table("t_relationships AS r").Select("c.cid").
-		Joins("JOIN t_contents AS c ON c.cid = r.cid").
-		Where("r.mid = m.mid AND c.type = ? AND c.status IN ?", model.TypeArticle, statuses).
-		Order("c.display_time DESC, c.created DESC, c.cid DESC").Limit(1)
-	var cols []BlogColumn
-	err := s.db.Table("t_metas AS m").
-		Select("m.name, m.description, volume.entries AS count, recent.title AS latest_title, recent.status AS latest_status, recent.display_time AS latest_date").
-		Joins("JOIN (?) AS volume ON volume.mid = m.mid", sizes).
-		Joins("JOIN t_contents AS recent ON recent.cid = (?)", latest).
-		Where("m.type = ?", model.TypeCategory).
-		Order("CASE WHEN m.name = '默认分类' THEN 1 ELSE 0 END, m.sort DESC, volume.entries DESC, m.name, m.mid").
-		Scan(&cols).Error
-	return cols, err
-}
-
 func (s *Service) blogScope(category, tag string, includeEncrypted bool) *gorm.DB {
 	q := s.db.Model(&model.Content{}).Where("type = ? AND status IN ?", model.TypeArticle, publicArticleStatuses(includeEncrypted))
 	for _, filter := range []struct{ kind, name string }{{model.TypeCategory, category}, {model.TypeTag, tag}} {
@@ -65,7 +38,8 @@ func (s *Service) BlogArticles(category, tag string, page, size int, includeEncr
 		return nil, err
 	}
 	var posts []model.Content
-	if err := scope.Order(articleDisplayOrder).Limit(size).Offset((page - 1) * size).Find(&posts).Error; err != nil {
+	if err := scope.Select("cid", "title", "slug", "display_time", "created", "status", "categories").
+		Order(articleDisplayOrder).Limit(size).Offset((page - 1) * size).Find(&posts).Error; err != nil {
 		return nil, err
 	}
 	return NewPageInfo(posts, page, size, total), nil

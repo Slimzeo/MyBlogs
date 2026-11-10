@@ -1,4 +1,6 @@
 /* Effects used by the fallback home scene. */
+import {homeCodeTokens} from './home-code.js?v=1';
+
 (function () {
     'use strict';
     var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -64,10 +66,9 @@
         '             "机器学习", "数学学习")'
     ];
     function highlight(line) {
-        return line.replace(/(#.*$)|("""[^"]*"""|"[^"]*")|\b(class|def|return|self)\b|\b(Hypnos|Idealist|Express|ProjectManagement|RL)\b|(>>>|\$)|([^#"\w$>]+|\w+|>)/g, function (m, c, s, k, n, p) {
-            var cls = c ? 'c' : s ? 's' : k ? 'k' : n ? 'n' : p ? 'p' : '';
-            return cls ? '<span class="' + cls + '">' + esc(m) + '</span>' : esc(m);
-        });
+        return homeCodeTokens(line).map(function (token) {
+            return '<span class="terminal-token-' + token.kind + '">' + esc(token.text) + '</span>';
+        }).join('');
     }
     function mountTyper(pre) {
         var narrow = window.innerWidth < 768;

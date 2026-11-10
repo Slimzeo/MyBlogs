@@ -97,15 +97,10 @@ body:has(#banner.hx-hero) { background: var(--hx-night); }
     height: calc(9 * 1.55em);
     overflow: hidden;
     margin: 0;
-    color: var(--photo-ink);
     font: 11.5px/1.55 var(--hx-mono);
     white-space: pre;
 }
-.hx-code .c { color: color-mix(in srgb, var(--photo-muted) 70%, #84958c); font-style: italic; }
-.hx-code .s { color: color-mix(in srgb, var(--hx-amber) 65%, var(--photo-ink)); }
-.hx-code .k { color: color-mix(in srgb, #9cc9b2 65%, var(--photo-ink)); }
-.hx-code .n { color: color-mix(in srgb, #f0b85e 65%, var(--photo-ink)); }
-.hx-code .p { color: var(--photo-muted); }
+.hx-code .terminal-token-comment { font-style: italic; }
 .hx-cur { display: inline-block; width: .6em; height: 1.1em; vertical-align: -.2em; background: var(--hx-amber); animation: hx-cur 1s steps(1) infinite; }
 @keyframes hx-cur { 50% { opacity: 0; } }
 .hx-clock { display: flex; align-items: center; gap: 8px; color: var(--hx-fg); font: 500 34px/1 var(--hx-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }

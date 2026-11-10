@@ -1,48 +1,32 @@
-{{define "archives"}}
-{{template "header" .}}
-<main id="fluid-page-main" class="fluid-main">
-    <div class="fluid-container">
-        <section id="board" class="fluid-board fluid-archive-board">
-            <div class="fluid-archive-intro">
-                <div>
-                    <span class="fluid-eyebrow">公开文章 · 按月整理</span>
-                    <h2>归档不是仓库，<br/><em>是一路走过的时间。</em></h2>
-                    <p>这里按文章发布时间整理所有公开记录。月份是章节，文章是每一次具体的思考。</p>
-                </div>
-                <div class="fluid-archive-total">
-                    <strong>{{.ArchiveCount}}</strong>
-                    <span>篇公开文章</span>
-                </div>
-            </div>
-            {{if .Archives}}
-            <div class="fluid-archive-timeline">
-                {{range $archive := .Archives}}
-                <section class="fluid-archive-group">
-                    <div class="fluid-archive-period">
-                        <span class="fluid-archive-dot"></span>
-                        <h3>{{$archive.Date}}</h3>
-                        <span class="fluid-archive-count">{{len $archive.Articles}} 篇</span>
-                    </div>
-                    <div class="fluid-archive-list">
-                        {{range $article := $archive.Articles}}
-                        <a class="fluid-archive-item" href="{{permalink $article}}">
-                            <time>{{fmtdate $article.DisplayTime}}</time>
-                            <span class="fluid-archive-title">{{$article.Title}}</span>
-                            {{if eq $article.Status "encrypted"}}<span class="fluid-encrypted-badge">加密</span>{{end}}
-                            <span class="fluid-archive-arrow">↗</span>
-                        </a>
-                        {{end}}
-                    </div>
-                </section>
-                {{end}}
-            </div>
-            {{else}}
-            <div class="fluid-empty">
-                <p>还没有公开文章。</p>
-            </div>
-            {{end}}
-        </section>
+{{define "directory-results"}}
+{{if .Articles.List}}
+<section class="dated-list" aria-label="文章列表">
+  {{$year := ""}}
+  {{range .Articles.List}}
+    {{$date := or .DisplayTime .Created}}
+    {{$nextYear := fmtdatef $date "yyyy"}}
+    {{if ne $nextYear $year}}<h2 class="dated-year">{{$nextYear}}</h2>{{$year = $nextYear}}{{end}}
+    <div class="dated-row">
+      <a class="dated-link" href="{{permalink .}}">
+        <time datetime="{{fmtdate $date}}">{{fmtdatef $date "MM-dd"}}</time>
+        <span>{{.Title}}{{if eq .Status "encrypted"}} <small class="fluid-encrypted-badge">加密</small>{{end}}</span>
+      </a>
+      {{if and $.Library (not $.Library.Category) $.Library.Tag .Categories}}
+        <a class="dated-column" href="{{libraryURL .Categories $.Library.Tag 1}}" aria-label="在 {{.Categories}} 专栏查看这个标签">{{.Categories}}</a>
+      {{end}}
     </div>
-</main>
-{{template "footer" .}}
+  {{end}}
+</section>
+{{if gt .Articles.Pages 1}}
+<nav class="directory-pager" aria-label="文章分页">
+  {{if .Articles.HasPreviousPage}}<a rel="prev" href="{{.DirectoryPageURL .Articles.PrePage}}" aria-label="上一页">←</a>{{end}}
+  {{range .Articles.NavigatepageNums}}
+    {{if eq . $.Articles.PageNum}}<span aria-current="page">{{.}}</span>{{else}}<a href="{{$.DirectoryPageURL .}}" aria-label="第 {{.}} 页">{{.}}</a>{{end}}
+  {{end}}
+  {{if .Articles.HasNextPage}}<a rel="next" href="{{.DirectoryPageURL .Articles.NextPage}}" aria-label="下一页">→</a>{{end}}
+</nav>
+{{end}}
+{{else}}
+<p class="directory-empty">{{if eq .Active "archives"}}还没有发表的文章。{{else if eq .Active "search"}}没有找到匹配的文章。{{else}}没有符合当前条件的文章。{{end}}</p>
+{{end}}
 {{end}}

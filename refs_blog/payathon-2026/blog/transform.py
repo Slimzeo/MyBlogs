@@ -287,7 +287,12 @@ def terminal_script(url):
     # The static frame should introduce the same first seven lines as the live terminal.
     module = replace_once(scene_bundle(url), 'w.slice(-7).forEach((e,t)=>{const u=A(w.length-7+t);',
                           'w.slice(0,7).forEach((e,t)=>{const u=A(t);')
+    # Give the native typer the same Python token colors as the fallback homepage.
+    start = module.index('w=i.map(')
+    end = module.index(',M=w.map(', start)
+    module = module[:start] + r'w=i.map(line=>homeCodeTokens(line.textContent.replace(/\u00a0/g,"")))' + module[end:]
     module = re.sub(r'"\./([\w.-]+\.js)"', r'"/assets/site/_astro/\1"', module)
+    module = 'import {homeCodeTokens} from "/user/js/home-code.js?v=1";\n' + module
     return f'<script type="module" src="{write_generated_module("terminal.js", module)}"></script>'
 
 
@@ -297,10 +302,7 @@ def adapt_home(source, theme_root):
     lines = ast.literal_eval(re.search(r"var ABOUT = (\[.*?\n    \]);", original, re.S).group(1))
     terminal_lines = []
     for line in lines:
-        kind = " blog-python-comment" if line.lstrip().startswith("#") else ""
-        if line.startswith("$ "):
-            kind = " blog-python-command"
-        terminal_lines.append(f'<div class="terminal-line{kind}" data-astro-cid-l7ur5rbf="">' +
+        terminal_lines.append('<div class="terminal-line" data-astro-cid-l7ur5rbf="">' +
                               escape(line or "\u00a0", quote=False) + "</div>")
     terminal = "".join(terminal_lines)
     parsed = PageMarkup(source)
@@ -498,9 +500,7 @@ source = replace_once(source, 'id="payathon-page"', f'id="payathon-page" data-jo
 source = adapt_home(home_palette(source), theme_root)
 source = source.replace('<head>', '<head><script src="/assets/blog/shim.js"></script>', 1)
 digest = sha256((theme_root / 'static/user/css/journal.css').read_bytes()).hexdigest()[:12]
-library_digest = sha256((theme_root / 'static/user/css/library.css').read_bytes()).hexdigest()[:12]
-source = source.replace('</head>', f'<link rel="stylesheet" href="/user/css/journal.css?v={digest}">'
-                       f'<link rel="stylesheet" href="/user/css/library.css?v={library_digest}"></head>', 1)
+source = source.replace('</head>', f'<link rel="stylesheet" href="/user/css/journal.css?v={digest}"></head>', 1)
 
 def version_asset(match):
     filename = match.group(1)

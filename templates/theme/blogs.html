@@ -1,89 +1,20 @@
-{{define "blogs"}}
+{{define "directory"}}
 {{template "header" .}}
-<main id="fluid-page-main" class="fluid-main library-main">{{template "blog-library" .}}</main>
-{{template "footer" .}}
-{{end}}
-
-{{define "blog-library"}}
-{{$lib := .Library}}
-<section id="blog-library" class="blog-library" aria-labelledby="library-title">
-  <div class="library-inner">
-    {{if .Articles}}
-    <nav class="library-breadcrumb" aria-label="专栏导航"><a href="/notes">← 全部专栏</a>
-      {{if $lib.Columns}}<details class="library-switch">
-        <summary>切换专栏</summary><div>
-          <a href="{{libraryURL "" $lib.Tag 1}}">所有专栏</a>
-          {{range $lib.Columns}}<a href="{{libraryURL .Name $lib.Tag 1}}" {{if eq .Name $lib.Category}}aria-current="true"{{end}}>{{.Name}}</a>{{end}}
-        </div>
-      </details>{{end}}
-    </nav>
-    {{end}}
-
-    <header class="library-head">
-      <div><h1 id="library-title">{{if $lib.Category}}{{$lib.Category}}{{else if $lib.Tag}}<span class="library-hash">#</span>{{$lib.Tag}}{{else}}文章专栏{{end}}</h1>
-      {{if $lib.Description}}<p class="library-description">{{$lib.Description}}</p>{{end}}</div>
-      <span class="library-count">{{if .Articles}}{{.Articles.Total}} 篇文章{{else}}{{len $lib.Columns}} 个专栏{{end}}</span>
-    </header>
-
-    {{if not .Articles}}
-      {{if $lib.Columns}}
-      <ul class="library-shelves" aria-label="选择专栏">
-        {{range $lib.Columns}}<li><a class="library-shelf" href="{{libraryURL .Name "" 1}}" data-column="{{.Name}}">
-          <div class="shelf-heading"><h2>{{.Name}}</h2><span class="shelf-arrow" aria-hidden="true">→</span></div>
-          {{if .Description}}<p class="shelf-description">{{.Description}}</p>{{end}}
-          <div class="shelf-foot"><span class="shelf-count">{{.Count}} 篇</span><span class="shelf-latest">最近 · {{.LatestTitle}}{{if eq .LatestStatus "encrypted"}} <span class="fluid-encrypted-badge">加密</span>{{end}}</span></div>
-        </a></li>{{end}}
-      </ul>
-      {{else}}<p class="library-empty">还没有可浏览的专栏。<a href="/#blogs">看看最近的记录</a></p>{{end}}
-      {{if or $lib.Tags $lib.ExpandTags}}<details class="library-tag-index" id="tags" {{if $lib.ExpandTags}}open{{end}}>
-        <summary>按标签找文章</summary>{{if $lib.Tags}}{{template "column-filters" .}}{{else}}<p class="library-empty">还没有文章使用标签。</p>{{end}}
-      </details>{{end}}
-    {{else}}
-      {{template "column-filters" .}}
-      {{if $lib.Tag}}<div class="filter-context">
-        <span>已选 <strong>#{{$lib.Tag}}</strong></span><a href="{{libraryURL $lib.Category "" 1}}">清除标签</a>
-        {{if $lib.Category}}<a href="{{libraryURL "" $lib.Tag 1}}">在所有专栏查看 →</a>{{end}}
-      </div>{{end}}
-      {{if .Articles.List}}<ol class="library-results" aria-label="匹配的文章">
-        {{range .Articles.List}}<li>
-          <div class="result-date">{{with fmtdate (or .DisplayTime .Created)}}<time datetime="{{.}}">{{.}}</time>{{end}}</div>
-          <div class="result-copy">
-            <h2><a class="result-title" href="{{permalink .}}">{{.Title}}</a>{{if eq .Status "encrypted"}} <span class="fluid-encrypted-badge">加密</span>{{end}}</h2>
-            {{with journalExcerpt . 96}}<p>{{.}}</p>{{end}}
-          </div>
-          {{if not $lib.Category}}{{with .Categories}}<a class="result-column" href="{{libraryURL . $lib.Tag 1}}">{{.}}</a>{{end}}{{end}}
-        </li>{{end}}
-      </ol>{{else}}
-        <p class="library-empty">没有符合当前条件的文章。{{if and $lib.Tag $lib.Category}}<a href="{{libraryURL $lib.Category "" 1}}">查看这个专栏的全部文章</a>{{else}}<a href="/notes">返回专栏目录</a>{{end}}</p>
+<main id="fluid-page-main" class="fluid-main directory-main" aria-labelledby="directory-title">
+  <div class="fluid-board directory-board" id="blog-library">
+    <div class="directory-inner" id="board">
+      {{if and .Library .Articles}}
+      <nav class="directory-back" aria-label="返回目录">
+        {{if .Library.Category}}<a href="/categories">← 全部专栏</a>{{else}}<a href="/tags">← 全部标签</a>{{end}}
+      </nav>
       {{end}}
-      {{if gt .Articles.Pages 1}}<nav class="library-pages" aria-label="文章分页">
-        {{if .Articles.HasPreviousPage}}<a rel="prev" href="{{libraryURL $lib.Category $lib.Tag .Articles.PrePage}}">← 上一页</a>{{end}}
-        <span>{{.Articles.PageNum}} / {{.Articles.Pages}}</span>
-        {{if .Articles.HasNextPage}}<a rel="next" href="{{libraryURL $lib.Category $lib.Tag .Articles.NextPage}}">下一页 →</a>{{end}}
-      </nav>{{end}}
-    {{end}}
+      <p class="directory-heading directory-count">{{if .Articles}}{{.Articles.Total}} 篇文章{{else if eq .Active "tags"}}{{len .Tags}} 个标签{{else}}{{len .TopicGroups}} 个专栏{{end}}</p>
+      {{if .Articles}}
+        {{if and .Library .Library.Category}}{{template "column-filters" .}}{{end}}
+        {{template "directory-results" .}}
+      {{else if eq .Active "tags"}}{{template "tag-index" .}}{{else}}{{template "column-index" .}}{{end}}
+    </div>
   </div>
-</section>
-{{end}}
-
-{{define "library-tags"}}{{range .Items}}
-  <a class="filter-tag" data-tag="{{.Name}}" href="{{if eq .Name $.Tag}}{{libraryURL $.Category "" 1}}{{else}}{{libraryURL $.Category .Name 1}}{{end}}" {{if eq .Name $.Tag}}aria-current="true" aria-label="移除 {{.Name}} 标签"{{end}}>{{.Name}} <small>{{.Count}}</small></a>
-{{end}}{{end}}
-
-{{define "column-filters"}}{{$lib := .Library}}
-{{if or $lib.Tags $lib.Tag}}
-    <nav class="library-filters" aria-label="按标签筛选">
-      <span class="filter-label">标签</span>
-      <div class="filter-choices">
-        <a class="filter-tag" href="{{libraryURL $lib.Category "" 1}}" {{if not $lib.Tag}}aria-current="true"{{end}}>全部</a>
-        {{template "library-tags" dict "Items" $lib.Tags "Category" $lib.Category "Tag" $lib.Tag}}
-        {{if $lib.MoreTags}}
-          <details class="tags-more" {{if $lib.ExpandTags}}open{{end}}>
-            <summary>更多标签 <span>{{len $lib.MoreTags}}</span></summary>
-            <div>{{template "library-tags" dict "Items" $lib.MoreTags "Category" $lib.Category "Tag" $lib.Tag}}</div>
-          </details>
-        {{end}}
-      </div>
-    </nav>
-    {{end}}
+</main>
+{{template "footer" .}}
 {{end}}

@@ -1,3 +1,13 @@
+/* Both homepages display this code over the same dark forest photograph. */
+:is(#payathon-page .hero-terminal, #hx-code) {
+  color: #e7eff5;
+  text-shadow: 0 1px 2px rgb(4 14 18 / .85);
+}
+:is(#payathon-page .hero-terminal, #hx-code) .terminal-token-property { color: #84dcff; }
+:is(#payathon-page .hero-terminal, #hx-code) .terminal-token-string { color: #ffd184; }
+:is(#payathon-page .hero-terminal, #hx-code) .terminal-token-comment { color: #add8b6; }
+:is(#payathon-page .hero-terminal, #hx-code) :is(.terminal-token-command, .terminal-token-keyword) { color: #dfafff; }
+
 /* The original Fluid index: one raised board containing chronological article rows. */
 .journal-feed {
   --index-page: var(--fluid-body-bg, #eee);

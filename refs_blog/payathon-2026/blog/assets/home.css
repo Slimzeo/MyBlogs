@@ -98,11 +98,6 @@ html[data-skip-title-intro] #payathon-title { opacity: 0; }
 #payathon-page .deadline-meta { white-space: nowrap; }
 #payathon-page .deadline-label { color: var(--photo-muted); }
 #payathon-page .payathon-button[href="#blogs"] { text-decoration: none; }
-#payathon-page .hero-terminal { color: var(--photo-muted); }
-#payathon-page .hero-terminal :is(.terminal-token-property, .terminal-cursor) { color: var(--photo-ink); }
-#payathon-page .hero-terminal :is(.terminal-token-command, .terminal-token-keyword, .blog-python-command span:not(.terminal-cursor)) { color: var(--photo-accent); }
-#payathon-page .hero-terminal .terminal-token-string { color: color-mix(in srgb, var(--photo-accent), var(--photo-ink)); }
-#payathon-page .hero-terminal :is(.terminal-token-comment, .blog-python-comment span:not(.terminal-cursor)) { color: color-mix(in srgb, var(--photo-muted) 70%, #84958c); }
 
 @media (max-width: 767px) {
   #payathon-title .payathon-name { width: min(100%, 222px); }
