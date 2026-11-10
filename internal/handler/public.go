@@ -107,6 +107,9 @@ func (server *Server) renderArticle(context *gin.Context, preview bool) {
 	data.Keywords = content.Tags
 	data.IsPost = true
 	data.Article = content
+	if content.ContentFormat != model.ContentHTML {
+		data.ReadingText = util.SplitReadingHeading(server.siteConfig.renderMarkdown(content.Content), content.Title)
+	}
 	data.Hits = server.hitCounter.Current(content.Cid)
 	if content.AllowComment {
 		page := clampPage(queryInt(context, "cp", 1))

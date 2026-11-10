@@ -3,6 +3,7 @@ package handler
 import (
 	"myblog/internal/model"
 	"myblog/internal/service"
+	"myblog/internal/util"
 )
 
 // PageData is shared by the migrated html/template pages. Keeping one explicit
@@ -28,10 +29,11 @@ type PageData struct {
 	EncryptedAccess  bool
 	AccessExpiresAt  int64
 
-	LoginUser *model.User
-	Article   *model.Content
-	Contents  *model.Content
-	Meta      *model.MetaDto
+	LoginUser   *model.User
+	Article     *model.Content
+	ReadingText util.ReadingText
+	Contents    *model.Content
+	Meta        *model.MetaDto
 
 	Articles      *service.PageInfo[model.Content]
 	Comments      *service.PageInfo[model.CommentBo]

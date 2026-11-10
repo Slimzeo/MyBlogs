@@ -5,15 +5,7 @@
     <div class="fluid-post-layout">
         <div class="fluid-post-column">
             <section id="board" class="fluid-board fluid-post-board{{if eq .Article.ContentFormat "html"}} fluid-html-post-board{{end}}">
-                <article class="fluid-post-content{{if eq .Article.ContentFormat "html"}} fluid-html-post-content{{end}}" itemscope="" itemtype="https://schema.org/Article">
-                    {{$text := readingArticle .Article}}
-                    <header class="fluid-reader-heading">
-                        {{if and $text $text.Heading}}{{$text.Heading}}{{else}}<h1 itemprop="headline">{{.Article.Title}}</h1>{{end}}
-                        <p class="fluid-reader-meta"><time datetime="{{fmtdate .Article.DisplayTime}}">{{fmtdate .Article.DisplayTime}}</time>
-                            {{if eq .Article.Status "encrypted"}}<span class="fluid-encrypted-badge">加密</span>{{end}}
-                            <span>{{.Hits}} 次阅读</span><span>{{.Article.CommentsNum}} 条评论</span>
-                        </p>
-                    </header>
+                <article class="fluid-post-content{{if eq .Article.ContentFormat "html"}} fluid-html-post-content{{end}}" itemscope="" itemtype="https://schema.org/Article" itemref="article-headline">
                     {{if eq .Article.ContentFormat "html"}}
                     <div class="fluid-html-frame-shell is-loading" aria-busy="true">
                     <div class="fluid-html-frame-viewport">
@@ -33,7 +25,7 @@
                     </div>
                     {{else}}
                     <div id="post-content" class="fluid-markdown" itemprop="articleBody">
-                    {{$text.Body}}
+                    {{.ReadingText.Body}}
                     </div>
                     {{end}}
                     <div class="fluid-post-details{{if eq .Article.ContentFormat "html"}} fluid-html-post-details{{end}}">

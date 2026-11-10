@@ -15,15 +15,6 @@ import (
 // `commons.*` and `adminCommons.*` utility calls. It closes over the site
 // config so `siteOption`/`social` reflect live settings.
 func buildFuncMap(sc *SiteConfig) template.FuncMap {
-	renderArticle := func(markdown string) template.HTML {
-		key := "markdown:" + util.MD5encode(markdown)
-		if cached, exists := sc.svc.Cache().GetString(key); exists {
-			return template.HTML(cached)
-		}
-		rendered := util.Article(markdown)
-		sc.svc.Cache().Set(key, rendered, 5*60)
-		return template.HTML(rendered)
-	}
 	return template.FuncMap{
 		// ---- site config (Commons.site_*) ----
 		"siteOption":    sc.Option,
@@ -35,15 +26,8 @@ func buildFuncMap(sc *SiteConfig) template.FuncMap {
 		"social": sc.Social,
 
 		// ---- article/meta rendering (Commons.*) ----
-		"permalink": permalink,
-		"readingArticle": func(post *model.Content) *util.ReadingText {
-			if post.ContentFormat == model.ContentHTML {
-				return nil
-			}
-			result := util.SplitReadingHeading(renderArticle(post.Content), post.Title)
-			return &result
-		},
-		"article":        renderArticle,
+		"permalink":      permalink,
+		"article":        sc.renderMarkdown,
 		"contentIntro":   util.ContentIntro,
 		"journalExcerpt": journalExcerpt,
 		"journalCover":   func(post model.Content) string { return journalCover(post, sc.Option("site_url", "")) },
@@ -94,6 +78,16 @@ func buildFuncMap(sc *SiteConfig) template.FuncMap {
 			return val
 		},
 	}
+}
+
+func (sc *SiteConfig) renderMarkdown(markdown string) template.HTML {
+	key := "markdown:" + util.MD5encode(markdown)
+	if cached, exists := sc.svc.Cache().GetString(key); exists {
+		return template.HTML(cached)
+	}
+	rendered := util.Article(markdown)
+	sc.svc.Cache().Set(key, rendered, 5*60)
+	return template.HTML(rendered)
 }
 
 // dict builds a map from alternating key/value pairs, letting templates pass

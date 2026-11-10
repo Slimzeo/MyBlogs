@@ -233,12 +233,13 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(articleHTML), `src="/user/img/forest.jpg"`) || strings.Contains(string(articleHTML), `id="hx-forest"`) {
-		t.Fatal("article page mounts the wallpaper or home animation")
+	if strings.Contains(string(articleHTML), `id="hx-forest"`) {
+		t.Fatal("article page mounts the home animation")
 	}
 	for _, marker := range []string{
-		`class="fluid-reader-top"`,
-		`class="fluid-reader-heading"`,
+		`class="fluid-banner fluid-banner-post"`,
+		`src="/user/img/forest.jpg"`,
+		`itemprop="headline"><h1>欢迎使用 Go My-Blog</h1>`,
 		`class="fluid-post-layout"`,
 		`class="fluid-board fluid-post-board"`,
 		`id="article-toc"`,

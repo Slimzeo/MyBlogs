@@ -28,7 +28,7 @@
     {{end}}
     <link href="/user/css/fluid.css?v=7" rel="stylesheet"/>
     {{if $reader}}
-    <link href="/user/css/reader.css?v=2" rel="stylesheet"/>
+    <link href="/user/css/reader.css?v=3" rel="stylesheet"/>
     {{else}}
     <link href="https://cdn.jsdelivr.net/npm/@fontsource-variable/anybody@5.3.0/wdth.css" rel="stylesheet"/>
     <link href="/user/css/home.css?v=11" rel="stylesheet"/>
@@ -69,31 +69,29 @@
             <div class="hx-clock" aria-label="距上次落笔的时间"><span id="hx-days">000</span><small>天</small><span id="hx-time">00:00:00</span><span class="hx-tag"><b>距上次落笔</b><span>时间仍在走</span></span></div>
         </div>
     </div>
-    {{else if $reader}}
-    <div id="banner" class="fluid-reader-top" aria-hidden="true"></div>
-    {{else if and (ne .Active "blogs") (ne .Active "home")}}
+    {{else if or $reader (and (ne .Active "blogs") (ne .Active "home"))}}
     <div id="banner"
          class="fluid-banner {{if .IsPost}}fluid-banner-post{{else if .Title}}fluid-banner-page{{else}}fluid-banner-home{{end}}">
         <img class="fluid-banner-image{{if not .Title}} fluid-banner-image-priority{{end}}"
              src="{{if .IsPost}}{{siteOption "theme_post_banner" "/user/img/forest.jpg"}}{{else if .Title}}{{siteOption "theme_page_banner" "/user/img/forest.jpg"}}{{else}}{{siteOption "theme_home_banner" "/user/img/forest.jpg"}}{{end}}"
-             alt="" decoding="async"{{if or $directory (not .Title)}} fetchpriority="high"{{end}}
+             alt="" decoding="async"{{if or $reader $directory (not .Title)}} fetchpriority="high"{{end}}
              onload="this.classList.add('is-loaded')"/>
         <div class="fluid-banner-mask">
             <div class="fluid-banner-text">
                 {{if $directory}}
                 <h1 class="fluid-banner-title" id="directory-title">{{.Title}}</h1>
-                {{else if .Article}}
-                <div class="fluid-banner-title">{{.Article.Title}}</div>
-                {{if .IsPost}}
+                {{else if $reader}}
+                <div id="article-headline" class="fluid-banner-title" itemprop="headline">{{if .ReadingText.Heading}}{{.ReadingText.Heading}}{{else}}<h1>{{.Article.Title}}</h1>{{end}}</div>
                 <div class="fluid-banner-meta">
                     {{if eq .Article.Status "encrypted"}}<span class="fluid-encrypted-badge fluid-encrypted-badge-light">加密</span><span>·</span>{{end}}
-                    <span>{{fmtdate .Article.DisplayTime}}</span>
+                    <time datetime="{{fmtdate .Article.DisplayTime}}">{{fmtdate .Article.DisplayTime}}</time>
                     <span>·</span>
                     <span>{{.Hits}} 次阅读</span>
                     <span>·</span>
                     <span>{{.Article.CommentsNum}} 条评论</span>
                 </div>
-                {{end}}
+                {{else if .Article}}
+                <div class="fluid-banner-title">{{.Article.Title}}</div>
                 {{else if .Title}}
                 <div class="fluid-banner-title">{{if .Keyword}}{{.Type}} · {{.Keyword}}{{else}}{{.Title}}{{end}}</div>
                 {{else}}

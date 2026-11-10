@@ -1,7 +1,11 @@
-/* The pre-animation Fluid article grid handles the column widths, right-hand
-   contents and phone layout. The title takes the place of the old photo banner. */
 body.fluid-reader { background: var(--fluid-board-bg); }
-.fluid-reader-top { height: 70px; }
+.fluid-banner-post .fluid-banner-image { opacity: 1; }
+.fluid-banner-post .fluid-banner-title h1 {
+    margin: 0;
+    font: inherit;
+    color: inherit;
+    overflow-wrap: anywhere;
+}
 .fluid-reader .fluid-post-board {
     margin-top: 0;
     padding-top: clamp(30px, 5vw, 64px);
@@ -10,29 +14,8 @@ body.fluid-reader { background: var(--fluid-board-bg); }
     background: transparent;
 }
 .fluid-reader .fluid-post-sidebar { padding-top: clamp(30px, 5vw, 64px); }
-.fluid-reader .fluid-reader-heading {
-    margin: 0 0 26px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--fluid-line);
-}
-.fluid-reader .fluid-reader-heading h1 {
-    margin: 0;
-    color: var(--fluid-post-text);
-    font-size: clamp(28px, 3.25vw, 42px);
-    font-weight: 650;
-    line-height: 1.3;
-    overflow-wrap: anywhere;
-}
-.fluid-reader-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin: 10px 0 0; }
-.fluid-reader-meta { color: var(--fluid-secondary); font-size: 14px; }
 .fluid-reader .fluid-html-post-board { padding-top: 0; }
-.fluid-html-post-content > .fluid-reader-heading {
-    width: min(calc(100% - 36px), 960px);
-    margin: 0 auto;
-    padding: clamp(24px, 4vw, 48px) 0 20px;
-}
 @media (max-width: 767px) {
-    .fluid-reader-top { height: 62px; }
     .fluid-reader .fluid-post-content:not(.fluid-html-post-content) { padding-inline: 12px; }
     .fluid-reader .fluid-post-board { margin-top: 0; }
 }
