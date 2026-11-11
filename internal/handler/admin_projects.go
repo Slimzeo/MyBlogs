@@ -91,22 +91,24 @@ func (server *Server) adminProjectSave(context *gin.Context) {
 		respondFail(context, "所选文章无效")
 		return
 	}
+	animation, animationSubmitted := context.GetPostForm("animation_url")
 	project := &model.Project{
-		ID:          id,
-		Slug:        context.PostForm("slug"),
-		Name:        context.PostForm("name"),
-		Summary:     context.PostForm("summary"),
-		CoverURL:    context.PostForm("cover_url"),
-		CoverAlt:    context.PostForm("cover_alt"),
-		PlatformURL: context.PostForm("platform_url"),
-		GitHubURL:   context.PostForm("github_url"),
-		ArticleID:   articleID,
-		Sort:        sortValue,
+		ID:           id,
+		Slug:         context.PostForm("slug"),
+		Name:         context.PostForm("name"),
+		Summary:      context.PostForm("summary"),
+		CoverURL:     context.PostForm("cover_url"),
+		AnimationURL: animation,
+		CoverAlt:     context.PostForm("cover_alt"),
+		PlatformURL:  context.PostForm("platform_url"),
+		GitHubURL:    context.PostForm("github_url"),
+		ArticleID:    articleID,
+		Sort:         sortValue,
 	}
 	if id == 0 {
 		err = server.service.CreateProject(project)
 	} else {
-		err = server.service.UpdateProject(project)
+		err = server.service.UpdateProject(project, animationSubmitted)
 	}
 	if err != nil {
 		respondServiceError(context, err, "项目保存失败")

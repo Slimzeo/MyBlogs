@@ -105,6 +105,7 @@ func TestBlogLibraryReadingPaths(t *testing.T) {
 		`href="https://github.com/owariband/Seekino"`, `href="https://github.com/Slimzeo/catendar"`,
 		`href="https://seekino.hypn0s.cloud/search"`, `aria-label="Seekino 平台体验"`, `aria-label="Seekino GitHub"`, `aria-label="catendar GitHub"`,
 		`src="https://raw.githubusercontent.com/owariband/Seekino/main/assets/seekino-logo.svg"`,
+		`https://raw.githubusercontent.com/owariband/Seekino/main/assets/readme/seekino-idle.svg`,
 		`src="https://raw.githubusercontent.com/Slimzeo/catendar/main/build/appicon.png"`,
 		`src="https://raw.githubusercontent.com/primer/octicons/main/icons/mark-github-16.svg"`)
 	absent(projects, `class="tag-index"`, `>Tags</a>`, `src="/user/img/projects/`,

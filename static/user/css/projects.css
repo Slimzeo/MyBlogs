@@ -143,6 +143,12 @@ html[data-color-scheme="dark"] .project-action-secondary .project-github-mark { 
   line-height: 1;
 }
 .project-art:has(img) .project-art-mark { visibility: hidden; }
+.project-art picture { display: block; }
+/* Animated-only cards keep their fallback image empty, so the letter mark stays visible when motion is reduced. */
+@media (prefers-reduced-motion: reduce) {
+  .project-cover:not([src]) { display: none; }
+  .project-art:has(.project-cover:not([src])) .project-art-mark { visibility: visible; }
+}
 .project-rail-footer {
   display: flex;
   justify-content: flex-end;

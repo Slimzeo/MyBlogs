@@ -102,7 +102,7 @@ func TestProjectCardsAdminEditsReachPublicPages(t *testing.T) {
 		t.Fatal("seeded Seekino card is missing")
 	}
 	editPage := get("/admin/projects/"+strconv.Itoa(seekino.ID), http.StatusOK)
-	has(editPage, `value="seekino"`, "Seekino", `name="cover_url"`, `name="platform_url"`, `name="github_url"`, `name="article_id"`)
+	has(editPage, `value="seekino"`, "Seekino", `name="cover_url"`, `name="animation_url"`, `name="platform_url"`, `name="github_url"`, `name="article_id"`)
 	get("/admin/projects/999999", http.StatusNotFound)
 
 	stale := postAdminForm(t, client, testServer.URL, "/admin/projects/save", "/admin/projects/"+strconv.Itoa(seekino.ID), url.Values{
@@ -141,8 +141,9 @@ func TestProjectCardsAdminEditsReachPublicPages(t *testing.T) {
 	before := countArticles()
 	form := url.Values{
 		"name": {"Gallery Demo"}, "slug": {"gallery-demo"}, "article_id": {strconv.Itoa(article.Cid)},
-		"cover_url": {"https://github.com/example/demo/blob/main/docs/cover.png"},
-		"cover_alt": {"示例标志"}, "github_url": {"https://github.com/example/demo.git"}, "sort": {"5"},
+		"cover_url":     {"https://github.com/example/demo/blob/main/docs/cover.png"},
+		"animation_url": {"https://github.com/example/demo/blob/main/docs/idle,small.gif"},
+		"cover_alt":     {"示例标志"}, "github_url": {"https://github.com/example/demo.git"}, "sort": {"5"},
 	}
 	save := func(path string) bool {
 		t.Helper()
@@ -155,11 +156,16 @@ func TestProjectCardsAdminEditsReachPublicPages(t *testing.T) {
 	if err != nil || card == nil {
 		t.Fatalf("created card missing: %v", err)
 	}
+	const gifURL = "https://raw.githubusercontent.com/example/demo/main/docs/idle%2Csmall.gif"
+	if card.AnimationURL != gifURL {
+		t.Fatalf("stored animation = %q", card.AnimationURL)
+	}
 	edit := "/admin/projects/" + strconv.Itoa(card.ID)
 	public := func() string { return get("/projects", http.StatusOK) }
 	has(public(), "Gallery Demo", `href="/article/fixture-article"`, `href="https://github.com/example/demo"`, `src="https://raw.githubusercontent.com/example/demo/main/docs/cover.png"`)
 	has(get("/projects/gallery-demo", http.StatusOK), `id="project:gallery-demo"`)
-	has(get(edit, http.StatusOK), ">Fixture article</option>")
+	has(get(edit, http.StatusOK), ">Fixture article</option>", gifURL)
+	has(public(), gifURL)
 	form.Set("id", strconv.Itoa(card.ID))
 	for _, status := range []string{model.TypeDraft, model.TypePrivate, model.TypeEncrypted} {
 		if err := database.Model(&article).Update("status", status).Error; err != nil {
@@ -198,13 +204,19 @@ func TestProjectCardsAdminEditsReachPublicPages(t *testing.T) {
 		t.Fatal("deleted article still linked")
 	}
 	form.Set("article_id", "0")
+	form.Set("animation_url", "https://example.org/invalid.gif")
+	if save(edit) {
+		t.Fatal("non-GitHub animation URL was accepted")
+	}
+	has(public(), gifURL)
+	form.Set("animation_url", "")
 	form.Set("github_url", "")
 	form.Set("cover_url", "")
 	if !save(edit) {
 		t.Fatal("optional fields could not be cleared")
 	}
 	card, err = services.ProjectByID(card.ID)
-	if err != nil || card == nil || card.ArticleID != 0 || card.GitHubURL != "" || card.CoverURL != "" {
+	if err != nil || card == nil || card.ArticleID != 0 || card.GitHubURL != "" || card.CoverURL != "" || card.AnimationURL != "" {
 		t.Fatalf("clearing optional fields did not persist: %#v, %v", card, err)
 	}
 
@@ -244,7 +256,10 @@ func TestProjectCardsAdminEditsReachPublicPages(t *testing.T) {
 	if !validUpdate.Success {
 		t.Fatalf("valid project update failed: %s", validUpdate.Msg)
 	}
-	has(get("/projects", http.StatusOK), "Seekino Updated", "更新后的项目简介。")
+	has(get("/projects", http.StatusOK), "Seekino Updated", "更新后的项目简介。", seekino.AnimationURL)
+	if saved, err := services.ProjectByID(seekino.ID); err != nil || saved == nil || saved.AnimationURL == "" || saved.AnimationURL != seekino.AnimationURL {
+		t.Fatal("a form that omitted animation_url erased the animation")
+	}
 
 	projects, err = services.Projects()
 	if err != nil {

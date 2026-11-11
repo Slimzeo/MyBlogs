@@ -26,11 +26,15 @@
 
         <label for="project-cover">项目标志 URL</label>
         <input id="project-cover" type="url" name="cover_url" maxlength="1024" placeholder="https://raw.githubusercontent.com/owner/repo/main/logo.svg" value="{{if $project}}{{$project.CoverURL}}{{end}}"/>
-        <p class="help-block">选填。卡片主图和体验按钮共用这张 GitHub 图片。</p>
+        <p class="help-block">选填。用作体验按钮图标，也用作卡片的静态封面。</p>
 
         <label for="project-cover-alt">标志描述</label>
         <input id="project-cover-alt" type="text" name="cover_alt" maxlength="300" value="{{if $project}}{{$project.CoverAlt}}{{end}}"/>
         <p class="help-block">供读屏软件朗读。</p>
+
+        <label for="project-animation">卡片动图 URL</label>
+        <input id="project-animation" type="url" name="animation_url" maxlength="1024" placeholder="https://raw.githubusercontent.com/owner/repo/main/demo.gif" value="{{if $project}}{{$project.AnimationURL}}{{end}}"/>
+        <p class="help-block">选填。支持 GitHub 上的 GIF 和动画 SVG。开启「减少动态效果」时显示静态封面。</p>
 
         <label for="project-platform">平台体验链接</label>
         <input id="project-platform" type="url" name="platform_url" maxlength="1024" placeholder="https://example.com" value="{{if $project}}{{$project.PlatformURL}}{{end}}"/>

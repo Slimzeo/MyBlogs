@@ -92,7 +92,7 @@ func (s *Service) CreateProject(project *model.Project) error {
 
 // UpdateProject saves every editable field without changing the creation time
 // or another card's slug.
-func (s *Service) UpdateProject(project *model.Project) error {
+func (s *Service) UpdateProject(project *model.Project, animationSubmitted bool) error {
 	if project == nil || project.ID <= 0 {
 		return Tip("项目不存在")
 	}
@@ -119,6 +119,10 @@ func (s *Service) UpdateProject(project *model.Project) error {
 		"article_id":  project.ArticleID,
 		"sort":        project.Sort,
 		"modified":    project.Modified,
+	}
+	// An editor opened before the animated-cover field existed omits this key.
+	if animationSubmitted {
+		updates["animation_url"] = project.AnimationURL
 	}
 	result := s.db.Model(&model.Project{}).Where("id = ?", project.ID).Updates(updates)
 	if result.Error != nil {
@@ -193,6 +197,12 @@ func (s *Service) prepareProject(project, previous *model.Project) error {
 		return err
 	}
 	project.CoverURL = coverURL
+	animationURL, err := normalizeCoverURL(strings.TrimSpace(project.AnimationURL))
+	if err != nil {
+		return Tip("请填写有效的 GitHub 动图地址")
+	}
+	// A raw comma separates image candidates in an HTML srcset.
+	project.AnimationURL = strings.ReplaceAll(animationURL, ",", "%2C")
 
 	platformURL, err := normalizeProjectURL(project.PlatformURL)
 	if err != nil {

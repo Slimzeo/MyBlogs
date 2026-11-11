@@ -12,21 +12,23 @@ import (
 )
 
 const (
-	projectSeedMarker  = "project_cards_seeded"
-	projectLinksMarker = "project_card_links_v2"
-	seekinoLogoMarker  = "project_card_seekino_logo_path"
-	seekinoPlatform    = "https://seekino.hypn0s.cloud/search"
-	seekinoRepo        = "https://github.com/owariband/Seekino"
-	catendarRepo       = "https://github.com/Slimzeo/catendar"
-	seekinoCover       = "https://raw.githubusercontent.com/owariband/Seekino/main/assets/seekino-logo.svg"
-	formerSeekinoLogo  = "https://raw.githubusercontent.com/owariband/Seekino/main/assets/mascot/seekino-logo.svg"
-	catendarCover      = "https://raw.githubusercontent.com/Slimzeo/catendar/main/build/appicon.png"
-	seekinoAlt         = "Seekino 的青绿色鲸鲨标志"
-	catendarAlt        = "catendar 的紫色折角猫图标"
-	oldSeekinoCover    = "https://raw.githubusercontent.com/owariband/Seekino/main/assets/screenshots/search-results.jpg"
-	oldCatendarCover   = "https://raw.githubusercontent.com/Slimzeo/catendar/main/docs/daily-board.png"
-	oldSeekinoAlt      = "Seekino 的片段检索结果，右侧可播放带起止时间的原片"
-	oldCatendarAlt     = "catendar 的每日看板，任务按待办、进行中和已完成分为三列"
+	projectSeedMarker   = "project_cards_seeded"
+	projectLinksMarker  = "project_card_links_v2"
+	seekinoLogoMarker   = "project_card_seekino_logo_path"
+	seekinoMotionMarker = "project_card_seekino_animation"
+	seekinoAnimation    = "https://raw.githubusercontent.com/owariband/Seekino/main/assets/readme/seekino-idle.svg"
+	seekinoPlatform     = "https://seekino.hypn0s.cloud/search"
+	seekinoRepo         = "https://github.com/owariband/Seekino"
+	catendarRepo        = "https://github.com/Slimzeo/catendar"
+	seekinoCover        = "https://raw.githubusercontent.com/owariband/Seekino/main/assets/seekino-logo.svg"
+	formerSeekinoLogo   = "https://raw.githubusercontent.com/owariband/Seekino/main/assets/mascot/seekino-logo.svg"
+	catendarCover       = "https://raw.githubusercontent.com/Slimzeo/catendar/main/build/appicon.png"
+	seekinoAlt          = "Seekino 的青绿色鲸鲨标志"
+	catendarAlt         = "catendar 的紫色折角猫图标"
+	oldSeekinoCover     = "https://raw.githubusercontent.com/owariband/Seekino/main/assets/screenshots/search-results.jpg"
+	oldCatendarCover    = "https://raw.githubusercontent.com/Slimzeo/catendar/main/docs/daily-board.png"
+	oldSeekinoAlt       = "Seekino 的片段检索结果，右侧可播放带起止时间的原片"
+	oldCatendarAlt      = "catendar 的每日看板，任务按待办、进行中和已完成分为三列"
 )
 
 // Persist each marker in the same transaction as its edits so a restart
@@ -56,7 +58,7 @@ func seedProjects(db *gorm.DB) error {
 		now := int(time.Now().Unix())
 		projects := []model.Project{
 			{Slug: "seekino", Name: "Seekino", Summary: "用一句话或一张截图，在视频里找到记得的那一幕。",
-				CoverURL: seekinoCover, CoverAlt: seekinoAlt, PlatformURL: seekinoPlatform, GitHubURL: seekinoRepo,
+				CoverURL: seekinoCover, AnimationURL: seekinoAnimation, CoverAlt: seekinoAlt, PlatformURL: seekinoPlatform, GitHubURL: seekinoRepo,
 				Sort: 10, Created: now, Modified: now},
 			{Slug: "catendar", Name: "catendar", Summary: "今天的任务放进看板，有时间的约定留给月历。",
 				CoverURL: catendarCover, CoverAlt: catendarAlt, GitHubURL: catendarRepo,
@@ -72,9 +74,16 @@ func seedProjects(db *gorm.DB) error {
 	}
 	// Seekino moved its official asset when publishing the smaller source tree.
 	// Upgrade the former default without overwriting an author's replacement.
-	return projectMigration(db, seekinoLogoMarker, "Seekino 官方标志路径已更新", func(tx *gorm.DB) error {
+	if err := projectMigration(db, seekinoLogoMarker, "Seekino 官方标志路径已更新", func(tx *gorm.DB) error {
 		return tx.Model(&model.Project{}).Where("slug = ? AND cover_url = ?", "seekino", formerSeekinoLogo).
 			Update("cover_url", seekinoCover).Error
+	}); err != nil {
+		return err
+	}
+	return projectMigration(db, seekinoMotionMarker, "Seekino 卡片已启用官方待机动图", func(tx *gorm.DB) error {
+		return tx.Model(&model.Project{}).
+			Where("slug = ? AND cover_url = ? AND COALESCE(animation_url, '') = ''", "seekino", seekinoCover).
+			Update("animation_url", seekinoAnimation).Error
 	})
 }
 

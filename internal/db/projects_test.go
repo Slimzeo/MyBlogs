@@ -48,8 +48,8 @@ func TestProjectSeedRunsOnceAndNeverRefillsADeletedGallery(t *testing.T) {
 	if len(seeded) != 2 || seeded[0].Slug != "seekino" || seeded[1].Slug != "catendar" {
 		t.Fatalf("seeded projects = %#v", seeded)
 	}
-	if seeded[0].CoverURL != seekinoCover || seeded[0].PlatformURL != seekinoPlatform || seeded[0].GitHubURL != seekinoRepo ||
-		seeded[1].CoverURL != catendarCover || seeded[1].PlatformURL != "" || seeded[1].GitHubURL != catendarRepo ||
+	if seeded[0].CoverURL != seekinoCover || seeded[0].AnimationURL != seekinoAnimation || seeded[0].PlatformURL != seekinoPlatform || seeded[0].GitHubURL != seekinoRepo ||
+		seeded[1].CoverURL != catendarCover || seeded[1].AnimationURL != "" || seeded[1].PlatformURL != "" || seeded[1].GitHubURL != catendarRepo ||
 		seeded[0].ArticleID != 0 || seeded[1].ArticleID != 0 {
 		t.Fatalf("incorrect default links or artwork: %#v", seeded)
 	}
@@ -59,7 +59,7 @@ func TestProjectSeedRunsOnceAndNeverRefillsADeletedGallery(t *testing.T) {
 	}
 
 	if err := first.Model(&model.Project{}).Where("slug = ?", "seekino").
-		Updates(map[string]any{"name": "Seekino Edited"}).Error; err != nil {
+		Updates(map[string]any{"name": "Seekino Edited", "animation_url": ""}).Error; err != nil {
 		t.Fatal(err)
 	}
 	closeDatabase(first)
@@ -70,8 +70,8 @@ func TestProjectSeedRunsOnceAndNeverRefillsADeletedGallery(t *testing.T) {
 	if err := second.Where("slug = ?", "seekino").First(&edited).Error; err != nil {
 		t.Fatal(err)
 	}
-	if edited.Name != "Seekino Edited" {
-		t.Fatalf("reopening the database overwrote the edit: %q", edited.Name)
+	if edited.Name != "Seekino Edited" || edited.AnimationURL != "" {
+		t.Fatalf("reopening the database overwrote the edit: %#v", edited)
 	}
 	if err := second.Where("1 = 1").Delete(&model.Project{}).Error; err != nil {
 		t.Fatal(err)
@@ -159,7 +159,7 @@ func TestUpgradeLegacyProjectsPreservesAuthoredFields(t *testing.T) {
 		}
 		return card
 	}
-	if c := load("seekino"); c.PlatformURL != seekinoPlatform || c.GitHubURL != seekinoRepo || c.CoverURL != seekinoCover || c.CoverAlt != seekinoAlt {
+	if c := load("seekino"); c.PlatformURL != seekinoPlatform || c.GitHubURL != seekinoRepo || c.CoverURL != seekinoCover || c.CoverAlt != seekinoAlt || c.AnimationURL != seekinoAnimation {
 		t.Fatalf("seekino upgrade: %#v", c)
 	}
 	if c := load("catendar"); c.PlatformURL != "" || c.GitHubURL != catendarRepo || c.CoverURL != catendarCover || c.CoverAlt != "Edited alt" {
@@ -173,6 +173,15 @@ func TestUpgradeLegacyProjectsPreservesAuthoredFields(t *testing.T) {
 	}
 	if c := load("blank"); c.GitHubURL != "" || c.PlatformURL != "" || c.CoverURL != "" {
 		t.Fatalf("empty fields overwritten: %#v", c)
+	}
+	// An older card whose owner chose other artwork keeps that artwork on upgrade.
+	const customCover = "https://raw.githubusercontent.com/example/brand/main/custom.png"
+	must(db.Where("name = ?", seekinoMotionMarker).Delete(&model.Option{}).Error)
+	must(db.Model(&model.Project{}).Where("slug = ?", "seekino").
+		Updates(map[string]any{"cover_url": customCover, "animation_url": ""}).Error)
+	must(seedProjects(db))
+	if c := load("seekino"); c.CoverURL != customCover || c.AnimationURL != "" {
+		t.Fatalf("animation migration changed custom artwork: %#v", c)
 	}
 	// A database that ran the earlier links upgrade already has independent
 	// destinations. Relocating the official logo must only update the URL.

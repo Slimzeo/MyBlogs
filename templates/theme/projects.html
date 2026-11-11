@@ -1,7 +1,7 @@
 {{define "projects"}}
 {{template "header" .}}
 <main id="fluid-page-main" class="project-main" aria-labelledby="directory-title">
-  <link rel="stylesheet" href="/user/css/projects.css?v=2"/>
+  <link rel="stylesheet" href="/user/css/projects.css?v=3"/>
   <section id="board" class="project-carousel" aria-label="个人项目">
     {{if .Projects}}
     <div class="project-rail" id="projects-track" data-project-rail tabindex="0" role="region" aria-label="项目卡片，可左右滚动">
@@ -33,7 +33,21 @@
         </div>
         <div class="project-art">
           <span class="project-art-mark" aria-hidden="true">{{substr .Name 1}}</span>
-          {{if .CoverURL}}<img class="project-cover" src="{{.CoverURL}}" alt="{{if .CoverAlt}}{{.CoverAlt}}{{else}}{{.Name}} 项目标志{{end}}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()"/>{{end}}
+          {{if or .CoverURL .AnimationURL}}
+          <!-- One image per card: native motion when allowed, then the still, then the letter below. -->
+          <picture>
+            {{with .AnimationURL}}<source media="(prefers-reduced-motion: no-preference)" srcset="{{.}}"/>{{end}}
+            <img class="project-cover" {{with .CoverURL}}src="{{.}}"{{end}}
+                 alt="{{if .CoverAlt}}{{.CoverAlt}}{{else}}{{.Name}} 项目标志{{end}}"
+                 loading="lazy" decoding="async" referrerpolicy="no-referrer"
+                 onerror="const motion = this.previousElementSibling;
+                          if (motion && this.hasAttribute('src') && this.currentSrc !== this.src) {
+                            motion.remove();
+                          } else if (this.currentSrc || this.hasAttribute('src')) {
+                            this.remove();
+                          }"/>
+          </picture>
+          {{end}}
         </div>
       </article>
       {{end}}
