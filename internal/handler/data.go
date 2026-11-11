@@ -12,6 +12,7 @@ type PageData struct {
 	NativeGuide      bool
 	Library          *blogLibrary
 	Projects         []model.Project
+	ProjectArticles  []model.Content
 	Project          *model.Project
 	Home             bool
 	PublicSummary    service.PublicSummary

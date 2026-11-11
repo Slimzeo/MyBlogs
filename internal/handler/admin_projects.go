@@ -25,7 +25,7 @@ func (server *Server) adminProjectCards(context *gin.Context) {
 }
 
 func (server *Server) adminProjectNew(context *gin.Context) {
-	server.render(context, http.StatusOK, "admin/project_edit", server.baseData(context, "新建项目卡片", "projects"))
+	server.projectEditor(context, "新建项目卡片", nil)
 }
 
 func (server *Server) adminProjectEdit(context *gin.Context) {
@@ -44,12 +44,29 @@ func (server *Server) adminProjectEdit(context *gin.Context) {
 		server.render(context, http.StatusNotFound, "error_404", PageData{})
 		return
 	}
-	data := server.baseData(context, "编辑项目卡片", "projects")
+	server.projectEditor(context, "编辑项目卡片", project)
+}
+
+func (server *Server) projectEditor(context *gin.Context, title string, project *model.Project) {
+	articles, err := server.service.PublishedProjectArticles()
+	if err != nil {
+		log.Printf("admin load project articles: %v", err)
+		server.render(context, http.StatusInternalServerError, "error_500", PageData{Message: "文章列表读取失败"})
+		return
+	}
+	data := server.baseData(context, title, "projects")
+	data.ProjectArticles = articles
 	data.Project = project
 	server.render(context, http.StatusOK, "admin/project_edit", data)
 }
 
 func (server *Server) adminProjectSave(context *gin.Context) {
+	// A tab opened before the links migration still posts the old form.
+	// Reject it before absent fields can clear the new destinations.
+	if _, legacy := context.GetPostForm("project_url"); legacy {
+		respondFail(context, "卡片编辑器已更新，请刷新页面后再保存")
+		return
+	}
 	idValue := strings.TrimSpace(context.PostForm("id"))
 	id := 0
 	if idValue != "" {
@@ -69,18 +86,23 @@ func (server *Server) adminProjectSave(context *gin.Context) {
 		}
 		sortValue = parsed
 	}
-	project := &model.Project{
-		ID:         id,
-		Slug:       context.PostForm("slug"),
-		Name:       context.PostForm("name"),
-		Summary:    context.PostForm("summary"),
-		Notes:      context.PostForm("notes"),
-		CoverURL:   context.PostForm("cover_url"),
-		CoverAlt:   context.PostForm("cover_alt"),
-		ProjectURL: context.PostForm("project_url"),
-		Sort:       sortValue,
+	articleID, err := strconv.Atoi(defaultString(strings.TrimSpace(context.PostForm("article_id")), "0"))
+	if err != nil || articleID < 0 {
+		respondFail(context, "所选文章无效")
+		return
 	}
-	var err error
+	project := &model.Project{
+		ID:          id,
+		Slug:        context.PostForm("slug"),
+		Name:        context.PostForm("name"),
+		Summary:     context.PostForm("summary"),
+		CoverURL:    context.PostForm("cover_url"),
+		CoverAlt:    context.PostForm("cover_alt"),
+		PlatformURL: context.PostForm("platform_url"),
+		GitHubURL:   context.PostForm("github_url"),
+		ArticleID:   articleID,
+		Sort:        sortValue,
+	}
 	if id == 0 {
 		err = server.service.CreateProject(project)
 	} else {

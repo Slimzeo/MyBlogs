@@ -103,12 +103,18 @@ func TestBlogLibraryReadingPaths(t *testing.T) {
 	has(projects, `href="/projects" aria-current="page"`, `class="project-carousel"`, `class="project-rail"`,
 		`id="seekino"`, `id="catendar"`, `data-project-card`,
 		`href="https://github.com/owariband/Seekino"`, `href="https://github.com/Slimzeo/catendar"`,
-		`src="https://raw.githubusercontent.com/owariband/Seekino/main/assets/screenshots/search-results.jpg"`,
-		`src="https://raw.githubusercontent.com/Slimzeo/catendar/main/docs/daily-board.png"`)
-	absent(projects, `class="tag-index"`, `>Tags</a>`, `src="/user/img/projects/`)
-	has(projects, `href="/projects/seekino"`, `href="/projects/catendar"`)
+		`href="https://seekino.hypn0s.cloud/search"`, `aria-label="Seekino 平台体验"`, `aria-label="Seekino GitHub"`, `aria-label="catendar GitHub"`,
+		`src="https://raw.githubusercontent.com/owariband/Seekino/main/assets/mascot/seekino-logo.svg"`,
+		`src="https://raw.githubusercontent.com/Slimzeo/catendar/main/build/appicon.png"`,
+		`src="https://raw.githubusercontent.com/primer/octicons/main/icons/mark-github-16.svg"`)
+	absent(projects, `class="tag-index"`, `>Tags</a>`, `src="/user/img/projects/`,
+		`href="/projects/seekino"`, `href="/projects/catendar"`, "项目介绍", "访问项目", "相关文章", "catendar 平台体验")
 	for _, slug := range []string{"seekino", "catendar"} {
-		has(get("/projects/"+slug, http.StatusOK), bannerImage, `href="/projects#`+slug+`"`, `class="fluid-markdown"`)
+		bookmark := httptest.NewRecorder()
+		engine.ServeHTTP(bookmark, httptest.NewRequest(http.MethodGet, "/projects/"+slug, nil))
+		if bookmark.Code != http.StatusFound || bookmark.Header().Get("Location") != "/projects#"+slug {
+			t.Fatalf("old %s bookmark: %d %s", slug, bookmark.Code, bookmark.Header().Get("Location"))
+		}
 	}
 	get("/projects/unknown", http.StatusNotFound)
 	dir := get("/categories", 200)

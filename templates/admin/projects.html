@@ -4,14 +4,19 @@
     <h3 style="display:flex;justify-content:space-between;">项目卡片 <a class="btn btn-primary btn-sm" href="/admin/projects/new">新建项目卡片</a></h3>
     {{if .Message}}<p class="help-block">{{.Message}}</p>{{end}}
     <table>
-        <thead><tr><th style="width:70px;">排序</th><th>名称与简介</th><th style="width:130px;">路径</th><th style="width:100px;">项目链接</th><th style="width:140px;">操作</th></tr></thead>
+        <thead><tr><th style="width:70px;">排序</th><th>名称与简介</th><th style="width:130px;">路径</th><th style="width:170px;">项目链接</th><th style="width:140px;">操作</th></tr></thead>
         <tbody>
         {{range .Projects}}
         <tr>
             <td>{{.Sort}}</td>
-            <td><a href="/projects/{{.Slug}}" target="_blank" rel="noopener">{{.Name}}</a><div class="help-block" style="max-width:520px;">{{.Summary}}</div></td>
+            <td><a href="/projects#{{projectAnchor .Slug}}" target="_blank" rel="noopener noreferrer">{{.Name}}</a>{{if .Summary}}<div class="help-block" style="max-width:520px;">{{.Summary}}</div>{{end}}</td>
             <td>{{.Slug}}</td>
-            <td>{{if .ProjectURL}}<a href="{{.ProjectURL}}" target="_blank" rel="noopener noreferrer">访问项目 ↗</a>{{else}}—{{end}}</td>
+            <td>
+                {{if .PlatformURL}}<div><a href="{{.PlatformURL}}" target="_blank" rel="noopener noreferrer">平台体验 ↗</a></div>{{end}}
+                {{if .GitHubURL}}<div><a href="{{.GitHubURL}}" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div>{{end}}
+                {{with .Article}}<div><a href="{{permalink .}}" target="_blank" rel="noopener noreferrer">相关文章 ↗</a></div>{{end}}
+                {{if not (or .PlatformURL .GitHubURL .Article)}}<span class="help-block">—</span>{{end}}
+            </td>
             <td>
                 <a class="btn btn-default btn-sm" href="/admin/projects/{{.ID}}">编辑</a>
                 <a class="btn btn-danger btn-sm" href="javascript:;" onclick="deleteProject({{.ID}})">删除</a>

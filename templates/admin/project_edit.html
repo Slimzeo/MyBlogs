@@ -18,36 +18,49 @@
 
         <label for="project-slug">路径</label>
         <input id="project-slug" type="text" name="slug" maxlength="100" required value="{{if $project}}{{$project.Slug}}{{end}}"/>
-        <p class="help-block">使用字母、数字、- 或 _，最多 100 个字符。公开详情地址为 /projects/路径。</p>
+        <p class="help-block">使用字母或数字开头，可含 - 和 _，最多 100 个字符。</p>
 
         <label for="project-summary">简介</label>
-        <textarea id="project-summary" name="summary" rows="3" maxlength="500" required>{{if $project}}{{$project.Summary}}{{end}}</textarea>
+        <textarea id="project-summary" name="summary" rows="3" maxlength="500">{{if $project}}{{$project.Summary}}{{end}}</textarea>
+        <p class="help-block">选填。显示在项目名称下方。</p>
 
-        <label for="project-cover">封面图片 URL</label>
-        <input id="project-cover" type="url" name="cover_url" maxlength="1024" placeholder="https://raw.githubusercontent.com/..." value="{{if $project}}{{$project.CoverURL}}{{end}}"/>
-        <p class="help-block">粘贴 GitHub 仓库中的图片链接即可。留空时显示文字卡片。</p>
+        <label for="project-cover">项目标志 URL</label>
+        <input id="project-cover" type="url" name="cover_url" maxlength="1024" placeholder="https://raw.githubusercontent.com/owner/repo/main/logo.svg" value="{{if $project}}{{$project.CoverURL}}{{end}}"/>
+        <p class="help-block">选填。卡片主图和体验按钮共用这张 GitHub 图片。</p>
 
-        <label for="project-cover-alt">封面描述</label>
+        <label for="project-cover-alt">标志描述</label>
         <input id="project-cover-alt" type="text" name="cover_alt" maxlength="300" value="{{if $project}}{{$project.CoverAlt}}{{end}}"/>
-        <p class="help-block">用一句话描述图片，方便使用读屏软件的访客。</p>
+        <p class="help-block">供读屏软件朗读。</p>
 
-        <label for="project-url">项目链接</label>
-        <input id="project-url" type="url" name="project_url" maxlength="1024" placeholder="https://github.com/owner/repo" value="{{if $project}}{{$project.ProjectURL}}{{end}}"/>
-        <p class="help-block">HTTP 或 HTTPS 地址。留空时卡片不显示外链。</p>
+        <label for="project-platform">平台体验链接</label>
+        <input id="project-platform" type="url" name="platform_url" maxlength="1024" placeholder="https://example.com" value="{{if $project}}{{$project.PlatformURL}}{{end}}"/>
+        <p class="help-block">选填。填写可直接开始体验的网址。</p>
+
+        <label for="project-github">GitHub 链接</label>
+        <input id="project-github" type="url" name="github_url" maxlength="1024" placeholder="https://github.com/owner/repo" value="{{if $project}}{{$project.GitHubURL}}{{end}}"/>
+        <p class="help-block">选填。填写仓库首页地址。</p>
+
+        <label for="project-article">相关文章</label>
+        <select id="project-article" name="article_id">
+            <option value="0"{{if $project}}{{if eq $project.ArticleID 0}} selected{{end}}{{else}} selected{{end}}>可不关联</option>
+            {{range .ProjectArticles}}
+            <option value="{{.Cid}}"{{if $project}}{{if eq .Cid $project.ArticleID}} selected{{end}}{{end}}>{{.Title}}</option>
+            {{end}}
+            {{if $project}}{{if gt $project.ArticleID 0}}{{if not $project.Article}}
+            <option value="{{$project.ArticleID}}" selected>原关联文章（当前不可见）</option>
+            {{end}}{{end}}{{end}}
+        </select>
+        <p class="help-block">选填。文章公开发表后可在这里关联。</p>
 
         <label for="project-sort">排序</label>
         <input id="project-sort" type="number" name="sort" value="{{if $project}}{{$project.Sort}}{{else}}0{{end}}"/>
-        <p class="help-block">数字越小越靠前；相同排序按创建顺序稳定排列。</p>
-
-        <label for="project-notes">站内笔记（Markdown）</label>
-        <textarea id="project-notes" name="notes" rows="12">{{if $project}}{{$project.Notes}}{{end}}</textarea>
-        <p class="help-block">这里的文字显示在项目介绍页，封面与卡片共用。</p>
+        <p class="help-block">数字越小越靠前，相同排序按创建顺序排列。</p>
 
         <p id="project-feedback" class="help-block" role="status" aria-live="polite"></p>
         <div class="project-form-actions">
             <button type="submit" class="btn btn-primary">保存</button>
             <a class="btn btn-default" href="/admin/projects">取消</a>
-            {{if $project}}<a class="btn btn-default" href="/projects/{{$project.Slug}}" target="_blank" rel="noopener">查看公开页</a>{{end}}
+            {{if $project}}<a class="btn btn-default" href="/projects#{{projectAnchor $project.Slug}}" target="_blank" rel="noopener noreferrer">查看公开卡片</a>{{end}}
         </div>
     </form>
 </div>

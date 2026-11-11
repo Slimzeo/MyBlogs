@@ -15,7 +15,6 @@ import (
 const (
 	projectNameMax    = 120
 	projectSummaryMax = 500
-	projectNotesMax   = model.MaxTextCount
 	projectAltMax     = 300
 	projectURLMax     = 1024
 )
@@ -26,13 +25,24 @@ var projectSlug = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,99}$`)
 // then by id so equal sort values never change places between requests.
 func (s *Service) Projects() ([]model.Project, error) {
 	var projects []model.Project
-	if err := s.db.Order("sort ASC, id ASC").Find(&projects).Error; err != nil {
+	if err := s.db.Preload("Article", publishedProjectArticles).Order("sort ASC, id ASC").Find(&projects).Error; err != nil {
 		return nil, err
 	}
 	return projects, nil
 }
 
-// ProjectBySlug loads one public detail page. A missing slug is not an error.
+func publishedProjectArticles(db *gorm.DB) *gorm.DB {
+	return db.Select("cid", "slug", "title").Where("type = ? AND status = ?", model.TypeArticle, model.TypePublish)
+}
+
+// PublishedProjectArticles supplies the existing articles available in the card editor.
+func (s *Service) PublishedProjectArticles() ([]model.Content, error) {
+	var articles []model.Content
+	err := publishedProjectArticles(s.db).Order(articleDisplayOrder).Find(&articles).Error
+	return articles, err
+}
+
+// ProjectBySlug resolves existing bookmarks to their card.
 func (s *Service) ProjectBySlug(slug string) (*model.Project, error) {
 	var project model.Project
 	err := s.db.Where("slug = ?", strings.TrimSpace(slug)).First(&project).Error
@@ -51,7 +61,7 @@ func (s *Service) ProjectByID(id int) (*model.Project, error) {
 		return nil, nil
 	}
 	var project model.Project
-	err := s.db.First(&project, id).Error
+	err := s.db.Preload("Article", publishedProjectArticles).First(&project, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -64,14 +74,14 @@ func (s *Service) ProjectByID(id int) (*model.Project, error) {
 // CreateProject validates and inserts a card. Duplicate slugs are rejected
 // before the insert; the unique index also protects against a save race.
 func (s *Service) CreateProject(project *model.Project) error {
-	if err := s.prepareProject(project, 0); err != nil {
+	if err := s.prepareProject(project, nil); err != nil {
 		return err
 	}
 	now := util.CurrentUnixTime()
 	project.ID = 0
 	project.Created = now
 	project.Modified = now
-	if err := s.db.Create(project).Error; err != nil {
+	if err := s.db.Omit("Article").Create(project).Error; err != nil {
 		if duplicateKeyError(err) {
 			return Tip("该路径已经存在，请重新输入")
 		}
@@ -93,7 +103,7 @@ func (s *Service) UpdateProject(project *model.Project) error {
 		}
 		return err
 	}
-	if err := s.prepareProject(project, project.ID); err != nil {
+	if err := s.prepareProject(project, &existing); err != nil {
 		return err
 	}
 	project.Created = existing.Created
@@ -102,10 +112,11 @@ func (s *Service) UpdateProject(project *model.Project) error {
 		"slug":        project.Slug,
 		"name":        project.Name,
 		"summary":     project.Summary,
-		"notes":       project.Notes,
 		"cover_url":   project.CoverURL,
 		"cover_alt":   project.CoverAlt,
-		"project_url": project.ProjectURL,
+		"project_url": project.PlatformURL,
+		"github_url":  project.GitHubURL,
+		"article_id":  project.ArticleID,
 		"sort":        project.Sort,
 		"modified":    project.Modified,
 	}
@@ -146,17 +157,17 @@ func (s *Service) DeleteProject(id int) error {
 	return nil
 }
 
-func (s *Service) prepareProject(project *model.Project, excludeID int) error {
+func (s *Service) prepareProject(project, previous *model.Project) error {
 	if project == nil {
 		return Tip("项目不能为空")
 	}
 	project.Slug = strings.ToLower(strings.TrimSpace(project.Slug))
 	project.Name = strings.TrimSpace(project.Name)
 	project.Summary = strings.TrimSpace(project.Summary)
-	project.Notes = strings.TrimSpace(project.Notes)
 	project.CoverURL = strings.TrimSpace(project.CoverURL)
 	project.CoverAlt = strings.TrimSpace(project.CoverAlt)
-	project.ProjectURL = strings.TrimSpace(project.ProjectURL)
+	project.PlatformURL = strings.TrimSpace(project.PlatformURL)
+	project.GitHubURL = strings.TrimSpace(project.GitHubURL)
 
 	if project.Name == "" {
 		return Tip("项目名称不能为空")
@@ -170,14 +181,8 @@ func (s *Service) prepareProject(project *model.Project, excludeID int) error {
 	if !projectSlug.MatchString(project.Slug) {
 		return Tip("路径须以字母或数字开头，最多 100 位，可含 - 和 _")
 	}
-	if project.Summary == "" {
-		return Tip("项目简介不能为空")
-	}
 	if len([]rune(project.Summary)) > projectSummaryMax {
 		return Tip("项目简介过长")
-	}
-	if len([]rune(project.Notes)) > projectNotesMax {
-		return Tip("项目笔记过长")
 	}
 	if len([]rune(project.CoverAlt)) > projectAltMax {
 		return Tip("封面描述过长")
@@ -189,16 +194,36 @@ func (s *Service) prepareProject(project *model.Project, excludeID int) error {
 	}
 	project.CoverURL = coverURL
 
-	projectURL, err := normalizeProjectURL(project.ProjectURL)
+	platformURL, err := normalizeProjectURL(project.PlatformURL)
 	if err != nil {
 		return err
 	}
-	project.ProjectURL = projectURL
+	project.PlatformURL = platformURL
+	if project.GitHubURL != "" {
+		repository, ok := util.GitHubRepositoryURL(project.GitHubURL)
+		if !ok || len(repository) > projectURLMax {
+			return Tip("请填写 GitHub 仓库地址")
+		}
+		project.GitHubURL = repository
+	}
+	if project.ArticleID < 0 {
+		return Tip("所选文章无效")
+	}
+	if project.ArticleID > 0 && (previous == nil || previous.ArticleID != project.ArticleID) {
+		var count int64
+		err := s.db.Model(&model.Content{}).Where("cid = ? AND type = ? AND status = ?", project.ArticleID, model.TypeArticle, model.TypePublish).Count(&count).Error
+		if err != nil {
+			return err
+		}
+		if count == 0 {
+			return Tip("请选择已公开发布的文章")
+		}
+	}
 
 	var count int64
 	query := s.db.Model(&model.Project{}).Where("slug = ?", project.Slug)
-	if excludeID > 0 {
-		query = query.Where("id <> ?", excludeID)
+	if previous != nil {
+		query = query.Where("id <> ?", previous.ID)
 	}
 	if err := query.Count(&count).Error; err != nil {
 		return err

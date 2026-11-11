@@ -20,7 +20,7 @@ func (server *Server) projects(context *gin.Context) {
 	server.render(context, http.StatusOK, "projects", data)
 }
 
-func (server *Server) projectNotes(context *gin.Context) {
+func (server *Server) projectRedirect(context *gin.Context) {
 	project, err := server.service.ProjectBySlug(context.Param("slug"))
 	if err != nil {
 		log.Printf("load project %q: %v", context.Param("slug"), err)
@@ -31,10 +31,7 @@ func (server *Server) projectNotes(context *gin.Context) {
 		server.render(context, http.StatusNotFound, "error_404", PageData{})
 		return
 	}
-	data := server.baseData(context, project.Name, "projects")
-	data.Description = project.Summary
-	data.Project = project
-	server.render(context, http.StatusOK, "project-notes", data)
+	context.Redirect(http.StatusFound, "/projects#"+projectAnchor(project.Slug))
 }
 
 // Preserve bookmarks to the original two cards. Namespace new fragment IDs so
