@@ -1,7 +1,7 @@
 {{define "projects"}}
 {{template "header" .}}
-<main id="fluid-page-main" class="project-main" aria-labelledby="banner">
-  <section class="project-carousel" aria-label="个人项目" aria-roledescription="轮播">
+<main id="fluid-page-main" class="project-main" aria-labelledby="directory-title">
+  <section id="board" class="project-carousel" aria-label="个人项目" aria-roledescription="轮播">
     {{range .ProjectSlides}}
     <div class="project-slide" id="{{.Slug}}" tabindex="-1" role="group" aria-labelledby="title-{{.Slug}}">
       <a class="project-step project-prev" href="#{{.Previous}}" aria-label="上一个项目"><span aria-hidden="true">←</span></a>

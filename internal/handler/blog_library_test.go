@@ -37,6 +37,10 @@ func TestBlogLibraryReadingPaths(t *testing.T) {
 	c := cache.New()
 	t.Cleanup(c.Close)
 	svc := service.New(database, c, cfg)
+	const pageBanner = "/upload/configured-page-banner.jpg"
+	if err := svc.SaveOptions(map[string]string{"theme_page_banner": pageBanner}); err != nil {
+		t.Fatal(err)
+	}
 	server, err := handler.NewServer(cfg, svc, filepath.Join("..", "..", "templates"))
 	if err != nil {
 		t.Fatal(err)
@@ -90,12 +94,18 @@ func TestBlogLibraryReadingPaths(t *testing.T) {
 	has(feed, `class="journal-card"`, `href="/categories">浏览专栏`, `href="/blogs?page=2"`)
 	absent(feed, `class="library-shelves"`)
 	projects := get("/projects", http.StatusOK)
+	bannerImage := `src="` + pageBanner + `"`
+	has(projects, `class="fluid-banner fluid-banner-page"`, bannerImage, `id="directory-title">个人项目</h1>`,
+		`id="scroll-down"`, `id="board" class="project-carousel"`)
+	if strings.Index(projects, bannerImage) > strings.Index(projects, `class="project-carousel"`) {
+		t.Fatal("Projects must show the configured page photo above the carousel")
+	}
 	has(projects, `href="/projects" aria-current="page"`, `class="project-carousel"`, `href="#catendar"`, `href="#seekino"`,
 		`href="https://github.com/owariband/Seekino"`, `href="https://github.com/Slimzeo/catendar"`)
 	absent(projects, `class="tag-index"`, `>Tags</a>`)
 	for _, slug := range []string{"seekino", "catendar"} {
 		has(projects, `href="/projects/`+slug+`"`, `src="/user/img/projects/`+slug+`.webp"`)
-		has(get("/projects/"+slug, http.StatusOK), `href="/projects#`+slug+`"`, `class="fluid-markdown"`)
+		has(get("/projects/"+slug, http.StatusOK), bannerImage, `href="/projects#`+slug+`"`, `class="fluid-markdown"`)
 	}
 	get("/projects/unknown", http.StatusNotFound)
 	dir := get("/categories", 200)

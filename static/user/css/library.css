@@ -36,14 +36,15 @@ html[data-blog-site][data-reading]:has(.directory-main) [data-payathon-header] {
 .directory-board :where(ul,li) { list-style: none; margin: 0; padding: 0; }
 
 /* Project gallery. Real fragment targets keep the selected card shareable and keyboard accessible. */
+body:has(.project-main, .project-notes) .fluid-banner-image { opacity: 1; }
 html[data-blog-site][data-reading]:has(.project-main) [data-payathon-header] { background: var(--fluid-body-bg); }
 .project-main {
   width: min(calc(100% - 64px), 1100px);
-  min-height: calc(100svh - 96px);
   margin-inline: auto;
-  padding-block: calc(var(--bar-height, 64px) + clamp(16px, 3vw, 38px)) clamp(24px, 4vw, 56px);
+  padding-block: clamp(16px, 3vw, 40px) clamp(24px, 4vw, 56px);
 }
 .project-carousel {
+  scroll-margin-top: calc(var(--bar-height, 64px) + 12px);
   padding-block: clamp(20px, 4vw, 50px);
   border: 1px solid var(--fluid-line);
   border-radius: 24px;
@@ -125,7 +126,7 @@ body.fluid-theme .project-links a, body.fluid-theme .project-notes a { color: va
   @keyframes project-arrive { from { opacity: .6; transform: translateY(3px); } }
 }
 @media (max-width: 600px) {
-  .project-main { width: calc(100% - 24px); min-height: auto; }
+  .project-main { width: calc(100% - 24px); }
   .project-carousel { border-radius: 16px; padding-block: 16px; }
   .project-slide { gap: 2px; grid-template-columns: 44px minmax(0, 1fr) 44px; }
   .project-card { border-radius: 12px; padding-inline: 10px; }
