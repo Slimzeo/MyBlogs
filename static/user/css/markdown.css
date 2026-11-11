@@ -115,6 +115,18 @@ html[data-color-scheme="dark"] .fluid-markdown pre {
     background: transparent;
 }
 
+.math-display {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.math-display > .katex-display {
+    width: max-content;
+    min-width: 100%;
+    margin: .6em 0;
+}
+
 .fluid-markdown table {
     display: block;
     width: 100%;

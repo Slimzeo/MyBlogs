@@ -22,7 +22,7 @@ var md = goldmark.New(
 		parser.WithInlineParsers(parser.DefaultInlineParsers()...),
 		parser.WithParagraphTransformers(parser.DefaultParagraphTransformers()...),
 	)),
-	goldmark.WithExtensions(extension.GFM),
+	goldmark.WithExtensions(extension.GFM, mathMarkdown{}),
 	goldmark.WithRendererOptions(html.WithUnsafe(), html.WithHardWraps()),
 )
 

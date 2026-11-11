@@ -480,6 +480,12 @@
             updateScrollUI();
             mountComments();
             mountArticleTOC();
+            var prose = document.getElementById('post-content');
+            if (prose) {
+                import('/user/js/markdown-math.js').then(function (math) {
+                    return Promise.all([math.typesetMath(prose), math.typesetMath(document.getElementById('article-headline'))]);
+                }).catch(function (error) { console.warn('Math typesetting:', error); });
+            }
             if (window.HTMLArticleFrame) window.HTMLArticleFrame.mount();
             if (window.HomeFX) window.HomeFX.mount();
             mountLeafAnimation();

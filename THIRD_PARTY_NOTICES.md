@@ -35,6 +35,13 @@ The subset keeps the original glyph outlines and uses a new family name.
 The font is distributed under the [SIL Open Font License 1.1](refs_blog/payathon-2026/blog/assets/fonts/OFL.txt).
 If the headline changes, regenerate the subset to cover its new characters.
 
+## KaTeX
+
+Markdown articles and editor previews use [KaTeX 0.19.1](https://github.com/KaTeX/KaTeX/releases/tag/v0.19.1).
+The [local distribution](static/user/vendor/katex-0.19.1/) contains the npm release's ES module,
+stylesheet and WOFF2 fonts. The stylesheet references only the included font format.
+The [MIT license](static/user/vendor/katex-0.19.1/LICENSE) is included.
+
 ## Default banner
 
 `static/user/img/blog-banner.jpg` is based on the Unsplash photo

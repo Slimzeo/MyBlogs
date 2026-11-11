@@ -3,7 +3,7 @@
 {{$c := .Contents}}
 {{template "admin/article_import_styles" .}}
 <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css" onload="this.onload=null;this.rel='stylesheet'"/>
-<link href="/user/css/markdown.css" rel="stylesheet"/>
+<link href="/user/css/markdown.css?v=2" rel="stylesheet"/>
 <style>
     .article-editor-card{padding:28px}
     .article-editor-heading{display:flex;margin-bottom:20px;align-items:baseline;justify-content:space-between;gap:16px}
@@ -286,6 +286,11 @@
                     buildSourceMap();
                     syncPreviewScroll();
                     previewStatus.textContent = '已更新';
+                    import('/user/js/markdown-math.js').then(function (math) {
+                        return math.typesetMath(preview);
+                    }).then(function () {
+                        if (requestID === previewRequest) syncPreviewScroll();
+                    }).catch(function (error) { console.warn('Math typesetting:', error); });
                 }).catch(function (error) {
                     if (error.name === 'AbortError') return;
                     if (requestID === previewRequest) {

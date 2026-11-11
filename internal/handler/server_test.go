@@ -118,7 +118,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	for _, marker := range []string{
 		`href="/user/css/fluid.css?v=7"`,
-		`href="/user/css/markdown.css"`,
+		`href="/user/css/markdown.css?v=2"`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css`,
 		`class="fluid-theme fluid-font-wenkai"`,

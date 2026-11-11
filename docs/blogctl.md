@@ -71,6 +71,10 @@ status: draft
 - `display_time`：支持 `YYYY-MM-DDTHH:MM` 或 RFC3339。
 - `status`：只能省略或写 `draft`。CLI 和服务端都会拒绝通过 Agent Token 直接发布。
 
+正文和后台预览都支持 LaTeX 数学公式。行内可写 `$E=mc^2$` 或 `\(E=mc^2\)`。
+独立公式用 `$$` 或 `\[` 和 `\]` 包围，也可以放在语言标为 `math` 的代码围栏里。
+要展示公式写法本身，用普通 Markdown 行内代码或代码块。字面美元符号可以写成 `\$`。
+
 命令行 flags 会覆盖同名 front matter：
 
 ```bash
