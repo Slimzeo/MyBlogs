@@ -14,10 +14,12 @@ import (
 const (
 	projectSeedMarker  = "project_cards_seeded"
 	projectLinksMarker = "project_card_links_v2"
+	seekinoLogoMarker  = "project_card_seekino_logo_path"
 	seekinoPlatform    = "https://seekino.hypn0s.cloud/search"
 	seekinoRepo        = "https://github.com/owariband/Seekino"
 	catendarRepo       = "https://github.com/Slimzeo/catendar"
-	seekinoCover       = "https://raw.githubusercontent.com/owariband/Seekino/main/assets/mascot/seekino-logo.svg"
+	seekinoCover       = "https://raw.githubusercontent.com/owariband/Seekino/main/assets/seekino-logo.svg"
+	formerSeekinoLogo  = "https://raw.githubusercontent.com/owariband/Seekino/main/assets/mascot/seekino-logo.svg"
 	catendarCover      = "https://raw.githubusercontent.com/Slimzeo/catendar/main/build/appicon.png"
 	seekinoAlt         = "Seekino 的青绿色鲸鲨标志"
 	catendarAlt        = "catendar 的紫色折角猫图标"
@@ -65,7 +67,15 @@ func seedProjects(db *gorm.DB) error {
 	if err != nil {
 		return err
 	}
-	return projectMigration(db, projectLinksMarker, "项目卡片链接与标志已更新", migrateProjectLinks)
+	if err := projectMigration(db, projectLinksMarker, "项目卡片链接与标志已更新", migrateProjectLinks); err != nil {
+		return err
+	}
+	// Seekino moved its official asset when publishing the smaller source tree.
+	// Upgrade the former default without overwriting an author's replacement.
+	return projectMigration(db, seekinoLogoMarker, "Seekino 官方标志路径已更新", func(tx *gorm.DB) error {
+		return tx.Model(&model.Project{}).Where("slug = ? AND cover_url = ?", "seekino", formerSeekinoLogo).
+			Update("cover_url", seekinoCover).Error
+	})
 }
 
 func migrateProjectLinks(tx *gorm.DB) error {

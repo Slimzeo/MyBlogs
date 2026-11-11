@@ -174,6 +174,17 @@ func TestUpgradeLegacyProjectsPreservesAuthoredFields(t *testing.T) {
 	if c := load("blank"); c.GitHubURL != "" || c.PlatformURL != "" || c.CoverURL != "" {
 		t.Fatalf("empty fields overwritten: %#v", c)
 	}
+	// A database that ran the earlier links upgrade already has independent
+	// destinations. Relocating the official logo must only update the URL.
+	must(db.Where("name = ?", seekinoLogoMarker).Delete(&model.Option{}).Error)
+	must(db.Model(&model.Project{}).Where("slug = ?", "seekino").Updates(map[string]any{
+		"cover_url": formerSeekinoLogo, "cover_alt": "My whale", "project_url": "https://example.org/preview", "github_url": "",
+	}).Error)
+	must(seedProjects(db))
+	if c := load("seekino"); c.CoverURL != seekinoCover || c.CoverAlt != "My whale" || c.PlatformURL != "https://example.org/preview" || c.GitHubURL != "" {
+		t.Fatalf("moving the logo altered another field: %#v", c)
+	}
+
 	must(db.Model(&model.Project{}).Where("slug = ?", "seekino").Updates(map[string]any{"project_url": "", "github_url": "", "cover_url": oldSeekinoCover}).Error)
 	must(seedProjects(db))
 	if c := load("seekino"); c.PlatformURL != "" || c.GitHubURL != "" || c.CoverURL != oldSeekinoCover {
