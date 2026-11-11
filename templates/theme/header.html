@@ -1,4 +1,4 @@
-{{define "header"}}{{$reader := .IsPost}}{{$directory := or (eq .Active "archives") (eq .Active "categories") (eq .Active "tags") (eq .Active "search")}}<!DOCTYPE html>
+{{define "header"}}{{$reader := .IsPost}}{{$directory := or (eq .Active "projects") (eq .Active "archives") (eq .Active "categories") (eq .Active "tags") (eq .Active "search")}}<!DOCTYPE html>
 <html lang="zh-CN" data-blog-site>
 <head>
     <meta charset="utf-8"/>
@@ -35,7 +35,7 @@
     {{end}}
     {{if .Home}}<link rel="preload" as="image" href="/user/img/forest.jpg" fetchpriority="high" data-forest-source/><script src="/user/js/forest-intro.js?v=1" defer></script>{{end}}
     {{if or (eq .Active "home") (eq .Active "blogs")}}<link href="/user/css/journal.css?v=8" rel="stylesheet"/>{{end}}
-    <link href="/user/css/library.css?v=7" rel="stylesheet"/>
+    <link href="/user/css/library.css?v=9" rel="stylesheet"/>
     <script src="/user/js/html-article.js?v=3" defer></script>
     {{if not $reader}}<script type="module" src="/user/js/home.js?v=5"></script>{{end}}
     {{if .NativeGuide}}
@@ -69,6 +69,8 @@
             <div class="hx-clock" aria-label="距上次落笔的时间"><span id="hx-days">000</span><small>天</small><span id="hx-time">00:00:00</span><span class="hx-tag"><b>距上次落笔</b><span>时间仍在走</span></span></div>
         </div>
     </div>
+    {{else if .ProjectSlides}}
+    <h1 id="banner" class="fluid-seo-title">{{.Title}}</h1>
     {{else if or $reader (and (ne .Active "blogs") (ne .Active "home"))}}
     <div id="banner"
          class="fluid-banner {{if .IsPost}}fluid-banner-post{{else if .Title}}fluid-banner-page{{else}}fluid-banner-home{{end}}">

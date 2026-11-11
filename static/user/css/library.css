@@ -35,6 +35,105 @@ html[data-blog-site][data-reading]:has(.directory-main) [data-payathon-header] {
 .directory-board :is(a,summary):hover { color: var(--fluid-link); }
 .directory-board :where(ul,li) { list-style: none; margin: 0; padding: 0; }
 
+/* Project gallery. Real fragment targets keep the selected card shareable and keyboard accessible. */
+html[data-blog-site][data-reading]:has(.project-main) [data-payathon-header] { background: var(--fluid-body-bg); }
+.project-main {
+  width: min(calc(100% - 64px), 1100px);
+  min-height: calc(100svh - 96px);
+  margin-inline: auto;
+  padding-block: calc(var(--bar-height, 64px) + clamp(16px, 3vw, 38px)) clamp(24px, 4vw, 56px);
+}
+.project-carousel {
+  padding-block: clamp(20px, 4vw, 50px);
+  border: 1px solid var(--fluid-line);
+  border-radius: 24px;
+  background: var(--fluid-board-bg);
+  box-shadow: 0 8px 32px rgb(16 33 49 / .06);
+}
+.project-slide {
+  display: none;
+  grid-template-columns: clamp(44px, 5vw, 68px) minmax(0, 1fr) clamp(44px, 5vw, 68px);
+  gap: clamp(4px, 2vw, 26px);
+  align-items: center;
+  scroll-margin-top: calc(var(--bar-height, 64px) + 24px);
+  touch-action: pan-y pinch-zoom;
+}
+.project-slide:first-child, .project-slide:target { display: grid; }
+.project-carousel:has(> .project-slide:target) > .project-slide:first-child:not(:target) { display: none; }
+.project-card {
+  min-width: 0;
+  padding: clamp(14px, 2.4vw, 30px) clamp(14px, 2.4vw, 30px) clamp(20px, 3vw, 36px);
+  border: 1px solid var(--fluid-line);
+  border-radius: 18px;
+  text-align: center;
+}
+.project-cover {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 2.25 / 1;
+  max-height: 350px;
+  min-height: 140px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: radial-gradient(ellipse at 52% 22%, #eef8e9, #c6e8dc 65%, #a1d2c3);
+}
+#catendar .project-cover {
+  background: radial-gradient(ellipse at 52% 22%, #faf5ff, #e3d8ef 65%, #cebfdf);
+}
+.project-cover img {
+  display: block;
+  width: clamp(96px, 15vw, 200px);
+  height: auto;
+  filter: drop-shadow(0 8px 10px rgb(29 42 54 / .12));
+}
+.project-links { display: grid; justify-items: center; margin: 12px 0 clamp(16px, 2.3vw, 30px); }
+.project-links a {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: .45em;
+  padding-inline: 8px;
+  font-size: .9rem;
+}
+body.fluid-theme .project-links a, body.fluid-theme .project-notes a { color: var(--fluid-link); }
+.project-links a:hover, .project-notes a:hover { text-decoration: underline; text-underline-offset: .2em; }
+.project-card h2 {
+  margin: 0;
+  color: var(--fluid-post-text);
+  font: 650 clamp(1.65rem, 3.1vw, 2.6rem)/1.15 var(--fluid-font-ui);
+  letter-spacing: -.035em;
+}
+.project-card p { max-width: 36em; margin: .6em auto 0; line-height: 1.7; text-wrap: pretty; }
+.project-step {
+  display: grid;
+  place-items: center;
+  height: clamp(100px, 16vw, 200px);
+  border: 1px solid var(--fluid-line);
+  border-radius: 14px;
+  background: var(--fluid-board-bg);
+  font: 400 clamp(1.4rem, 3vw, 2rem)/1 var(--fluid-font-ui);
+}
+.project-prev { transform: translateX(-20%); }
+.project-next { transform: translateX(20%); }
+.project-step:hover { background: var(--fluid-hover-bg); }
+.project-carousel :is(a, .project-slide):focus-visible { outline: 2px solid var(--fluid-link); outline-offset: 3px; }
+.project-notes .fluid-markdown { margin-block: 24px; }
+.project-notes img { display: block; max-width: 100%; height: auto; border-radius: 8px; }
+@media (prefers-reduced-motion: no-preference) {
+  .project-slide:target .project-card { animation: project-arrive .2s ease-out; }
+  @keyframes project-arrive { from { opacity: .6; transform: translateY(3px); } }
+}
+@media (max-width: 600px) {
+  .project-main { width: calc(100% - 24px); min-height: auto; }
+  .project-carousel { border-radius: 16px; padding-block: 16px; }
+  .project-slide { gap: 2px; grid-template-columns: 44px minmax(0, 1fr) 44px; }
+  .project-card { border-radius: 12px; padding-inline: 10px; }
+  .project-step { height: 100px; border-radius: 10px; }
+  .project-links a { min-height: 44px; }
+  .project-card p { font-size: .9rem; }
+}
+
 .dated-year {
   margin: 28px 0 6px;
   font: 600 1.25rem/1.4 var(--fluid-font-ui);

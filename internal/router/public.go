@@ -20,6 +20,8 @@ func registerPublicRoutes(engine *gin.Engine, routes handler.PublicRouteHandlers
 	engine.GET("/search/:keyword", routes.Search)
 	engine.GET("/search/:keyword/:page", routes.Search)
 	engine.GET("/blogs", routes.Blogs)
+	engine.GET("/projects", routes.Projects)
+	engine.GET("/projects/:slug", routes.ProjectNotes)
 	engine.GET("/topics", routes.Topics)
 	engine.GET("/notes", routes.Topics)
 	engine.GET("/categories", routes.Library)

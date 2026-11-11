@@ -143,14 +143,17 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`var spawnDepth = Math.min(120, viewportHeight * 0.16);`,
 		`document.addEventListener('DOMContentLoaded', mountPage, {once: true});`,
 		`>Home</a>`,
+		`>Projects</a>`,
 		`>Archives</a>`,
 		`>Categories</a>`,
-		`>Tags</a>`,
 		`>About</a>`,
 	} {
 		if !strings.Contains(string(homeHTML), marker) {
 			t.Fatalf("home page missing UI marker %q", marker)
 		}
+	}
+	if !regexp.MustCompile(`>Home</a>\s*<a href="/projects"`).Match(homeHTML) || bytes.Contains(homeHTML, []byte(`>Tags</a>`)) {
+		t.Fatal("Projects must replace Tags and immediately follow Home in the main navigation")
 	}
 	if strings.Contains(string(homeHTML), `id="hx-strip"`) || strings.Contains(string(homeHTML), `id="hx-labels"`) {
 		t.Fatal("home feed must follow the intro without promotional sections")
@@ -216,7 +219,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	for _, marker := range []string{
 		`id="blog-library"`,
 		`class="column-index"`,
-		`href="/tags"`,
+		`href="/projects"`,
 		`href="/archives"`,
 	} {
 		if !strings.Contains(string(topicsHTML), marker) {

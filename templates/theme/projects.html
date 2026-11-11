@@ -1,0 +1,41 @@
+{{define "projects"}}
+{{template "header" .}}
+<main id="fluid-page-main" class="project-main" aria-labelledby="banner">
+  <section class="project-carousel" aria-label="个人项目" aria-roledescription="轮播">
+    {{range .ProjectSlides}}
+    <div class="project-slide" id="{{.Slug}}" tabindex="-1" role="group" aria-labelledby="title-{{.Slug}}">
+      <a class="project-step project-prev" href="#{{.Previous}}" aria-label="上一个项目"><span aria-hidden="true">←</span></a>
+      <article class="project-card">
+        <div class="project-cover">
+          <img src="/user/img/projects/{{.Slug}}.webp" width="480" height="480" alt="{{.Name}} 标志" decoding="async"/>
+        </div>
+        <div class="project-links">
+          <a href="{{.Repository}}" target="_blank" rel="noopener noreferrer" aria-label="在 GitHub 打开 {{.Name}} 项目">访问 GitHub 项目 <span aria-hidden="true">↗</span></a>
+          <a href="/projects/{{.Slug}}" aria-label="阅读 {{.Name}} 的站内介绍">阅读站内介绍 <span aria-hidden="true">→</span></a>
+        </div>
+        <h2 id="title-{{.Slug}}">{{.Name}}</h2>
+        <p>{{.Summary}}</p>
+      </article>
+      <a class="project-step project-next" href="#{{.Next}}" aria-label="下一个项目"><span aria-hidden="true">→</span></a>
+    </div>
+    {{end}}
+  </section>
+</main>
+{{template "footer" .}}
+{{end}}
+
+{{define "project-notes"}}
+{{template "header" .}}
+<main id="fluid-page-main" class="fluid-main directory-main" aria-labelledby="directory-title">
+  <div class="fluid-board directory-board">
+    <article class="directory-inner project-notes" id="board">
+      {{with .Project}}
+      <a class="directory-back" href="/projects#{{.Slug}}">← 返回项目展示</a>
+      <div class="fluid-markdown">{{article .Notes}}</div>
+      <p><a href="{{.Repository}}" target="_blank" rel="noopener noreferrer">在 GitHub 查看 {{.Name}} <span aria-hidden="true">↗</span></a></p>
+      {{end}}
+    </article>
+  </div>
+</main>
+{{template "footer" .}}
+{{end}}

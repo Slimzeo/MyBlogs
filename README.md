@@ -161,6 +161,8 @@ CLI 会读取 Markdown 的 YAML front matter，收集正文引用的本地图片
 
 当前导航栏中的 `关于` 默认指向 `/about`，因此可以创建或编辑 slug 为 `about` 的页面。
 
+Home 右侧的 Projects（`/projects`）可以左右切换项目。每张卡片都能打开项目仓库和站内介绍。名称、简介、仓库地址和介绍正文在 `internal/handler/projects.go` 中维护。
+
 首页是 Hypnos 的赛博日记，也是用实际记录写成的电子简历。保留开场动画，往下只展示按日期从新到旧排列的文章卡片；日记精华、读书笔记和实践记录都在这里。点击左上角站标可回到首页。
 
 `/blogs` 直接打开时间线。Archives（`/archives`）按年份列出日期和标题。Categories（`/categories`）可以展开专栏，也可以进入专栏按标签筛选。Tags（`/tags`）按话题找不同专栏里的文章。每篇文章属于一个专栏，可以有多个标签。旧的 `/notes` 链接保留已有筛选。AI 整理的摘录沿用草稿导入流程。

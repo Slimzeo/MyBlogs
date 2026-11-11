@@ -19,6 +19,8 @@ type PublicRouteHandlers struct {
 	Search          gin.HandlerFunc
 	Topics          gin.HandlerFunc
 	Blogs           gin.HandlerFunc
+	Projects        gin.HandlerFunc
+	ProjectNotes    gin.HandlerFunc
 	Library         gin.HandlerFunc
 	Archives        gin.HandlerFunc
 	Links           gin.HandlerFunc
@@ -111,6 +113,8 @@ func (server *Server) RouteHandlers() RouteHandlers {
 			Search:          server.search,
 			Topics:          server.topics,
 			Blogs:           server.blogs,
+			Projects:        server.projects,
+			ProjectNotes:    server.projectNotes,
 			Library:         server.library,
 			Archives:        server.archives,
 			Links:           server.links,
