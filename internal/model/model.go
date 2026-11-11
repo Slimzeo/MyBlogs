@@ -120,6 +120,24 @@ type Log struct {
 
 func (Log) TableName() string { return "t_logs" }
 
+// Project is a t_projects row: one card in the public horizontal gallery.
+// Sort is explicit; ties fall back to the primary key for a stable order.
+type Project struct {
+	ID         int    `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	Slug       string `gorm:"column:slug;uniqueIndex;size:100;not null" json:"slug"`
+	Name       string `gorm:"column:name;size:120;not null" json:"name"`
+	Summary    string `gorm:"column:summary;size:500;not null" json:"summary"`
+	Notes      string `gorm:"column:notes;type:mediumtext" json:"notes"`
+	CoverURL   string `gorm:"column:cover_url;size:1024" json:"coverUrl"`
+	CoverAlt   string `gorm:"column:cover_alt;size:300" json:"coverAlt"`
+	ProjectURL string `gorm:"column:project_url;size:1024" json:"projectUrl"`
+	Sort       int    `gorm:"column:sort;not null;default:0;index" json:"sort"`
+	Created    int    `gorm:"column:created;not null;default:0" json:"created"`
+	Modified   int    `gorm:"column:modified;not null;default:0" json:"modified"`
+}
+
+func (Project) TableName() string { return "t_projects" }
+
 // APIToken grants a deliberately narrow machine-to-machine capability. The
 // plaintext secret is never persisted; SecretHash stores its SHA-256 digest.
 type APIToken struct {

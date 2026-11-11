@@ -1,0 +1,77 @@
+{{define "admin/project_edit"}}
+{{template "admin/header" .}}
+{{$project := .Project}}
+<style>
+    .project-form-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .project-form-actions .btn { display:inline-flex; align-items:center; justify-content:center; min-height:44px; margin:0; padding:8px 16px; border:1px solid var(--admin-line); font:inherit; font-size:14px; cursor:pointer; }
+    .project-form-actions .btn-primary { color:white; border-color:var(--admin-primary); }
+    .project-form-actions .btn-default { color:var(--admin-ink); background:var(--admin-panel); }
+</style>
+<div class="card" style="max-width:820px;">
+    <h3>{{if $project}}编辑项目卡片{{else}}新建项目卡片{{end}}</h3>
+    <form id="project-form" action="/admin/projects/save" method="post">
+        <input type="hidden" name="_csrf_token" value="{{.CsrfToken}}"/>
+        <input type="hidden" name="id" value="{{if $project}}{{$project.ID}}{{end}}"/>
+
+        <label for="project-name">名称</label>
+        <input id="project-name" type="text" name="name" maxlength="120" required value="{{if $project}}{{$project.Name}}{{end}}"/>
+
+        <label for="project-slug">路径</label>
+        <input id="project-slug" type="text" name="slug" maxlength="100" required value="{{if $project}}{{$project.Slug}}{{end}}"/>
+        <p class="help-block">使用字母、数字、- 或 _，最多 100 个字符。公开详情地址为 /projects/路径。</p>
+
+        <label for="project-summary">简介</label>
+        <textarea id="project-summary" name="summary" rows="3" maxlength="500" required>{{if $project}}{{$project.Summary}}{{end}}</textarea>
+
+        <label for="project-cover">封面图片 URL</label>
+        <input id="project-cover" type="url" name="cover_url" maxlength="1024" placeholder="https://raw.githubusercontent.com/..." value="{{if $project}}{{$project.CoverURL}}{{end}}"/>
+        <p class="help-block">粘贴 GitHub 仓库中的图片链接即可。留空时显示文字卡片。</p>
+
+        <label for="project-cover-alt">封面描述</label>
+        <input id="project-cover-alt" type="text" name="cover_alt" maxlength="300" value="{{if $project}}{{$project.CoverAlt}}{{end}}"/>
+        <p class="help-block">用一句话描述图片，方便使用读屏软件的访客。</p>
+
+        <label for="project-url">项目链接</label>
+        <input id="project-url" type="url" name="project_url" maxlength="1024" placeholder="https://github.com/owner/repo" value="{{if $project}}{{$project.ProjectURL}}{{end}}"/>
+        <p class="help-block">HTTP 或 HTTPS 地址。留空时卡片不显示外链。</p>
+
+        <label for="project-sort">排序</label>
+        <input id="project-sort" type="number" name="sort" value="{{if $project}}{{$project.Sort}}{{else}}0{{end}}"/>
+        <p class="help-block">数字越小越靠前；相同排序按创建顺序稳定排列。</p>
+
+        <label for="project-notes">站内笔记（Markdown）</label>
+        <textarea id="project-notes" name="notes" rows="12">{{if $project}}{{$project.Notes}}{{end}}</textarea>
+        <p class="help-block">这里的文字显示在项目介绍页，封面与卡片共用。</p>
+
+        <p id="project-feedback" class="help-block" role="status" aria-live="polite"></p>
+        <div class="project-form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a class="btn btn-default" href="/admin/projects">取消</a>
+            {{if $project}}<a class="btn btn-default" href="/projects/{{$project.Slug}}" target="_blank" rel="noopener">查看公开页</a>{{end}}
+        </div>
+    </form>
+</div>
+<script>
+    $('#project-form').submit(function(event){
+        event.preventDefault();
+        var form = $(this);
+        var submit = form.find('button[type=submit]').prop('disabled', true);
+        $('#project-feedback').text('保存中…');
+        $.post(form.attr('action'), form.serialize())
+            .done(function(result){
+                if(result.success){
+                    $('#project-feedback').text('已保存，正在返回列表…');
+                    window.location.href = '/admin/projects';
+                    return;
+                }
+                $('#project-feedback').text(result.msg || '保存失败');
+                submit.prop('disabled', false);
+            })
+            .fail(function(){
+                $('#project-feedback').text('保存失败，请稍后重试');
+                submit.prop('disabled', false);
+            });
+    });
+</script>
+{{template "admin/footer" .}}
+{{end}}

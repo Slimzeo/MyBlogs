@@ -1,0 +1,31 @@
+{{define "admin/projects"}}
+{{template "admin/header" .}}
+<div class="card">
+    <h3 style="display:flex;justify-content:space-between;">项目卡片 <a class="btn btn-primary btn-sm" href="/admin/projects/new">新建项目卡片</a></h3>
+    {{if .Message}}<p class="help-block">{{.Message}}</p>{{end}}
+    <table>
+        <thead><tr><th style="width:70px;">排序</th><th>名称与简介</th><th style="width:130px;">路径</th><th style="width:100px;">项目链接</th><th style="width:140px;">操作</th></tr></thead>
+        <tbody>
+        {{range .Projects}}
+        <tr>
+            <td>{{.Sort}}</td>
+            <td><a href="/projects/{{.Slug}}" target="_blank" rel="noopener">{{.Name}}</a><div class="help-block" style="max-width:520px;">{{.Summary}}</div></td>
+            <td>{{.Slug}}</td>
+            <td>{{if .ProjectURL}}<a href="{{.ProjectURL}}" target="_blank" rel="noopener noreferrer">访问项目 ↗</a>{{else}}—{{end}}</td>
+            <td>
+                <a class="btn btn-default btn-sm" href="/admin/projects/{{.ID}}">编辑</a>
+                <a class="btn btn-danger btn-sm" href="javascript:;" onclick="deleteProject({{.ID}})">删除</a>
+            </td>
+        </tr>
+        {{else}}<tr><td colspan="5">暂无项目卡片。公开项目页会显示空状态。</td></tr>{{end}}
+        </tbody>
+    </table>
+</div>
+<script>
+    function deleteProject(id){
+        if(!confirm('确定删除这张项目卡片？'))return;
+        $.post('/admin/projects/delete',{id:id},function(r){ if(r.success){location.reload();}else{alert(r.msg||'删除失败');}}).fail(function(){ alert('删除失败，请稍后重试'); });
+    }
+</script>
+{{template "admin/footer" .}}
+{{end}}

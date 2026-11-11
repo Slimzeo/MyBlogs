@@ -100,11 +100,14 @@ func TestBlogLibraryReadingPaths(t *testing.T) {
 	if strings.Index(projects, bannerImage) > strings.Index(projects, `class="project-carousel"`) {
 		t.Fatal("Projects must show the configured page photo above the carousel")
 	}
-	has(projects, `href="/projects" aria-current="page"`, `class="project-carousel"`, `href="#catendar"`, `href="#seekino"`,
-		`href="https://github.com/owariband/Seekino"`, `href="https://github.com/Slimzeo/catendar"`)
-	absent(projects, `class="tag-index"`, `>Tags</a>`)
+	has(projects, `href="/projects" aria-current="page"`, `class="project-carousel"`, `class="project-rail"`,
+		`id="seekino"`, `id="catendar"`, `data-project-card`,
+		`href="https://github.com/owariband/Seekino"`, `href="https://github.com/Slimzeo/catendar"`,
+		`src="https://raw.githubusercontent.com/owariband/Seekino/main/assets/screenshots/search-results.jpg"`,
+		`src="https://raw.githubusercontent.com/Slimzeo/catendar/main/docs/daily-board.png"`)
+	absent(projects, `class="tag-index"`, `>Tags</a>`, `src="/user/img/projects/`)
+	has(projects, `href="/projects/seekino"`, `href="/projects/catendar"`)
 	for _, slug := range []string{"seekino", "catendar"} {
-		has(projects, `href="/projects/`+slug+`"`, `src="/user/img/projects/`+slug+`.webp"`)
 		has(get("/projects/"+slug, http.StatusOK), bannerImage, `href="/projects#`+slug+`"`, `class="fluid-markdown"`)
 	}
 	get("/projects/unknown", http.StatusNotFound)

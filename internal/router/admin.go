@@ -36,6 +36,12 @@ func registerAdminRoutes(engine *gin.Engine, routes handler.AdminRouteHandlers, 
 	admin.POST("/page/modify", routes.ModifyPage)
 	admin.POST("/page/delete", routes.DeletePage)
 
+	admin.GET("/projects", routes.ProjectCards)
+	admin.GET("/projects/new", routes.NewProject)
+	admin.GET("/projects/:id", routes.EditProject)
+	admin.POST("/projects/save", routes.SaveProject)
+	admin.POST("/projects/delete", routes.DeleteProject)
+
 	admin.GET("/comments", routes.Comments)
 	admin.POST("/comments", routes.ReplyComment)
 	admin.POST("/comments/delete", routes.DeleteComment)

@@ -1271,8 +1271,9 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(backupSQL), "CREATE TABLE") ||
-		!strings.Contains(string(backupSQL), "INSERT INTO `t_contents`") {
-		t.Fatal("database backup does not contain schema and content data")
+		!strings.Contains(string(backupSQL), "INSERT INTO `t_contents`") ||
+		!strings.Contains(string(backupSQL), "INSERT INTO `t_projects`") {
+		t.Fatal("database backup does not contain schema, content and project data")
 	}
 	for index := range 2 {
 		withoutSlug := &model.Content{

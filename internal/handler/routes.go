@@ -53,6 +53,11 @@ type AdminRouteHandlers struct {
 	PublishPage        gin.HandlerFunc
 	ModifyPage         gin.HandlerFunc
 	DeletePage         gin.HandlerFunc
+	ProjectCards       gin.HandlerFunc
+	NewProject         gin.HandlerFunc
+	EditProject        gin.HandlerFunc
+	SaveProject        gin.HandlerFunc
+	DeleteProject      gin.HandlerFunc
 	Comments           gin.HandlerFunc
 	ReplyComment       gin.HandlerFunc
 	DeleteComment      gin.HandlerFunc
@@ -146,6 +151,11 @@ func (server *Server) RouteHandlers() RouteHandlers {
 			PublishPage:        server.adminPagePublish,
 			ModifyPage:         server.adminPageModify,
 			DeletePage:         server.adminPageDelete,
+			ProjectCards:       server.adminProjectCards,
+			NewProject:         server.adminProjectNew,
+			EditProject:        server.adminProjectEdit,
+			SaveProject:        server.adminProjectSave,
+			DeleteProject:      server.adminProjectDelete,
 			Comments:           server.adminCommentList,
 			ReplyComment:       server.adminCommentReply,
 			DeleteComment:      server.adminCommentDelete,

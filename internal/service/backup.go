@@ -66,7 +66,7 @@ func (s *Service) writeSQLBackup(target string) error {
 	}
 	for _, table := range []string{
 		"t_users", "t_options", "t_contents", "t_metas",
-		"t_relationships", "t_comments", "t_attach", "t_logs",
+		"t_relationships", "t_comments", "t_attach", "t_logs", "t_projects",
 	} {
 		if err := s.dumpTable(entry, table); err != nil {
 			return err

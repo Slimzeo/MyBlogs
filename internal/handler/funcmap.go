@@ -62,15 +62,16 @@ func buildFuncMap(sc *SiteConfig) template.FuncMap {
 		"existCat":  existCat,
 
 		// ---- generic helpers ----
-		"substr":    substr,
-		"add":       func(a, b int) int { return a + b },
-		"sub":       func(a, b int) int { return a - b },
-		"eq":        func(a, b interface{}) bool { return a == b },
-		"seq":       seq,
-		"safeHTML":  func(s string) template.HTML { return template.HTML(s) },
-		"urlEncode": url.PathEscape,
-		"isFuture":  func(unixTime int) bool { return int64(unixTime) > time.Now().Unix() },
-		"dict":      dict,
+		"substr":        substr,
+		"projectAnchor": projectAnchor,
+		"add":           func(a, b int) int { return a + b },
+		"sub":           func(a, b int) int { return a - b },
+		"eq":            func(a, b interface{}) bool { return a == b },
+		"seq":           seq,
+		"safeHTML":      func(s string) template.HTML { return template.HTML(s) },
+		"urlEncode":     url.PathEscape,
+		"isFuture":      func(unixTime int) bool { return int64(unixTime) > time.Now().Unix() },
+		"dict":          dict,
 		"default": func(def, val string) string {
 			if strings.TrimSpace(val) == "" {
 				return def

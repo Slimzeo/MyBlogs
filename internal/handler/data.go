@@ -11,8 +11,8 @@ import (
 type PageData struct {
 	NativeGuide      bool
 	Library          *blogLibrary
-	ProjectSlides    []projectSlide
-	Project          *personalProject
+	Projects         []model.Project
+	Project          *model.Project
 	Home             bool
 	PublicSummary    service.PublicSummary
 	HomeContent      service.HomeContent

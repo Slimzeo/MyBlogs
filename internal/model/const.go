@@ -26,17 +26,19 @@ const ScopeArticleImport = "article:import"
 
 // Log action labels mirror the Java `LogActions` enum.
 const (
-	LogLogin       = "登录后台"
-	LogUpPwd       = "修改密码"
-	LogUpInfo      = "修改个人信息"
-	LogDelArticle  = "删除文章"
-	LogDelPage     = "删除页面"
-	LogSysBackup   = "系统备份"
-	LogSysSetting  = "保存系统设置"
-	LogInitSite    = "初始化站点"
-	LogCreateToken = "创建 Agent 密钥"
-	LogRevokeToken = "撤销 Agent 密钥"
-	LogAgentImport = "Agent 导入文章"
+	LogLogin         = "登录后台"
+	LogUpPwd         = "修改密码"
+	LogUpInfo        = "修改个人信息"
+	LogDelArticle    = "删除文章"
+	LogDelPage       = "删除页面"
+	LogSysBackup     = "系统备份"
+	LogSysSetting    = "保存系统设置"
+	LogInitSite      = "初始化站点"
+	LogCreateToken   = "创建 Agent 密钥"
+	LogRevokeToken   = "撤销 Agent 密钥"
+	LogAgentImport   = "Agent 导入文章"
+	LogSaveProject   = "保存项目卡片"
+	LogDeleteProject = "删除项目卡片"
 )
 
 // Web-wide constants mirror the Java `WebConst`.

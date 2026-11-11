@@ -89,6 +89,7 @@ func autoMigrate(gdb *gorm.DB) error {
 		&model.Attach{},
 		&model.Log{},
 		&model.APIToken{},
+		&model.Project{},
 	); err != nil {
 		return err
 	}
@@ -198,6 +199,9 @@ func seed(gdb *gorm.DB, cfg *config.Config) error {
 		if err := gdb.Create(&opts).Error; err != nil {
 			return err
 		}
+	}
+	if err := seedProjects(gdb); err != nil {
+		return err
 	}
 	if err := migrateThemeBanners(gdb); err != nil {
 		return err

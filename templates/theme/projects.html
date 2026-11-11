@@ -1,24 +1,34 @@
 {{define "projects"}}
 {{template "header" .}}
 <main id="fluid-page-main" class="project-main" aria-labelledby="directory-title">
-  <section id="board" class="project-carousel" aria-label="个人项目" aria-roledescription="轮播">
-    {{range .ProjectSlides}}
-    <div class="project-slide" id="{{.Slug}}" tabindex="-1" role="group" aria-labelledby="title-{{.Slug}}">
-      <a class="project-step project-prev" href="#{{.Previous}}" aria-label="上一个项目"><span aria-hidden="true">←</span></a>
-      <article class="project-card">
-        <div class="project-cover">
-          <img src="/user/img/projects/{{.Slug}}.webp" width="480" height="480" alt="{{.Name}} 标志" decoding="async"/>
+  <link rel="stylesheet" href="/user/css/projects.css?v=1"/>
+  <section id="board" class="project-carousel" aria-label="个人项目">
+    {{if .Projects}}
+    <div class="project-rail" id="projects-track" data-project-rail tabindex="0" role="region" aria-label="项目卡片，可左右滚动">
+      {{range .Projects}}
+      <article class="project-card" id="{{projectAnchor .Slug}}" data-project-card tabindex="-1">
+        <div class="project-copy">
+          <h2 class="project-name"><a class="project-card-title" href="/projects/{{.Slug}}" aria-label="阅读 {{.Name}} 的项目介绍">{{.Name}}</a></h2>
+          <p class="project-summary">{{.Summary}}</p>
+          {{if .ProjectURL}}<a class="project-repo" href="{{.ProjectURL}}" target="_blank" rel="noopener noreferrer" aria-label="打开 {{.Name}} 的项目地址">访问项目 <span aria-hidden="true">↗</span></a>{{end}}
         </div>
-        <div class="project-links">
-          <a href="{{.Repository}}" target="_blank" rel="noopener noreferrer" aria-label="在 GitHub 打开 {{.Name}} 项目">访问 GitHub 项目 <span aria-hidden="true">↗</span></a>
-          <a href="/projects/{{.Slug}}" aria-label="阅读 {{.Name}} 的站内介绍">阅读站内介绍 <span aria-hidden="true">→</span></a>
+        <div class="project-art">
+          <span class="project-art-mark" aria-hidden="true">{{substr .Name 1}}</span>
+          {{if .CoverURL}}<img src="{{.CoverURL}}" alt="{{if .CoverAlt}}{{.CoverAlt}}{{else}}{{.Name}} 项目截图{{end}}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()"/>{{end}}
         </div>
-        <h2 id="title-{{.Slug}}">{{.Name}}</h2>
-        <p>{{.Summary}}</p>
+        <span class="project-details" aria-hidden="true">项目介绍 <span class="project-details-arrow">›</span></span>
       </article>
-      <a class="project-step project-next" href="#{{.Next}}" aria-label="下一个项目"><span aria-hidden="true">→</span></a>
+      {{end}}
     </div>
-    {{end}}
+    <div class="project-rail-footer" hidden>
+      <button type="button" class="project-rail-button" data-project-prev aria-label="上一个项目" aria-controls="projects-track" disabled>
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></svg>
+      </button>
+      <button type="button" class="project-rail-button" data-project-next aria-label="下一个项目" aria-controls="projects-track">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></svg>
+      </button>
+    </div>
+    {{else}}<p class="project-empty">还没有项目卡片。</p>{{end}}
   </section>
 </main>
 {{template "footer" .}}
@@ -27,12 +37,14 @@
 {{define "project-notes"}}
 {{template "header" .}}
 <main id="fluid-page-main" class="fluid-main directory-main" aria-labelledby="directory-title">
+  <link rel="stylesheet" href="/user/css/projects.css?v=1"/>
   <div class="fluid-board directory-board">
     <article class="directory-inner project-notes" id="board">
       {{with .Project}}
-      <a class="directory-back" href="/projects#{{.Slug}}">← 返回项目展示</a>
-      <div class="fluid-markdown">{{article .Notes}}</div>
-      <p><a href="{{.Repository}}" target="_blank" rel="noopener noreferrer">在 GitHub 查看 {{.Name}} <span aria-hidden="true">↗</span></a></p>
+      <a class="directory-back" href="/projects#{{projectAnchor .Slug}}">← 返回项目展示</a>
+      <div class="fluid-markdown">{{if .Notes}}{{article .Notes}}{{else}}<p>{{.Summary}}</p>{{end}}</div>
+      {{if .CoverURL}}<img src="{{.CoverURL}}" alt="{{if .CoverAlt}}{{.CoverAlt}}{{else}}{{.Name}} 项目截图{{end}}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()"/>{{end}}
+      {{if .ProjectURL}}<p><a href="{{.ProjectURL}}" target="_blank" rel="noopener noreferrer">访问 {{.Name}} <span aria-hidden="true">↗</span></a></p>{{end}}
       {{end}}
     </article>
   </div>
