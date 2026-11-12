@@ -274,7 +274,7 @@ func (server *Server) archives(context *gin.Context) {
 		server.render(context, http.StatusNotFound, "error_404", PageData{})
 		return
 	}
-	data := server.baseData(context, "文章归档", "archives")
+	data := server.baseData(context, "Archives", "archives")
 	server.directoryPosts(context, data, "", "", clampPage(queryInt(context, "page", 1)))
 }
 
@@ -353,6 +353,7 @@ func (server *Server) customPageOrNotFound(context *gin.Context) {
 	data := server.baseData(context, content.Title, "")
 	if path == "about" {
 		data.Active = "about"
+		data.Title = "About"
 	}
 	data.Article = content
 	data.Hits = server.hitCounter.Current(content.Cid)

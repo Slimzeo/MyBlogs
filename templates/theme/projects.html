@@ -1,9 +1,12 @@
 {{define "projects"}}
 {{template "header" .}}
 <main id="fluid-page-main" class="project-main" aria-labelledby="directory-title">
-  <link rel="stylesheet" href="/user/css/projects.css?v=3"/>
-  <section id="board" class="project-carousel" aria-label="个人项目">
+  <link rel="stylesheet" href="/user/css/projects.css?v=6"/>
+  <section id="board" class="project-carousel" aria-labelledby="directory-title">
     {{if .Projects}}
+    <div class="gallery-glow" aria-hidden="true">
+      <span data-palette="0"></span><span data-palette="1"></span><span data-palette="2"></span>
+    </div>
     <div class="project-rail" id="projects-track" data-project-rail tabindex="0" role="region" aria-label="项目卡片，可左右滚动">
       {{range .Projects}}
       {{$project := .}}
@@ -53,7 +56,7 @@
       {{end}}
     </div>
     <div class="project-rail-footer" hidden>
-      <button type="button" class="project-rail-button" data-project-prev aria-label="上一个项目" aria-controls="projects-track" disabled>
+      <button type="button" class="project-rail-button" data-project-prev aria-label="上一个项目" aria-controls="projects-track">
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></svg>
       </button>
       <button type="button" class="project-rail-button" data-project-next aria-label="下一个项目" aria-controls="projects-track">

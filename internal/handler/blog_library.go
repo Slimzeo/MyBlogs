@@ -60,7 +60,7 @@ func (server *Server) library(context *gin.Context) {
 		context.Redirect(http.StatusFound, libraryURL(category, tag, page))
 		return
 	}
-	title, active := "文章专栏", "categories"
+	title, active := "Categories", "categories"
 	if tagIndex {
 		title, active = "标签", "tags"
 	}

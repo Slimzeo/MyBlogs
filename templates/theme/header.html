@@ -11,7 +11,7 @@
     <meta name="description" content="{{if .Description}}{{.Description}}{{else}}{{siteOption "site_description" ""}}{{end}}"/>
     <link rel="shortcut icon" href="/user/img/favicon.png"/>
     <link rel="apple-touch-icon" href="/user/img/apple-touch-icon.png"/>
-    <title>{{if .Title}}{{.Title}}{{else}}首页{{end}} - {{siteOption "site_title" "HypN0s-Cloud"}}</title>
+    <title>{{if .Title}}{{.Title}}{{else}}Home{{end}} - {{siteOption "site_title" "HypN0s-Cloud"}}</title>
     <script src="/user/js/color-scheme.js?v=1"></script>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
     <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css" onload="this.onload=null;this.rel='stylesheet'"/>
@@ -91,7 +91,7 @@
                     <span>{{.Article.CommentsNum}} 条评论</span>
                 </div>
                 {{else if .Article}}
-                <div class="fluid-banner-title">{{.Article.Title}}</div>
+                <div class="fluid-banner-title">{{.Title}}</div>
                 {{else if .Title}}
                 <div class="fluid-banner-title">{{if .Keyword}}{{.Type}} · {{.Keyword}}{{else}}{{.Title}}{{end}}</div>
                 {{else}}

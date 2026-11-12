@@ -8,7 +8,7 @@ import (
 )
 
 func (server *Server) projects(context *gin.Context) {
-	data := server.baseData(context, "个人项目", "projects")
+	data := server.baseData(context, "Projects", "projects")
 	data.Description = "Hypnos 的个人项目简介与项目地址。"
 	projects, err := server.service.Projects()
 	if err != nil {

@@ -4,7 +4,7 @@
     <div class="fluid-container">
         <section id="board" class="fluid-board fluid-page-board{{if eq .Article.Slug "about"}} fluid-about-page-board{{end}}">
             <article class="fluid-post-content">
-                <h1 class="fluid-seo-title">{{.Article.Title}}</h1>
+                <h1 class="fluid-seo-title">{{.Title}}</h1>
                 {{if eq .Article.Slug "about"}}
                 {{$github := siteOption "social_github" "https://github.com/Slimzeo"}}
                 <section class="fluid-about-snapshot" aria-label="GitHub 主页截图">

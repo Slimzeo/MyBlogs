@@ -95,7 +95,7 @@ func TestBlogLibraryReadingPaths(t *testing.T) {
 	absent(feed, `class="library-shelves"`)
 	projects := get("/projects", http.StatusOK)
 	bannerImage := `src="` + pageBanner + `"`
-	has(projects, `class="fluid-banner fluid-banner-page"`, bannerImage, `id="directory-title">个人项目</h1>`,
+	has(projects, `class="fluid-banner fluid-banner-page"`, bannerImage, `id="directory-title">Projects</h1>`,
 		`id="scroll-down"`, `id="board" class="project-carousel"`)
 	if strings.Index(projects, bannerImage) > strings.Index(projects, `class="project-carousel"`) {
 		t.Fatal("Projects must show the configured page photo above the carousel")
