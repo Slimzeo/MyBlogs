@@ -54,9 +54,9 @@
     <footer class="journal-foot">
       {{if gt .Articles.Pages 1}}
       <nav class="journal-pager" aria-label="记录分页">
-        {{if .Articles.HasPreviousPage}}<a href="{{journalPageURL .Articles.PrePage .Articles.PageSize .Active}}" rel="prev">← 较新的记录</a>{{end}}
+        {{if .Articles.HasPreviousPage}}<a href="{{journalPageURL .Articles.PrePage .Articles.PageSize .Active}}" rel="prev" aria-label="上一页"><span aria-hidden="true">←</span></a>{{end}}
         <span>{{.Articles.PageNum}} / {{.Articles.Pages}}</span>
-        {{if .Articles.HasNextPage}}<a href="{{journalPageURL .Articles.NextPage .Articles.PageSize .Active}}" rel="next">更早的记录 →</a>{{end}}
+        {{if .Articles.HasNextPage}}<a href="{{journalPageURL .Articles.NextPage .Articles.PageSize .Active}}" rel="next" aria-label="下一页"><span aria-hidden="true">→</span></a>{{end}}
       </nav>
       {{else if .Articles.Total}}<span>共 {{.Articles.Total}} 篇</span>{{end}}
       <a class="journal-columns" href="/categories">浏览专栏 <span aria-hidden="true">→</span></a>

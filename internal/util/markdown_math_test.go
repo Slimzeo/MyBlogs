@@ -35,7 +35,7 @@ func TestArticleKeepsCodeCurrencyAndUnclosedMathLiteral(t *testing.T) {
 	if strings.Count(html, `class="math-inline"`) != 2 || strings.Contains(html, `class="math-display"`) {
 		t.Fatalf("unexpected formulas: %s", html)
 	}
-	for _, want := range []string{"$5 and $10", "<code>$x$</code>", "$2.", `class="language-python"`, "$x_i$", "Unclosed $x", "<h1>Next section</h1>", `$a+\$5$`} {
+	for _, want := range []string{"$5 and $10", "<code>$x$</code>", "$2.", `class="language-python"`, `class="chroma"`, `class="nb">print</span>`, "$x_i$", "Unclosed $x", "<h1>Next section</h1>", `$a+\$5$`} {
 		if !strings.Contains(html, want) {
 			t.Errorf("missing %q in %s", want, html)
 		}
@@ -46,5 +46,18 @@ func TestMathBlocksPreserveEditorScrollAnchors(t *testing.T) {
 	source := "先看 $x$。\n\n$$\na+b\n$$\n\n然后看 `$x$`。"
 	if got, want := ArticleBlockLines(source), []int{1, 3, 7}; !reflect.DeepEqual(got, want) {
 		t.Errorf("block lines = %v, want %v", got, want)
+	}
+}
+
+func TestArticleKeepsMathAndUnknownFencesPlain(t *testing.T) {
+	input := "```math\nx^2\n```\n\n```mermaid\ngraph TD\n```\n"
+	html := Article(input)
+	for _, want := range []string{
+		"<pre><code class=\"language-math\">x^2\n</code></pre>",
+		"<pre><code class=\"language-mermaid\">graph TD\n</code></pre>",
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("missing %q in %s", want, html)
+		}
 	}
 }

@@ -118,7 +118,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	for _, marker := range []string{
 		`href="/user/css/fluid.css?v=7"`,
-		`href="/user/css/markdown.css?v=2"`,
+		`href="/user/css/markdown.css?v=3"`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css`,
 		`lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css`,
 		`class="fluid-theme fluid-font-wenkai"`,
@@ -157,9 +157,6 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 	}
 	if strings.Contains(string(homeHTML), `id="hx-strip"`) || strings.Contains(string(homeHTML), `id="hx-labels"`) {
 		t.Fatal("home feed must follow the intro without promotional sections")
-	}
-	if strings.Contains(string(homeHTML), "highlight.js/9.9.0/styles/xcode.min.css") {
-		t.Fatal("home page should not load article highlight styles")
 	}
 	for _, path := range []string{"/wiki", "/wiki/README", "/notes/Go/Concurrency/goroutines"} {
 		r, err := http.Get(testServer.URL + path)
@@ -246,7 +243,7 @@ func TestPublicAdminAndConcurrentArticleFlow(t *testing.T) {
 		`class="fluid-post-layout"`,
 		`class="fluid-board fluid-post-board"`,
 		`id="article-toc"`,
-		`highlight.js/9.9.0/styles/xcode.min.css`,
+		`href="/user/css/markdown.css?v=3"`,
 	} {
 		if !strings.Contains(string(articleHTML), marker) {
 			t.Fatalf("article page missing UI marker %q", marker)

@@ -6,25 +6,57 @@ import (
 	"regexp"
 	"strings"
 
+	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark-highlighting/v2"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
 )
 
-// md is configured once. GFM + unsafe HTML passthrough (the original commonmark
-// renderer allowed raw HTML); we sanitize the output separately for safety.
-var md = goldmark.New(
-	goldmark.WithParser(parser.NewParser(
-		parser.WithBlockParsers(parser.DefaultBlockParsers()[1:]...),
-		parser.WithInlineParsers(parser.DefaultInlineParsers()...),
-		parser.WithParagraphTransformers(parser.DefaultParagraphTransformers()...),
-	)),
-	goldmark.WithExtensions(extension.GFM, mathMarkdown{}),
-	goldmark.WithRendererOptions(html.WithUnsafe(), html.WithHardWraps()),
-)
+// Highlight code in article bodies and editor previews. Excerpts and thumbnail
+// detection use the regular Markdown renderer.
+var md = newMarkdown()
+var articleMarkdown = newMarkdown(highlighting.NewHighlighting(
+	highlighting.WithFormatOptions(chromahtml.WithClasses(true)),
+	highlighting.WithCodeBlockOptions(func(context highlighting.CodeBlockContext) []chromahtml.Option {
+		language, _ := context.Language()
+		return []chromahtml.Option{chromahtml.WithPreWrapper(codePreWrapper(language))}
+	}),
+))
+
+func newMarkdown(extras ...goldmark.Extender) goldmark.Markdown {
+	extensions := append([]goldmark.Extender{extension.GFM, mathMarkdown{}}, extras...)
+	return goldmark.New(
+		goldmark.WithParser(parser.NewParser(
+			parser.WithBlockParsers(parser.DefaultBlockParsers()[1:]...),
+			parser.WithInlineParsers(parser.DefaultInlineParsers()...),
+			parser.WithParagraphTransformers(parser.DefaultParagraphTransformers()...),
+		)),
+		goldmark.WithExtensions(extensions...),
+		goldmark.WithRendererOptions(html.WithUnsafe(), html.WithHardWraps()),
+	)
+}
+
+// Keep the fence's language class on highlighted code, as on plain code.
+type codePreWrapper string
+
+func (language codePreWrapper) Start(code bool, attrs string) string {
+	tag := "<pre" + attrs + ">"
+	if code {
+		tag += "<code class=\"language-" + stdhtml.EscapeString(string(language)) + "\">"
+	}
+	return tag
+}
+
+func (codePreWrapper) End(code bool) string {
+	if code {
+		return "</code></pre>"
+	}
+	return "</pre>"
+}
 
 // sanitizer scrubs dangerous markup while keeping the tags a blog post needs
 // (images, code, tables, links). This is stricter than the Java original,
@@ -40,11 +72,15 @@ var sanitizer = func() *bluemonday.Policy {
 
 // MdToHTML converts markdown to sanitized HTML, mirroring TaleUtils.mdToHtml.
 func MdToHTML(markdown string) string {
+	return renderMarkdown(md, markdown)
+}
+
+func renderMarkdown(engine goldmark.Markdown, markdown string) string {
 	if strings.TrimSpace(markdown) == "" {
 		return ""
 	}
 	var buf bytes.Buffer
-	if err := md.Convert([]byte(markdown), &buf); err != nil {
+	if err := engine.Convert([]byte(markdown), &buf); err != nil {
 		return ""
 	}
 	return sanitizer.Sanitize(buf.String())
@@ -115,11 +151,8 @@ func ContentIntro(value, format string, length int) string {
 
 // Article renders an article body to HTML, mirroring Commons.article.
 func Article(value string) string {
-	if strings.TrimSpace(value) == "" {
-		return ""
-	}
 	value = strings.ReplaceAll(value, "<!--more-->", "\r\n")
-	return MdToHTML(value)
+	return renderMarkdown(articleMarkdown, value)
 }
 
 // ArticleBlockLines returns the source line for each top-level Markdown block.
